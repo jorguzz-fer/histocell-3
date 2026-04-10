@@ -1,0 +1,410 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// AUTH & USERS
+// ==========================================
+model User {
+  id            Int       @id @default(autoincrement())
+  nome          String
+  email         String    @unique
+  senha         String    // bcrypt hash
+  role          String    // gerencia, tecnico, recepcao, financeiro, cliente
+  ativo         Boolean   @default(true)
+  clienteId     Int?      // Se role=cliente, vincula ao Cliente
+  primeiroAcesso Boolean  @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  cliente       Cliente?  @relation(fields: [clienteId], references: [id])
+  auditLogs     AuditLog[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ==========================================
+// M01 — CADASTRO DE CLIENTES
+// ==========================================
+model Cliente {
+  id            Int       @id @default(autoincrement())
+  tipo          String    // PJ ou PF
+  nome          String
+  nomeFantasia  String?
+  documento     String    @db.Text  // CPF/CNPJ criptografado AES-256
+  email         String
+  telefone      String?
+  segmento      String    @default("recorrente") // recorrente, esporadico, pesquisador
+  observacoes   String?   @db.Text
+  ativo         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  enderecos     Endereco[]
+  contatos      Contato[]
+  tabelaPrecos  TabelaPreco[]
+  pedidos       Pedido[]
+  orcamentos    Orcamento[]
+  faturas       Fatura[]
+  users         User[]
+
+  @@index([documento])
+  @@index([nome])
+}
+
+model Endereco {
+  id         Int     @id @default(autoincrement())
+  clienteId  Int
+  tipo       String  @default("entrega") // entrega, cobranca, sede
+  logradouro String
+  numero     String
+  complemento String?
+  bairro     String
+  cidade     String
+  uf         String  @db.Char(2)
+  cep        String  @db.Char(9)
+  principal  Boolean @default(false)
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+}
+
+model Contato {
+  id        Int     @id @default(autoincrement())
+  clienteId Int
+  nome      String
+  cargo     String?
+  email     String?
+  telefone  String?
+  principal Boolean @default(false)
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+}
+
+model TabelaPreco {
+  id        Int     @id @default(autoincrement())
+  clienteId Int
+  servicoId Int
+  preco     Decimal @db.Decimal(10, 2)
+  desconto  Decimal @default(0) @db.Decimal(5, 2) // percentual
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+  servico Servico @relation(fields: [servicoId], references: [id])
+
+  @@unique([clienteId, servicoId])
+}
+
+// ==========================================
+// SERVIÇOS (tabela base)
+// ==========================================
+model Servico {
+  id          Int     @id @default(autoincrement())
+  codigo      String  @unique
+  nome        String
+  descricao   String? @db.Text
+  precoBase   Decimal @db.Decimal(10, 2)
+  ativo       Boolean @default(true)
+
+  tabelaPrecos   TabelaPreco[]
+  itensPedido    ItemPedido[]
+  itensOrcamento ItemOrcamento[]
+
+  @@index([codigo])
+}
+
+// ==========================================
+// M02 — PEDIDOS
+// ==========================================
+model Pedido {
+  id            Int       @id @default(autoincrement())
+  clienteId     Int
+  numero        String    @unique // PED-20260410-001
+  status        String    @default("rascunho")
+  dataEnvio     DateTime?
+  dataRecebimento DateTime?
+  observacoes   String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  cliente  Cliente      @relation(fields: [clienteId], references: [id])
+  itens    ItemPedido[]
+  amostras Amostra[]
+
+  @@index([clienteId])
+  @@index([numero])
+  @@index([status])
+}
+
+model ItemPedido {
+  id        Int     @id @default(autoincrement())
+  pedidoId  Int
+  servicoId Int
+  quantidade Int    @default(1)
+  preco     Decimal @db.Decimal(10, 2)
+  desconto  Decimal @default(0) @db.Decimal(5, 2)
+
+  pedido  Pedido  @relation(fields: [pedidoId], references: [id])
+  servico Servico @relation(fields: [servicoId], references: [id])
+
+  @@index([pedidoId])
+}
+
+// ==========================================
+// M03 — RECEBIMENTO E RASTREABILIDADE
+// ==========================================
+model Amostra {
+  id              Int       @id @default(autoincrement())
+  pedidoId        Int
+  numeroInterno   String    @unique // Numeração diária Histocell
+  numeroCliente   String?   // Número do cliente (ex: Alquimipet)
+  especie         String    // canino, felino, bovino, humano, etc
+  material        String    // biópsia, citologia, etc
+  localizacao     String?   // região anatômica
+  status          String    @default("pendente")
+  observacoes     String?   @db.Text
+  dataRecebimento DateTime?
+  recebidoPor     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  pedido          Pedido    @relation(fields: [pedidoId], references: [id])
+  ordemServico    OrdemServico?
+  etiquetas       Etiqueta[]
+
+  @@index([pedidoId])
+  @@index([numeroInterno])
+  @@index([status])
+}
+
+// ==========================================
+// M04 — ORDENS DE SERVIÇO (Fluxo Analítico)
+// ==========================================
+model OrdemServico {
+  id          Int       @id @default(autoincrement())
+  amostraId   Int       @unique
+  numero      String    @unique // OS-20260410-001
+  status      String    @default("fila")
+  etapaAtual  String    @default("triagem") // triagem, macroscopia, processamento, laudo
+  prioridade  String    @default("normal") // urgente, normal
+  responsavel String?
+  observacoes String?   @db.Text
+  iniciadoEm  DateTime?
+  concluidoEm DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  amostra       Amostra        @relation(fields: [amostraId], references: [id])
+  etapas        EtapaOS[]
+  laudo         Laudo?
+
+  @@index([status])
+  @@index([etapaAtual])
+}
+
+model EtapaOS {
+  id             Int       @id @default(autoincrement())
+  ordemServicoId Int
+  etapa          String    // triagem, macroscopia, processamento, laudo
+  status         String    @default("pendente")
+  responsavel    String?
+  observacoes    String?   @db.Text
+  iniciadoEm     DateTime?
+  concluidoEm    DateTime?
+
+  ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id])
+
+  @@index([ordemServicoId])
+}
+
+model Laudo {
+  id              Int       @id @default(autoincrement())
+  ordemServicoId  Int       @unique
+  conteudo        String    @db.Text
+  macroscopia     String?   @db.Text
+  microscopia     String?   @db.Text
+  diagnostico     String?   @db.Text
+  assinadoPor     String?
+  assinadoEm      DateTime?
+  liberado        Boolean   @default(false)
+  liberadoEm      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id])
+}
+
+// ==========================================
+// M06 — ETIQUETAS
+// ==========================================
+model Etiqueta {
+  id         Int      @id @default(autoincrement())
+  amostraId  Int
+  codigo     String   @unique // código de barras / QR
+  tipo       String   // cassete, lamina, bloco
+  impresso   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  amostra Amostra @relation(fields: [amostraId], references: [id])
+
+  @@index([codigo])
+  @@index([amostraId])
+}
+
+// ==========================================
+// M07 — QUALIDADE
+// ==========================================
+model RegistroQualidade {
+  id           Int      @id @default(autoincrement())
+  tipo         String   // nao_conformidade, acao_corretiva, calibracao
+  descricao    String   @db.Text
+  status       String   @default("aberto") // aberto, em_andamento, resolvido
+  responsavel  String?
+  resolucao    String?  @db.Text
+  createdAt    DateTime @default(now())
+  resolvidoEm  DateTime?
+}
+
+// ==========================================
+// M08 — COMERCIAL / CRM
+// ==========================================
+model Orcamento {
+  id          Int       @id @default(autoincrement())
+  clienteId   Int
+  numero      String    @unique // ORC-001
+  status      String    @default("rascunho")
+  valorTotal  Decimal   @db.Decimal(10, 2)
+  desconto    Decimal   @default(0) @db.Decimal(5, 2)
+  validade    DateTime
+  observacoes String?   @db.Text
+  aprovadoPor String?   // quem aprovou desconto (gerencia)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  cliente Cliente         @relation(fields: [clienteId], references: [id])
+  itens   ItemOrcamento[]
+  followUps FollowUp[]
+
+  @@index([clienteId])
+  @@index([status])
+}
+
+model ItemOrcamento {
+  id          Int     @id @default(autoincrement())
+  orcamentoId Int
+  servicoId   Int
+  quantidade  Int     @default(1)
+  preco       Decimal @db.Decimal(10, 2)
+  desconto    Decimal @default(0) @db.Decimal(5, 2)
+
+  orcamento Orcamento @relation(fields: [orcamentoId], references: [id])
+  servico   Servico   @relation(fields: [servicoId], references: [id])
+
+  @@index([orcamentoId])
+}
+
+model FollowUp {
+  id          Int      @id @default(autoincrement())
+  orcamentoId Int
+  tipo        String   // email, telefone, whatsapp, reuniao
+  descricao   String   @db.Text
+  createdAt   DateTime @default(now())
+  criadoPor   String
+
+  orcamento Orcamento @relation(fields: [orcamentoId], references: [id])
+
+  @@index([orcamentoId])
+}
+
+// ==========================================
+// M09 — FINANCEIRO
+// ==========================================
+model Fatura {
+  id           Int       @id @default(autoincrement())
+  clienteId    Int
+  numero       String    @unique // FAT-202604-001
+  periodo      String    // 2026-04
+  valorTotal   Decimal   @db.Decimal(10, 2)
+  status       String    @default("pendente")
+  dataEmissao  DateTime  @default(now())
+  dataVencimento DateTime
+  dataPagamento DateTime?
+  observacoes  String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  cliente  Cliente       @relation(fields: [clienteId], references: [id])
+  itens    ItemFatura[]
+
+  @@index([clienteId])
+  @@index([status])
+  @@index([periodo])
+}
+
+model ItemFatura {
+  id        Int     @id @default(autoincrement())
+  faturaId  Int
+  descricao String
+  quantidade Int    @default(1)
+  valor     Decimal @db.Decimal(10, 2)
+
+  fatura Fatura @relation(fields: [faturaId], references: [id])
+
+  @@index([faturaId])
+}
+
+model CreditoPrePago {
+  id        Int      @id @default(autoincrement())
+  clienteId Int
+  valor     Decimal  @db.Decimal(10, 2)
+  tipo      String   // credito, debito
+  descricao String
+  saldo     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  @@index([clienteId])
+}
+
+// ==========================================
+// AUDITORIA (LGPD)
+// ==========================================
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String   // CREATE, READ, UPDATE, DELETE, LOGIN, EXPORT
+  entity    String
+  entityId  Int?
+  details   String?  @db.Text
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
