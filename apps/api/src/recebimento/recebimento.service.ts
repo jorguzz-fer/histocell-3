@@ -128,7 +128,7 @@ export class RecebimentoService {
     }
 
     const agora = new Date();
-    const amostrasCreated = [];
+    const amostrasCreated: any[] = [];
 
     for (const item of dto.amostras) {
       const numeroInterno = await this.gerarNumeroInterno();
