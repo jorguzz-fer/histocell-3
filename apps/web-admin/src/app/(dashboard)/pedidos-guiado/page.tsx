@@ -350,25 +350,25 @@ export default function PedidosGuiadoPage() {
             <div className="p-5">
               {/* Populares */}
               {tab === 'populares' && (
-                <div>
-                  {populares.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm">
-                      Ainda não há pedidos registrados.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      {populares.map((s) => (
-                        <ServicoCard
-                          key={s.id}
-                          servico={s}
-                          isPesquisador={isPesquisador}
-                          onAdd={() => addServico(s)}
-                          onFav={() => toggleFav(s)}
-                          isFav={favIds.has(s.id)}
-                        />
-                      ))}
+                <div className="space-y-3">
+                  {populares.length === 0 && allServicos.length > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                      <Flame className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      Sem histórico ainda — conforme os pedidos forem feitos, os mais usados aparecerão aqui. Mostrando alguns serviços disponíveis:
                     </div>
                   )}
+                  <div className="grid grid-cols-2 gap-3">
+                    {(populares.length > 0 ? populares : allServicos.slice(0, 10)).map((s) => (
+                      <ServicoCard
+                        key={s.id}
+                        servico={s}
+                        isPesquisador={isPesquisador}
+                        onAdd={() => addServico(s)}
+                        onFav={() => toggleFav(s)}
+                        isFav={favIds.has(s.id)}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
