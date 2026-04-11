@@ -231,14 +231,19 @@ export default function CadastroPage() {
                           #{c.id}
                         </td>
 
-                        {/* Nome / Apelido */}
+                        {/* Nome / Apelido — clicável pra editar */}
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <p className="text-[13px] font-medium text-slate-900 dark:text-white">
-                            {c.nomeFantasia || c.nome}
-                          </p>
-                          {c.nomeFantasia && (
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{c.nome}</p>
-                          )}
+                          <button
+                            onClick={() => abrirEditar(c)}
+                            className="text-left group"
+                          >
+                            <p className="text-[13px] font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {c.nomeFantasia || c.nome}
+                            </p>
+                            {c.nomeFantasia && (
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{c.nome}</p>
+                            )}
+                          </button>
                         </td>
 
                         {/* Documento */}
