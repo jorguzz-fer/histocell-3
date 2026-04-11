@@ -85,7 +85,7 @@ export function ServicoSearchInput({
 
   // Categorias únicas
   const categorias = useMemo(
-    () => [...new Set(servicos.map((s) => s.categoria))].sort(),
+    () => Array.from(new Set(servicos.map((s) => s.categoria))).sort(),
     [servicos],
   )
 
