@@ -16,6 +16,7 @@ import {
   LogOut,
   type LucideIcon,
 } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 type MenuItem = {
   href: string
@@ -46,12 +47,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
-        <div className="px-5 py-5 border-b border-slate-200">
-          <h1 className="text-lg font-semibold text-slate-900 tracking-tight">Histocell</h1>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400 mt-0.5 font-medium">
+      <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
+        <div className="px-5 py-5 border-b border-slate-200 dark:border-slate-800">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">
+            Histocell
+          </h1>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
             Gestão Laboratorial
           </p>
         </div>
@@ -66,15 +69,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 className={`group flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
                 }`}
               >
                 <Icon
                   className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                     isActive
-                      ? 'text-blue-600'
-                      : 'text-slate-400 group-hover:text-slate-600'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'
                   }`}
                   strokeWidth={1.75}
                 />
@@ -84,10 +87,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-slate-200">
+        <div className="px-3 py-3 border-t border-slate-200 dark:border-slate-800 space-y-0.5">
+          <ThemeToggle />
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/60 transition-all"
           >
             <LogOut className="h-[18px] w-[18px] text-slate-400" strokeWidth={1.75} />
             <span>Sair</span>

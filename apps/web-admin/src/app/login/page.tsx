@@ -36,46 +36,54 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-sm border">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
+      <div className="w-full max-w-md p-8 bg-white dark:bg-slate-900 rounded-card border border-slate-200 dark:border-slate-800">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-histocell-900">Histocell</h1>
-          <p className="text-gray-500 mt-1">Painel Administrativo</p>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            Histocell
+          </h1>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mt-1 font-medium">
+            Painel Administrativo
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+            <label className="block text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              E-mail
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-histocell-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-[13px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="seu@email.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <label className="block text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              Senha
+            </label>
             <input
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-histocell-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-[13px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
               required
             />
           </div>
 
           {erro && (
-            <p className="text-red-500 text-sm">{erro}</p>
+            <p className="text-[13px] text-rose-600 dark:text-rose-400">{erro}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-histocell-700 text-white rounded-lg hover:bg-histocell-800 disabled:opacity-50 font-medium"
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium rounded-md disabled:opacity-50 transition-colors"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
