@@ -48,18 +48,23 @@ model RefreshToken {
 // M01 — CADASTRO DE CLIENTES
 // ==========================================
 model Cliente {
-  id            Int       @id @default(autoincrement())
-  tipo          String    // PJ ou PF
-  nome          String
-  nomeFantasia  String?
-  documento     String    @db.Text  // CPF/CNPJ criptografado AES-256
-  email         String
-  telefone      String?
-  segmento      String    @default("recorrente") // recorrente, esporadico, pesquisador
-  observacoes   String?   @db.Text
-  ativo         Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                Int       @id @default(autoincrement())
+  tipo              String    // PJ ou PF
+  nome              String    // Razão Social (PJ) ou Nome completo (PF)
+  nomeFantasia      String?   // "Apelido" no legado (ex: INDAP)
+  documento         String    @db.Text  // CPF/CNPJ criptografado AES-256
+  inscricaoEstadual String?   // IE (PJ)
+  idEtiqueta        String?   // Código curto usado nas etiquetas físicas (cassete/lâmina)
+  email             String    // E-mail principal
+  emailFinanceiro   String?   // E-mail para envio de faturas/boletos
+  emailMacroscopia  String?   // E-mail para aprovação de macroscopia
+  telefone          String?
+  celular           String?
+  segmento          String    @default("recorrente") // recorrente, esporadico, pesquisador
+  observacoes       String?   @db.Text
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   enderecos     Endereco[]
   contatos      Contato[]
