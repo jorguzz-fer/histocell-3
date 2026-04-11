@@ -25,6 +25,7 @@ model User {
   cliente       Cliente?  @relation(fields: [clienteId], references: [id])
   auditLogs     AuditLog[]
   refreshTokens RefreshToken[]
+  favoritos     ServicoFavorito[]
 
   @@index([email])
   @@index([role])
@@ -137,14 +138,36 @@ model Servico {
   precoRotina   Decimal @default(0)    @db.Decimal(10, 2)
   precoPesquisa Decimal @default(0)    @db.Decimal(10, 2)
   ativo         Boolean @default(true)
+  // Campos para seleção guiada (cascata)
+  tipo          String? // Eppendorf, Histológico, Microdissecção, etc.
+  variante1     String? // Lâmina Silanizada, Material Ósseo, Em Resina, etc.
+  variante2     String? // 1º Nível, 2º Nível, Seriado, etc.
+  variante3     String? // 2 vezes, 4 vezes, 5 vezes, 6 vezes, etc.
+  variante4     String? // 50 micras, 20 micras, 10 micras, etc.
+  variante5     String? // Com HE, Com HE + Finalização, etc.
 
   tabelaPrecos   TabelaPreco[]
   itensPedido    ItemPedido[]
   itensOrcamento ItemOrcamento[]
+  favoritos      ServicoFavorito[]
 
   @@index([codigo])
   @@index([categoria])
   @@index([codigoLegado])
+  @@index([tipo])
+}
+
+model ServicoFavorito {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  servicoId Int
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  servico Servico @relation(fields: [servicoId], references: [id])
+
+  @@unique([userId, servicoId])
+  @@index([userId])
 }
 
 // ==========================================

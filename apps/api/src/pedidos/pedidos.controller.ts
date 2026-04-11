@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   UseGuards,
   HttpCode,
+  Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
@@ -55,6 +56,53 @@ export class PedidosController {
     @Query('servicoId', ParseIntPipe) servicoId: number,
   ) {
     return this.service.getPreco(clienteId, servicoId);
+  }
+
+  /** Opções de cascata para seleção guiada */
+  @Get('servicos/cascade')
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  getCascadeOptions(
+    @Query('categoria') categoria?: string,
+    @Query('tipo') tipo?: string,
+    @Query('v1') v1?: string,
+    @Query('v2') v2?: string,
+    @Query('v3') v3?: string,
+    @Query('v4') v4?: string,
+  ) {
+    return this.service.getCascadeOptions({ categoria, tipo, v1, v2, v3, v4 });
+  }
+
+  /** Serviços mais usados (top 10) */
+  @Get('servicos/populares')
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  getPopulares() {
+    return this.service.getPopulares();
+  }
+
+  /** Favoritos do usuário autenticado */
+  @Get('servicos/favoritos')
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  getFavoritos(@Request() req: any) {
+    return this.service.getFavoritos(req.user.sub ?? req.user.userId ?? req.user.id);
+  }
+
+  /** Toggle favorito de um serviço */
+  @Post('servicos/:id/favorito')
+  @HttpCode(200)
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  toggleFavorito(
+    @Param('id', ParseIntPipe) servicoId: number,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.toggleFavorito(userId, servicoId);
+  }
+
+  /** Histórico de serviços de um cliente */
+  @Get('clientes/:clienteId/historico-servicos')
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  getHistoricoCliente(@Param('clienteId', ParseIntPipe) clienteId: number) {
+    return this.service.getHistoricoCliente(clienteId);
   }
 
   // ── CRUD principal ─────────────────────────────────────────────────────────
