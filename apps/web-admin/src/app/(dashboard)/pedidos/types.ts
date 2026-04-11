@@ -43,8 +43,12 @@ export type PedidoListResponse = {
 export type Servico = {
   id: number
   codigo: string
+  codigoLegado?: number | null
+  categoria: string
   nome: string
   precoBase: number
+  precoRotina: number
+  precoPesquisa: number
 }
 
 export type ClienteSimples = {

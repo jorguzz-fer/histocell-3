@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { SERVICOS_LEGADO } from './servicos-data';
 
 const prisma = new PrismaClient();
 
-// ─── Replicação inline do CryptoService (sem injeção NestJS no seed) ────────
+// ─── CryptoService inline (sem injeção NestJS no seed) ───────────────────────
+
 function getEncryptKey(): Buffer | null {
   const raw = process.env.ENCRYPT_KEY;
   if (!raw) return null;
@@ -20,163 +22,160 @@ function encrypt(plaintext: string, key: Buffer): string {
   return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
 }
 
-// ─── Clientes reais do sistema legado ────────────────────────────────────────
+// ─── Clientes do legado ───────────────────────────────────────────────────────
+
 const clientesSeed = [
   {
     tipo: 'PF',
     nome: 'Tabata Maruyama dos Santos',
     nomeFantasia: 'HISTOCELL',
-    documento: '33022859827',         // CPF sem pontuação
+    documento: '33022859827',
     email: 'tabatamaruyama@gmail.com',
     emailFinanceiro: 'tabatamaruyama@gmail.com',
     segmento: 'recorrente',
     endereco: {
-      tipo: 'sede',
-      logradouro: 'Rua Manuel Dutra',
-      numero: '555',
-      bairro: 'Bela Vista',
-      cidade: 'São Paulo',
-      uf: 'SP',
-      cep: '01328010',
+      tipo: 'sede', logradouro: 'Rua Manuel Dutra', numero: '555',
+      bairro: 'Bela Vista', cidade: 'São Paulo', uf: 'SP', cep: '01328010',
     },
   },
   {
     tipo: 'PJ',
     nome: 'Malheiros Serviços Médicos Especializados LTDA',
     nomeFantasia: 'Malheiros',
-    documento: '07887814000139',      // CNPJ sem pontuação
+    documento: '07887814000139',
     email: 'denise.mac.malheiros@gmail.com',
     emailFinanceiro: 'denise.mac.malheiros@gmail.com',
     segmento: 'recorrente',
     endereco: {
-      tipo: 'sede',
-      logradouro: 'Alameda Joaquim Eugenio De Lima',
-      numero: '1118',
-      complemento: 'Sala 152',
-      bairro: 'Jardim Paulista',
-      cidade: 'São Paulo',
-      uf: 'SP',
-      cep: '01403002',
+      tipo: 'sede', logradouro: 'Alameda Joaquim Eugenio De Lima', numero: '1118',
+      complemento: 'Sala 152', bairro: 'Jardim Paulista', cidade: 'São Paulo', uf: 'SP', cep: '01403002',
     },
   },
   {
     tipo: 'PJ',
     nome: 'FV-MD MEDICINA E PATOLOGIA EIRELI',
     nomeFantasia: 'FV-MD',
-    documento: '36538658000107',      // CNPJ sem pontuação
+    documento: '36538658000107',
     email: 'franciscodamasceno@uol.com.br',
     emailFinanceiro: 'franciscodamasceno@uol.com.br',
     segmento: 'recorrente',
-    // CEP ausente no legado → sem endereço
   },
   {
     tipo: 'PF',
     nome: 'Tainah Colombo Gomes',
     nomeFantasia: 'Tainah Gomes',
-    documento: '43252615835',         // CPF sem pontuação
+    documento: '43252615835',
     email: 'farmaceuticabbiotech@gmail.com',
     emailFinanceiro: 'farmaceuticabbiotech@gmail.com',
     segmento: 'pesquisador',
     endereco: {
-      tipo: 'sede',
-      logradouro: 'Avenida Escola Politécnica',
-      numero: 'S/N',
-      bairro: 'Ilha Amarela',
-      cidade: 'São Paulo',
-      uf: 'SP',
-      cep: '05350000',
+      tipo: 'sede', logradouro: 'Avenida Escola Politécnica', numero: 'S/N',
+      bairro: 'Ilha Amarela', cidade: 'São Paulo', uf: 'SP', cep: '05350000',
     },
   },
   {
     tipo: 'PF',
     nome: 'Tarciso Sellani',
     nomeFantasia: 'Tarciso Sellani',
-    documento: '00000000000',         // Documento não informado no legado
+    documento: '00000000000',
     email: 'tarcis.sellani@gmail.com',
     segmento: 'recorrente',
     observacoes: 'Documento não informado no sistema legado — atualizar.',
     endereco: {
-      tipo: 'sede',
-      logradouro: 'Rua Botucatu',
-      numero: '962',
-      bairro: 'Vila Clementino',
-      cidade: 'São Paulo',
-      uf: 'SP',
-      cep: '04023062',
+      tipo: 'sede', logradouro: 'Rua Botucatu', numero: '962',
+      bairro: 'Vila Clementino', cidade: 'São Paulo', uf: 'SP', cep: '04023062',
     },
   },
 ];
 
-// ─── Main ────────────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Usuários admin
+  // ── Usuários admin ──────────────────────────────────────────────────────────
   const senhaHash = await bcrypt.hash('Histocell@2026', 12);
 
-  await prisma.user.upsert({
-    where: { email: 'celio@histocell.com.br' },
-    update: {},
-    create: { nome: 'Célio', email: 'celio@histocell.com.br', senha: senhaHash, role: 'gerencia' },
-  });
-
-  await prisma.user.upsert({
-    where: { email: 'kleber@histocell.com.br' },
-    update: {},
-    create: { nome: 'Kleber', email: 'kleber@histocell.com.br', senha: senhaHash, role: 'gerencia' },
-  });
-
-  await prisma.user.upsert({
-    where: { email: 'recepcao@histocell.com.br' },
-    update: {},
-    create: { nome: 'Recepção', email: 'recepcao@histocell.com.br', senha: senhaHash, role: 'recepcao' },
-  });
-
-  // Serviços base
-  const servicos = [
-    { codigo: 'HISTO-001', nome: 'Histopatológico Simples',   precoBase: 45.00 },
-    { codigo: 'HISTO-002', nome: 'Histopatológico Complexo',  precoBase: 85.00 },
-    { codigo: 'CITO-001',  nome: 'Citologia',                 precoBase: 35.00 },
-    { codigo: 'IHQ-001',   nome: 'Imuno-histoquímica',        precoBase: 120.00 },
-    { codigo: 'MACRO-001', nome: 'Macroscopia',               precoBase: 25.00 },
-    { codigo: 'COLOR-001', nome: 'Coloração Especial',        precoBase: 55.00 },
-    { codigo: 'BIOPSIA-001', nome: 'Biópsia Incisional',      precoBase: 60.00 },
-    { codigo: 'BIOPSIA-002', nome: 'Biópsia Excisional',      precoBase: 75.00 },
-  ];
-
-  for (const s of servicos) {
-    await prisma.servico.upsert({
-      where: { codigo: s.codigo },
+  for (const u of [
+    { nome: 'Célio',     email: 'celio@histocell.com.br',     role: 'gerencia' },
+    { nome: 'Kleber',    email: 'kleber@histocell.com.br',    role: 'gerencia' },
+    { nome: 'Recepção',  email: 'recepcao@histocell.com.br',  role: 'recepcao' },
+  ]) {
+    await prisma.user.upsert({
+      where: { email: u.email },
       update: {},
-      create: { codigo: s.codigo, nome: s.nome, precoBase: s.precoBase },
+      create: { nome: u.nome, email: u.email, senha: senhaHash, role: u.role },
     });
   }
 
-  // Clientes do legado
+  // ── Remove placeholders antigos e seed serviços reais ────────────────────────
+  console.log('🔧 Populando serviços do legado...');
+
+  // Remove os 8 serviços placeholder criados no seed inicial
+  const placeholders = ['HISTO-001','HISTO-002','CITO-001','IHQ-001','MACRO-001','COLOR-001','BIOPSIA-001','BIOPSIA-002'];
+  await prisma.servico.deleteMany({ where: { codigo: { in: placeholders } } });
+
+  let criados = 0;
+  let atualizados = 0;
+
+  for (const s of SERVICOS_LEGADO) {
+    const existing = await prisma.servico.findFirst({
+      where: { OR: [{ codigo: s.codigo }, { codigoLegado: s.codigoLegado }] },
+    });
+
+    if (existing) {
+      await prisma.servico.update({
+        where: { id: existing.id },
+        data: {
+          codigo: s.codigo,
+          codigoLegado: s.codigoLegado,
+          categoria: s.categoria,
+          nome: s.nome,
+          precoBase: s.precoRotina,
+          precoRotina: s.precoRotina,
+          precoPesquisa: s.precoPesquisa,
+          ativo: true,
+        },
+      });
+      atualizados++;
+    } else {
+      await prisma.servico.create({
+        data: {
+          codigo: s.codigo,
+          codigoLegado: s.codigoLegado,
+          categoria: s.categoria,
+          nome: s.nome,
+          precoBase: s.precoRotina,
+          precoRotina: s.precoRotina,
+          precoPesquisa: s.precoPesquisa,
+        },
+      });
+      criados++;
+    }
+  }
+
+  console.log(`   ✅ ${criados} serviços criados, ${atualizados} atualizados`);
+
+  // ── Clientes do legado ──────────────────────────────────────────────────────
   const encryptKey = getEncryptKey();
 
   if (!encryptKey) {
-    console.warn('⚠️  ENCRYPT_KEY não definida — clientes do legado serão ignorados no seed.');
+    console.warn('⚠️  ENCRYPT_KEY não definida — clientes do legado serão ignorados.');
   } else {
     for (const c of clientesSeed) {
-      // Evita duplicatas pelo e-mail (campo mais estável do legado)
       const existing = await prisma.cliente.findFirst({ where: { email: c.email } });
       if (existing) {
         console.log(`   ↩  Cliente já existe: ${c.nomeFantasia ?? c.nome}`);
         continue;
       }
-
       const { endereco, ...dados } = c as any;
       await prisma.cliente.create({
         data: {
           ...dados,
           documento: encrypt(c.documento, encryptKey),
-          enderecos: endereco
-            ? { create: { ...endereco, principal: true } }
-            : undefined,
+          enderecos: endereco ? { create: { ...endereco, principal: true } } : undefined,
         },
       });
-
       console.log(`   ✅ Cliente criado: ${c.nomeFantasia ?? c.nome}`);
     }
   }

@@ -74,34 +74,79 @@ export class PedidosService {
     };
   }
 
-  // ── Servicos disponíveis (dropdown do form) ─────────────────────────────────
+  // ── Criar serviço customizado on-the-fly ────────────────────────────────────
+  async criarServico(dto: {
+    codigo: string
+    categoria: string
+    nome: string
+    precoBase: number
+    precoRotina: number
+    precoPesquisa: number
+  }) {
+    const servico = await this.prisma.servico.create({
+      data: {
+        codigo: dto.codigo,
+        categoria: dto.categoria,
+        nome: dto.nome,
+        precoBase: dto.precoBase,
+        precoRotina: dto.precoRotina,
+        precoPesquisa: dto.precoPesquisa,
+      },
+    });
+    return {
+      ...servico,
+      precoBase: Number(servico.precoBase),
+      precoRotina: Number(servico.precoRotina),
+      precoPesquisa: Number(servico.precoPesquisa),
+    };
+  }
+
+  // ── Servicos disponíveis (para o picker do form) ────────────────────────────
   async listarServicos() {
     const servicos = await this.prisma.servico.findMany({
       where: { ativo: true },
-      select: { id: true, codigo: true, nome: true, precoBase: true },
-      orderBy: { nome: 'asc' },
+      select: {
+        id: true, codigo: true, codigoLegado: true, categoria: true,
+        nome: true, precoBase: true, precoRotina: true, precoPesquisa: true,
+      },
+      orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
     });
-    return servicos.map((s) => ({ ...s, precoBase: Number(s.precoBase) }));
+    return servicos.map((s) => ({
+      ...s,
+      precoBase:     Number(s.precoBase),
+      precoRotina:   Number(s.precoRotina),
+      precoPesquisa: Number(s.precoPesquisa),
+    }));
   }
 
-  // ── Preço unitário para cliente + serviço ───────────────────────────────────
+  // ── Preço unitário: TabelaPreco → preço pelo segmento do cliente → base ─────
   async getPreco(clienteId: number, servicoId: number) {
+    // 1. Preço customizado por cliente
     const tabela = await this.prisma.tabelaPreco.findUnique({
       where: { clienteId_servicoId: { clienteId, servicoId } },
     });
     if (tabela) {
-      return {
-        preco: Number(tabela.preco),
-        desconto: Number(tabela.desconto),
-        origem: 'tabela',
-      };
+      return { preco: Number(tabela.preco), desconto: Number(tabela.desconto), origem: 'tabela' };
     }
-    const servico = await this.prisma.servico.findUnique({
-      where: { id: servicoId },
-      select: { precoBase: true },
-    });
+
+    // 2. Segmento do cliente determina rotina vs pesquisa
+    const [cliente, servico] = await Promise.all([
+      this.prisma.cliente.findUnique({ where: { id: clienteId }, select: { segmento: true } }),
+      this.prisma.servico.findUnique({
+        where: { id: servicoId },
+        select: { precoRotina: true, precoPesquisa: true, precoBase: true },
+      }),
+    ]);
     if (!servico) throw new NotFoundException(`Serviço #${servicoId} não encontrado.`);
-    return { preco: Number(servico.precoBase), desconto: 0, origem: 'base' };
+
+    const isPesquisador = cliente?.segmento === 'pesquisador';
+    const preco = isPesquisador ? Number(servico.precoPesquisa) : Number(servico.precoRotina || servico.precoBase);
+
+    return {
+      preco,
+      desconto: 0,
+      origem: isPesquisador ? 'pesquisa' : 'rotina',
+    };
   }
 
   // ── LIST ────────────────────────────────────────────────────────────────────

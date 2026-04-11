@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  HttpCode,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
@@ -29,6 +30,21 @@ export class PedidosController {
   @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
   listarServicos() {
     return this.service.listarServicos();
+  }
+
+  /** Cria um serviço customizado on-the-fly (quando o serviço não existe na lista) */
+  @Post('servicos/novo')
+  @HttpCode(201)
+  @Roles('gerencia', 'recepcao')
+  criarServico(@Body() body: {
+    codigo: string
+    categoria: string
+    nome: string
+    precoBase: number
+    precoRotina: number
+    precoPesquisa: number
+  }) {
+    return this.service.criarServico(body);
   }
 
   /** Preço unitário para um cliente + serviço (TabelaPreco ou precoBase) */
