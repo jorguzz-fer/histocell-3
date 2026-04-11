@@ -299,7 +299,7 @@ export default function PedidosGuiadoPage() {
             />
             {cliente && (
               <div className="flex items-center gap-2">
-                <Badge variant={isPesquisador ? 'warning' : 'default'}>
+                <Badge variant={isPesquisador ? 'amber' : 'slate'}>
                   {isPesquisador ? 'Pesquisador' : cliente.segmento}
                 </Badge>
                 <span className="text-xs text-slate-400 dark:text-slate-500">
