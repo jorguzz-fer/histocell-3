@@ -39,6 +39,7 @@ export default function CadastroPage() {
   const [filtroSegmento, setFiltroSegmento] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
 
   // Drawer
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -58,7 +59,7 @@ export default function CadastroPage() {
       if (filtroSegmento) params.set('segmento', filtroSegmento)
       if (mostrarInativos) params.set('ativo', 'false')
       params.set('page', String(page))
-      params.set('limit', '20')
+      params.set('limit', String(limit))
 
       const res = await api.get<ClienteListResponse>(`/clientes?${params}`)
       setClientes(res.data)
@@ -68,7 +69,7 @@ export default function CadastroPage() {
     } finally {
       setLoading(false)
     }
-  }, [busca, filtroTipo, filtroSegmento, mostrarInativos, page])
+  }, [busca, filtroTipo, filtroSegmento, mostrarInativos, page, limit])
 
   useEffect(() => { fetchClientes() }, [fetchClientes])
 
@@ -328,30 +329,93 @@ export default function CadastroPage() {
             </div>
 
             {/* Paginação */}
-            {meta.totalPages > 1 && (
-              <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-[12px] text-slate-400">
-                  Página {meta.page} de {meta.totalPages}
+            <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
+
+              {/* Info + por página */}
+              <div className="flex items-center gap-3 text-[12px] text-slate-400 mr-auto">
+                <span>
+                  Exibindo{' '}
+                  <span className="font-medium text-slate-600 dark:text-slate-300">
+                    {meta.total === 0 ? 0 : (meta.page - 1) * limit + 1}
+                  </span>
+                  {' '}–{' '}
+                  <span className="font-medium text-slate-600 dark:text-slate-300">
+                    {Math.min(meta.page * limit, meta.total)}
+                  </span>
+                  {' '}de{' '}
+                  <span className="font-medium text-slate-600 dark:text-slate-300">
+                    {meta.total}
+                  </span>
                 </span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
+
+                {/* Seletor de registros por página */}
+                <label className="flex items-center gap-1.5">
+                  <span>Exibir</span>
+                  <select
+                    value={limit}
+                    onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+                    className="rounded border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[12px]
+                      bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300
+                      focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    Anterior
+                    {[10, 20, 50, 100].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                  <span>por página</span>
+                </label>
+              </div>
+
+              {/* Botões de página */}
+              {meta.totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  {/* Primeira */}
+                  <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage(1)}>
+                    «
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={page >= meta.totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Próxima
+                  {/* Anterior */}
+                  <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    ‹
+                  </Button>
+
+                  {/* Números de página */}
+                  {Array.from({ length: meta.totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === meta.totalPages || Math.abs(p - page) <= 2)
+                    .reduce<(number | 'ellipsis')[]>((acc, p, i, arr) => {
+                      if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('ellipsis')
+                      acc.push(p)
+                      return acc
+                    }, [])
+                    .map((item, i) =>
+                      item === 'ellipsis' ? (
+                        <span key={`e${i}`} className="px-2 text-[12px] text-slate-400">…</span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setPage(item as number)}
+                          className={`min-w-[30px] h-[30px] rounded-md text-[12px] font-medium transition-colors ${
+                            page === item
+                              ? 'bg-blue-600 text-white'
+                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )
+                  }
+
+                  {/* Próxima */}
+                  <Button size="sm" variant="secondary" disabled={page >= meta.totalPages} onClick={() => setPage((p) => p + 1)}>
+                    ›
+                  </Button>
+                  {/* Última */}
+                  <Button size="sm" variant="secondary" disabled={page >= meta.totalPages} onClick={() => setPage(meta.totalPages)}>
+                    »
                   </Button>
                 </div>
-              </div>
+              )}
+            </div>
             )}
           </>
         )}
