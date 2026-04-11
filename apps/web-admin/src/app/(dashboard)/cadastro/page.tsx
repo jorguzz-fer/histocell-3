@@ -416,7 +416,6 @@ export default function CadastroPage() {
                 </div>
               )}
             </div>
-            )}
           </>
         )}
       </div>
