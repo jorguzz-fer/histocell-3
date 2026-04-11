@@ -457,7 +457,7 @@ export default function PedidosGuiadoPage() {
                 Itens do Pedido
               </h2>
               {itens.length > 0 && (
-                <Badge variant="default">{itens.length} item{itens.length !== 1 ? 's' : ''}</Badge>
+                <Badge variant="blue">{itens.length} item{itens.length !== 1 ? 's' : ''}</Badge>
               )}
             </div>
 
