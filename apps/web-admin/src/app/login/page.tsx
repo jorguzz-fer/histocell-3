@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 
 export default function LoginPage() {
@@ -38,11 +39,24 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
       <div className="w-full max-w-md p-8 bg-white dark:bg-slate-900 rounded-card border border-slate-200 dark:border-slate-800">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
-            Histocell
-          </h1>
-          <p className="text-xs uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mt-1 font-medium">
+        <div className="flex flex-col items-center mb-8">
+          <Image
+            src="/logo-light.png"
+            alt="Histocell — Soluções em Anatomia Patológica"
+            width={638}
+            height={199}
+            priority
+            className="w-auto h-14 block dark:hidden"
+          />
+          <Image
+            src="/logo-dark.png"
+            alt="Histocell — Soluções em Anatomia Patológica"
+            width={638}
+            height={199}
+            priority
+            className="w-auto h-14 hidden dark:block"
+          />
+          <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500 mt-3 font-medium">
             Painel Administrativo
           </p>
         </div>

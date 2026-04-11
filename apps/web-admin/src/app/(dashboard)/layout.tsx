@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -51,12 +52,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
         <div className="px-5 py-5 border-b border-slate-200 dark:border-slate-800">
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">
-            Histocell
-          </h1>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
-            Gestão Laboratorial
-          </p>
+          {/* Logo — versão escura (preto) no tema light */}
+          <Image
+            src="/logo-light.png"
+            alt="Histocell — Soluções em Anatomia Patológica"
+            width={638}
+            height={199}
+            priority
+            className="w-auto h-10 block dark:hidden"
+          />
+          {/* Logo — versão clara (branco) no tema dark */}
+          <Image
+            src="/logo-dark.png"
+            alt="Histocell — Soluções em Anatomia Patológica"
+            width={638}
+            height={199}
+            priority
+            className="w-auto h-10 hidden dark:block"
+          />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
