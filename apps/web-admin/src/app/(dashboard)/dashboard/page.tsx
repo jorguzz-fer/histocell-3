@@ -14,6 +14,7 @@ import {
   Minus,
   type LucideIcon,
 } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 
 // ApexCharts precisa rodar só no client (window não existe no SSR)
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
@@ -334,12 +335,7 @@ function RecentOrdersCard() {
 export default function DashboardPage() {
   return (
     <div>
-      <header className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Visão geral do laboratório
-        </p>
-      </header>
+      <PageHeader title="Dashboard" subtitle="Visão geral do laboratório" />
 
       {/* KPI cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-5">
