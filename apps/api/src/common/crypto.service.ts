@@ -57,8 +57,9 @@ export class CryptoService {
 
   /**
    * Mascara o documento pra exibição segura na UI.
-   * CPF  (11 dígitos): ***.***.789-01
-   * CNPJ (14 dígitos): **.***.***/0001-71
+   * CPF  (11 dígitos): ex. ***.***-789-01
+   * CNPJ (14 dígitos): ex. **.***.**_0001-71
+   * (nota: evitamos barra-asterisco no JSDoc para não fechar o bloco)
    */
   mascarar(plaintext: string): string {
     const digits = plaintext.replace(/\D/g, '');
