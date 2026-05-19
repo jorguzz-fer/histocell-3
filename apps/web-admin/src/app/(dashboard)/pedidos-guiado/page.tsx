@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Flame, Star, Clock, GitBranch, Plus, Trash2,
-  AlertCircle, ChevronDown, CheckCircle2, Send,
+  AlertCircle, ChevronDown, CheckCircle2, Send, Stethoscope,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
@@ -12,12 +12,13 @@ import { Select } from '@/components/ui/Select'
 import { Badge } from '@/components/ui/Badge'
 import { CascadingServicoSelector } from '@/components/ui/CascadingServicoSelector'
 import { ServicoSearchInput } from '@/components/ui/ServicoSearchInput'
+import { ClinicoTab } from '@/components/clinico/ClinicoTab'
 import { api } from '@/lib/api'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
-type Tab = 'populares' | 'favoritos' | 'historico' | 'guiado'
+type Tab = 'populares' | 'favoritos' | 'historico' | 'guiado' | 'clinico'
 
 type ItemForm = {
   key:       string   // uid interno
@@ -319,6 +320,7 @@ export default function PedidosGuiadoPage() {
                   { key: 'favoritos', label: 'Favoritos', icon: Star },
                   { key: 'historico', label: 'Histórico',  icon: Clock },
                   { key: 'guiado',   label: 'Guiado',     icon: GitBranch },
+                  { key: 'clinico',  label: 'Clínico',    icon: Stethoscope },
                 ] as { key: Tab; label: string; icon: React.ElementType }[]
               ).map(({ key, label, icon: Icon }) => (
                 <button
@@ -443,6 +445,15 @@ export default function PedidosGuiadoPage() {
                 <CascadingServicoSelector
                   isPesquisador={isPesquisador}
                   onSelect={addServico}
+                />
+              )}
+
+              {/* Clínico */}
+              {tab === 'clinico' && (
+                <ClinicoTab
+                  servicos={allServicos}
+                  onSelect={addServico}
+                  onServicoCriado={(s) => setAllServicos((prev) => [s, ...prev])}
                 />
               )}
             </div>
