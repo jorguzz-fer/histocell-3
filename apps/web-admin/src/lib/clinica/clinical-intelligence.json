@@ -1,0 +1,3647 @@
+{
+ "_meta": {
+  "descricao": "Camada de inteligência clínica sobre o catálogo plano. Painéis/perguntas são curados (conhecimento de Anatomia Patológica); todos os códigos saem do catalog.json real.",
+  "marcadoresIndexados": 326
+ },
+ "ihcMarkerIndex": {
+  "IMUNICANTICORPOHISTOCELLMUM1": {
+   "name": "Imuni c Anticorpo Histocell MUM 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "487",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ACTINH196": {
+   "name": "Actin H-196",
+   "cliente": {
+    "codigo": "599",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "5HIDROXY": {
+   "name": "5 HIDROXY",
+   "cliente": {
+    "codigo": "740",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "5HMC": {
+   "name": "5HMC",
+   "cliente": {
+    "codigo": "826",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "A4GALT": {
+   "name": "A4GALT",
+   "cliente": {
+    "codigo": "700",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "AE1AE3": {
+   "name": "AE1/AE3",
+   "cliente": {
+    "codigo": "389",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "399",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ALFA7": {
+   "name": "ALFA 7",
+   "cliente": {
+    "codigo": "660",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ALFAACTINA": {
+   "name": "ALFA ACTINA",
+   "cliente": {
+    "codigo": "1019",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ALFASMA": {
+   "name": "ALFA SMA",
+   "cliente": {
+    "codigo": "732",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "534",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "APP": {
+   "name": "APP",
+   "cliente": {
+    "codigo": "1025",
+    "valorRotina": 60.0,
+    "valorPesquisa": 60.0
+   },
+   "histocell": null
+  },
+  "AQUAPORINA4": {
+   "name": "AQUAPORINA-4",
+   "cliente": {
+    "codigo": "645",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ARGINASE": {
+   "name": "ARGINASE",
+   "cliente": {
+    "codigo": "503",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "910",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "BAXCL": {
+   "name": "Baxcl",
+   "cliente": {
+    "codigo": "594",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "BCL10": {
+   "name": "BCL10",
+   "cliente": {
+    "codigo": "778",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "1034",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BCL2": {
+   "name": "BCL2",
+   "cliente": {
+    "codigo": "536",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "400",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BETACATENIN": {
+   "name": "beta catenin",
+   "cliente": {
+    "codigo": "798",
+    "valorRotina": 55.0,
+    "valorPesquisa": 55.0
+   },
+   "histocell": null
+  },
+  "BIGLICAN": {
+   "name": "BIGLICAN",
+   "cliente": {
+    "codigo": "679",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "BRCA2": {
+   "name": "BRCA2",
+   "cliente": {
+    "codigo": "764",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CASPASE3": {
+   "name": "Caspase 3",
+   "cliente": {
+    "codigo": "662",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CATALASE": {
+   "name": "CATALASE",
+   "cliente": {
+    "codigo": "979",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CD11C": {
+   "name": "CD11C",
+   "cliente": {
+    "codigo": "614",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "702",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD206": {
+   "name": "CD 206",
+   "cliente": {
+    "codigo": "609",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CD44": {
+   "name": "CD 44",
+   "cliente": {
+    "codigo": "883",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CD68": {
+   "name": "CD 68",
+   "cliente": {
+    "codigo": "613",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "424",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD11B": {
+   "name": "CD11B",
+   "cliente": {
+    "codigo": "866",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CD31": {
+   "name": "CD31",
+   "cliente": {
+    "codigo": "677",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "422",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD34EP": {
+   "name": "CD34 EP",
+   "cliente": {
+    "codigo": "799",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CD8": {
+   "name": "CD8",
+   "cliente": {
+    "codigo": "616",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "496",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CHECK2": {
+   "name": "CHECK2",
+   "cliente": {
+    "codigo": "795",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CITOCROMOC": {
+   "name": "Citocromo c",
+   "cliente": {
+    "codigo": "554",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "COLOGENOI": {
+   "name": "Cologeno I",
+   "cliente": {
+    "codigo": "529",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "COLOGENOII": {
+   "name": "Cologeno II",
+   "cliente": {
+    "codigo": "911",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "COLOGENOIII": {
+   "name": "Cologeno III",
+   "cliente": {
+    "codigo": "530",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "COLOGENOV": {
+   "name": "Cologeno V",
+   "cliente": {
+    "codigo": "531",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "COX1": {
+   "name": "COX 1",
+   "cliente": {
+    "codigo": "656",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "COX2": {
+   "name": "Cox2",
+   "cliente": {
+    "codigo": "658",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "681",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "CRP3": {
+   "name": "CRP3",
+   "cliente": {
+    "codigo": "462",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CSRP3": {
+   "name": "CSRP3",
+   "cliente": {
+    "codigo": "461",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CYP11B1": {
+   "name": "CYP11B1",
+   "cliente": {
+    "codigo": "499",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "CYP11B2": {
+   "name": "CYP11B2",
+   "cliente": {
+    "codigo": "500",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "DSMA": {
+   "name": "D SMA",
+   "cliente": {
+    "codigo": "1023",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "DECORIN": {
+   "name": "DECORIN",
+   "cliente": {
+    "codigo": "678",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "DNAJB9": {
+   "name": "DNAJB9",
+   "cliente": {
+    "codigo": "983",
+    "valorRotina": 65.0,
+    "valorPesquisa": 65.0
+   },
+   "histocell": null
+  },
+  "DRP1": {
+   "name": "DRP 1",
+   "cliente": {
+    "codigo": "628",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ECADERINA": {
+   "name": "E CADERINA",
+   "cliente": {
+    "codigo": "661",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "484",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ECSOD": {
+   "name": "EC SOD",
+   "cliente": {
+    "codigo": "978",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ELASTASE": {
+   "name": "Elastase",
+   "cliente": {
+    "codigo": "610",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "EXT1": {
+   "name": "EXT 1",
+   "cliente": {
+    "codigo": "727",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "EXT2": {
+   "name": "EXT 2",
+   "cliente": {
+    "codigo": "954",
+    "valorRotina": 38.0,
+    "valorPesquisa": 38.01
+   },
+   "histocell": null
+  },
+  "EXTOSINA2": {
+   "name": "Extosina 2",
+   "cliente": {
+    "codigo": "988",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FAM62C": {
+   "name": "FAM62c",
+   "cliente": {
+    "codigo": "508",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FASL": {
+   "name": "FAS-L",
+   "cliente": {
+    "codigo": "963",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "FATOR8": {
+   "name": "FATOR 8",
+   "cliente": {
+    "codigo": "480",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FIS1": {
+   "name": "FIS 1",
+   "cliente": {
+    "codigo": "627",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FOSDOP53": {
+   "name": "FOSDO P53",
+   "cliente": {
+    "codigo": "767",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FOXP3": {
+   "name": "FOXP 3",
+   "cliente": {
+    "codigo": "873",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FXR": {
+   "name": "FXR",
+   "cliente": {
+    "codigo": "731",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "FZD6": {
+   "name": "FZD6",
+   "cliente": {
+    "codigo": "697",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "GALECTINA3": {
+   "name": "Galectina 3",
+   "cliente": {
+    "codigo": "572",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "465",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GFP": {
+   "name": "GFP",
+   "cliente": {
+    "codigo": "639",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "GNAQ": {
+   "name": "GNAQ",
+   "cliente": {
+    "codigo": "698",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "GP91": {
+   "name": "GP91",
+   "cliente": {
+    "codigo": "545",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "GRANZYMEBEP230": {
+   "name": "Granzyme B (EP230",
+   "cliente": {
+    "codigo": "961",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "H3K4ME3": {
+   "name": "H3K4me3",
+   "cliente": {
+    "codigo": "592",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "H4K16AC": {
+   "name": "H4K16ac",
+   "cliente": {
+    "codigo": "593",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "HIF1A": {
+   "name": "HIF1A",
+   "cliente": {
+    "codigo": "904",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IBA1": {
+   "name": "IBA 1",
+   "cliente": {
+    "codigo": "501",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "751",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "ICAM1": {
+   "name": "ICAM-1",
+   "cliente": {
+    "codigo": "905",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IFNY": {
+   "name": "IFN-y",
+   "cliente": {
+    "codigo": "962",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "IGG3": {
+   "name": "IgG3",
+   "cliente": {
+    "codigo": "861",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL1B": {
+   "name": "IL 1B",
+   "cliente": {
+    "codigo": "619",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL10": {
+   "name": "IL10",
+   "cliente": {
+    "codigo": "549",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL13": {
+   "name": "IL13",
+   "cliente": {
+    "codigo": "973",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL17": {
+   "name": "IL17",
+   "cliente": {
+    "codigo": "546",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL2": {
+   "name": "IL2",
+   "cliente": {
+    "codigo": "972",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL33": {
+   "name": "IL33",
+   "cliente": {
+    "codigo": "532",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL4": {
+   "name": "IL4",
+   "cliente": {
+    "codigo": "547",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL5ACPOLICLONAL": {
+   "name": "IL5 ac policlonal",
+   "cliente": {
+    "codigo": "965",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "IL6": {
+   "name": "IL6",
+   "cliente": {
+    "codigo": "548",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IL6E4": {
+   "name": "IL6 (E-4",
+   "cliente": {
+    "codigo": "960",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "IL7": {
+   "name": "IL7",
+   "cliente": {
+    "codigo": "872",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "INOS": {
+   "name": "INOS",
+   "cliente": {
+    "codigo": "502",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ISO": {
+   "name": "ISO",
+   "cliente": {
+    "codigo": "706",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ISOPROSTANO": {
+   "name": "ISOPROSTANO",
+   "cliente": {
+    "codigo": "471",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "KI67": {
+   "name": "KI67",
+   "cliente": {
+    "codigo": "571",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "460",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "KI67SP6": {
+   "name": "Ki67(SP6",
+   "cliente": {
+    "codigo": "797",
+    "valorRotina": 55.0,
+    "valorPesquisa": 55.0
+   },
+   "histocell": null
+  },
+  "KLOTHO": {
+   "name": "KLOTHO",
+   "cliente": {
+    "codigo": "780",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "LAMININA": {
+   "name": "Laminina",
+   "cliente": {
+    "codigo": "884",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "LGR5": {
+   "name": "LGR5",
+   "cliente": {
+    "codigo": "790",
+    "valorRotina": 55.0,
+    "valorPesquisa": 55.0
+   },
+   "histocell": null
+  },
+  "LSD1": {
+   "name": "LSD 1",
+   "cliente": {
+    "codigo": "630",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MFN1": {
+   "name": "MFN 1",
+   "cliente": {
+    "codigo": "629",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MMP": {
+   "name": "MMP",
+   "cliente": {
+    "codigo": "598",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MMP12": {
+   "name": "MMP12",
+   "cliente": {
+    "codigo": "741",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MMP2": {
+   "name": "MMP2",
+   "cliente": {
+    "codigo": "717",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MMP3": {
+   "name": "MMP3",
+   "cliente": {
+    "codigo": "516",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MMP8": {
+   "name": "MMP8",
+   "cliente": {
+    "codigo": "517",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MMP9": {
+   "name": "MMP9",
+   "cliente": {
+    "codigo": "654",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "MUM1": {
+   "name": "MUM1",
+   "cliente": {
+    "codigo": "481",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "518",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MYOSIN": {
+   "name": "MYOSIN",
+   "cliente": {
+    "codigo": "998",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "NEFRINA": {
+   "name": "NEFRINA",
+   "cliente": {
+    "codigo": "779",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "NELL1": {
+   "name": "Nell-1",
+   "cliente": {
+    "codigo": "982",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   },
+   "histocell": null
+  },
+  "NFKB": {
+   "name": "NFKB",
+   "cliente": {
+    "codigo": "671",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "NFLIF": {
+   "name": "NFL (IF",
+   "cliente": {
+    "codigo": "892",
+    "valorRotina": 45.0,
+    "valorPesquisa": 45.0
+   },
+   "histocell": null
+  },
+  "NG2": {
+   "name": "NG2",
+   "cliente": {
+    "codigo": "863",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "NRF2": {
+   "name": "NRF2",
+   "cliente": {
+    "codigo": "672",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "NT5C2": {
+   "name": "NT5C2",
+   "cliente": {
+    "codigo": "696",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "OLIG2": {
+   "name": "Olig2",
+   "cliente": {
+    "codigo": "865",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "1012",
+    "valorRotina": 140.0,
+    "valorPesquisa": 140.0
+   }
+  },
+  "OLIGODENDROCITOO1": {
+   "name": "Oligodendrócito O1",
+   "cliente": {
+    "codigo": "864",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "OPA1": {
+   "name": "OPA 1",
+   "cliente": {
+    "codigo": "626",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ORM1": {
+   "name": "ORM1",
+   "cliente": {
+    "codigo": "860",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "OXTR": {
+   "name": "OXTR",
+   "cliente": {
+    "codigo": "896",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "P501SPROSTEIN": {
+   "name": "P501S (Prostein",
+   "cliente": {
+    "codigo": "968",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "P53": {
+   "name": "P53",
+   "cliente": {
+    "codigo": "765",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "467",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PCNA": {
+   "name": "PCNA",
+   "cliente": {
+    "codigo": "650",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "PD1": {
+   "name": "PD1",
+   "cliente": {
+    "codigo": "975",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "733",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PD1AI": {
+   "name": "PD1 AI",
+   "cliente": {
+    "codigo": "992",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "PDCD4": {
+   "name": "PDCD4",
+   "cliente": {
+    "codigo": "693",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "PDP2": {
+   "name": "PDP2",
+   "cliente": {
+    "codigo": "766",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "PERFORIN": {
+   "name": "Perforin",
+   "cliente": {
+    "codigo": "959",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "RECEPTORANDROGENIO": {
+   "name": "Receptor Androgenio",
+   "cliente": {
+    "codigo": "607",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RECEPTORDEOPIOIDE": {
+   "name": "RECEPTOR DE OPIOIDE",
+   "cliente": {
+    "codigo": "897",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RECEPTORESTROGENOALFA": {
+   "name": "Receptor Estrogeno Alfa",
+   "cliente": {
+    "codigo": "605",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RECEPTORESTROGENOBETA": {
+   "name": "Receptor Estrogeno Beta",
+   "cliente": {
+    "codigo": "606",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "REST": {
+   "name": "Rest",
+   "cliente": {
+    "codigo": "858",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RHOT1": {
+   "name": "RHOT 1",
+   "cliente": {
+    "codigo": "643",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RHOT2": {
+   "name": "RHOT 2",
+   "cliente": {
+    "codigo": "644",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RL90": {
+   "name": "RL90",
+   "cliente": {
+    "codigo": "999",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "RMR1": {
+   "name": "RMR1",
+   "cliente": {
+    "codigo": "769",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "SARSCOV2": {
+   "name": "SARS-CoV-2",
+   "cliente": {
+    "codigo": "964",
+    "valorRotina": 70.0,
+    "valorPesquisa": 70.0
+   },
+   "histocell": null
+  },
+  "SDHA": {
+   "name": "SDHA",
+   "cliente": {
+    "codigo": "595",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "SDHB": {
+   "name": "SDHB",
+   "cliente": {
+    "codigo": "596",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "SLC25A11": {
+   "name": "SLC25 A11",
+   "cliente": {
+    "codigo": "746",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "SOD3": {
+   "name": "SOD3",
+   "cliente": {
+    "codigo": "743",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "SSTR2": {
+   "name": "SSTR2",
+   "cliente": {
+    "codigo": "694",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TAU": {
+   "name": "TAU",
+   "cliente": {
+    "codigo": "1024",
+    "valorRotina": 60.0,
+    "valorPesquisa": 60.0
+   },
+   "histocell": null
+  },
+  "TET1": {
+   "name": "TET-1",
+   "cliente": {
+    "codigo": "823",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TET1PAS": {
+   "name": "TET-1 + PAS",
+   "cliente": {
+    "codigo": "822",
+    "valorRotina": 54.0,
+    "valorPesquisa": 54.0
+   },
+   "histocell": null
+  },
+  "TET2": {
+   "name": "TET-2",
+   "cliente": {
+    "codigo": "824",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TET3": {
+   "name": "TET-3",
+   "cliente": {
+    "codigo": "825",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TFPIE20": {
+   "name": "TFPI (E-20",
+   "cliente": {
+    "codigo": "600",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TGF": {
+   "name": "TGF",
+   "cliente": {
+    "codigo": "742",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TGFB1": {
+   "name": "TGFB1",
+   "cliente": {
+    "codigo": "550",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TIMP1": {
+   "name": "TIMP-1",
+   "cliente": {
+    "codigo": "535",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TIMP2": {
+   "name": "TIMP-2",
+   "cliente": {
+    "codigo": "597",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TLR4": {
+   "name": "TLR4",
+   "cliente": {
+    "codigo": "683",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TMA": {
+   "name": "TMA",
+   "cliente": {
+    "codigo": "736",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "TNF": {
+   "name": "TNF@",
+   "cliente": {
+    "codigo": "907",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "UCP1": {
+   "name": "UCP 1",
+   "cliente": {
+    "codigo": "981",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "USP8": {
+   "name": "USP8",
+   "cliente": {
+    "codigo": "489",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "VAT": {
+   "name": "VAT",
+   "cliente": {
+    "codigo": "652",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "VCAM1": {
+   "name": "VCAM-1",
+   "cliente": {
+    "codigo": "906",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "VEGF": {
+   "name": "VEGF",
+   "cliente": {
+    "codigo": "527",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "622",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "VGFA": {
+   "name": "VGFA",
+   "cliente": {
+    "codigo": "680",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "VIMENTINA": {
+   "name": "VIMENTINA",
+   "cliente": {
+    "codigo": "676",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": {
+    "codigo": "439",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "YAP1": {
+   "name": "YAP1",
+   "cliente": {
+    "codigo": "682",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "ZNF367": {
+   "name": "ZNF 367",
+   "cliente": {
+    "codigo": "695",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "1": {
+   "name": "1",
+   "cliente": {
+    "codigo": "637",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "34BE12": {
+   "name": "34bE12",
+   "cliente": null,
+   "histocell": {
+    "codigo": "458",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ACTH": {
+   "name": "ACTH",
+   "cliente": null,
+   "histocell": {
+    "codigo": "757",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ACTINAALFAFETOPROTEINA": {
+   "name": "Actina Alfafetoproteina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "846",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ACTINAAML": {
+   "name": "Actina AML",
+   "cliente": null,
+   "histocell": {
+    "codigo": "510",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ADENOVIRUS": {
+   "name": "ADENOVIRUS",
+   "cliente": null,
+   "histocell": {
+    "codigo": "669",
+    "valorRotina": 60.0,
+    "valorPesquisa": 60.0
+   }
+  },
+  "AGHBC": {
+   "name": "AGHBC",
+   "cliente": null,
+   "histocell": {
+    "codigo": "953",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "AGHBS": {
+   "name": "AGHBS",
+   "cliente": null,
+   "histocell": {
+    "codigo": "952",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ALFA1ANTITRIP": {
+   "name": "ALFA1 ANTITRIP",
+   "cliente": null,
+   "histocell": {
+    "codigo": "794",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ALK1": {
+   "name": "Alk 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "414",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "AMACR": {
+   "name": "AMACR",
+   "cliente": null,
+   "histocell": {
+    "codigo": "969",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ARG1": {
+   "name": "ARG 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "901",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ATRX": {
+   "name": "ATRX",
+   "cliente": null,
+   "histocell": {
+    "codigo": "715",
+    "valorRotina": 130.0,
+    "valorPesquisa": 130.0
+   }
+  },
+  "BCG": {
+   "name": "BCG",
+   "cliente": null,
+   "histocell": {
+    "codigo": "646",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BCL6": {
+   "name": "Bcl 6",
+   "cliente": null,
+   "histocell": {
+    "codigo": "415",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BEREP4": {
+   "name": "BEREP4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "874",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BETACATENINA": {
+   "name": "BETA CATENINA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "544",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BHCG": {
+   "name": "BHCG",
+   "cliente": null,
+   "histocell": {
+    "codigo": "980",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BRAF": {
+   "name": "BRAF",
+   "cliente": null,
+   "histocell": {
+    "codigo": "870",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "BRST2": {
+   "name": "BRST-2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "401",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CKIT": {
+   "name": "C KIT",
+   "cliente": null,
+   "histocell": {
+    "codigo": "492",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CMYC": {
+   "name": "CMYC",
+   "cliente": null,
+   "histocell": {
+    "codigo": "738",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "C4D": {
+   "name": "C4D",
+   "cliente": null,
+   "histocell": {
+    "codigo": "604",
+    "valorRotina": 110.0,
+    "valorPesquisa": 110.0
+   }
+  },
+  "CA125": {
+   "name": "Ca 125",
+   "cliente": null,
+   "histocell": {
+    "codigo": "804",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CA199": {
+   "name": "Ca 19.9",
+   "cliente": null,
+   "histocell": {
+    "codigo": "402",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CALCITONINA": {
+   "name": "Calcitonina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "916",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CALDESMON": {
+   "name": "Caldesmon",
+   "cliente": null,
+   "histocell": {
+    "codigo": "958",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CALPONINA": {
+   "name": "Calponina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "417",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CALRETININA": {
+   "name": "Calretinina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "403",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CAM52": {
+   "name": "CAM 5.2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "418",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CASPASE": {
+   "name": "Caspase",
+   "cliente": null,
+   "histocell": {
+    "codigo": "827",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD10": {
+   "name": "CD 10",
+   "cliente": null,
+   "histocell": {
+    "codigo": "404",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD138": {
+   "name": "CD 138",
+   "cliente": null,
+   "histocell": {
+    "codigo": "419",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD15": {
+   "name": "CD 15",
+   "cliente": null,
+   "histocell": {
+    "codigo": "405",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD16": {
+   "name": "CD 16",
+   "cliente": null,
+   "histocell": {
+    "codigo": "1037",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD163": {
+   "name": "CD 163",
+   "cliente": null,
+   "histocell": {
+    "codigo": "703",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD1A": {
+   "name": "CD 1A",
+   "cliente": null,
+   "histocell": {
+    "codigo": "463",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD20": {
+   "name": "CD 20",
+   "cliente": null,
+   "histocell": {
+    "codigo": "420",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD21": {
+   "name": "CD 21",
+   "cliente": null,
+   "histocell": {
+    "codigo": "849",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD23": {
+   "name": "CD 23",
+   "cliente": null,
+   "histocell": {
+    "codigo": "406",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD25": {
+   "name": "CD 25",
+   "cliente": null,
+   "histocell": {
+    "codigo": "893",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD3": {
+   "name": "CD3",
+   "cliente": null,
+   "histocell": {
+    "codigo": "541",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD30": {
+   "name": "CD 30",
+   "cliente": null,
+   "histocell": {
+    "codigo": "407",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD43": {
+   "name": "CD 43",
+   "cliente": null,
+   "histocell": {
+    "codigo": "408",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD45LCA": {
+   "name": "CD 45LCA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "423",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD56": {
+   "name": "CD 56",
+   "cliente": null,
+   "histocell": {
+    "codigo": "409",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD7": {
+   "name": "CD7",
+   "cliente": null,
+   "histocell": {
+    "codigo": "410",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD99": {
+   "name": "CD 99",
+   "cliente": null,
+   "histocell": {
+    "codigo": "425",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD34": {
+   "name": "CD34",
+   "cliente": null,
+   "histocell": {
+    "codigo": "526",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD4": {
+   "name": "CD4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "494",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD45": {
+   "name": "CD45",
+   "cliente": null,
+   "histocell": {
+    "codigo": "504",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD45RA": {
+   "name": "CD45RA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "483",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD5": {
+   "name": "CD5",
+   "cliente": null,
+   "histocell": {
+    "codigo": "411",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CD79": {
+   "name": "CD79",
+   "cliente": null,
+   "histocell": {
+    "codigo": "477",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CDK4": {
+   "name": "CDK4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "761",
+    "valorRotina": 105.0,
+    "valorPesquisa": 105.0
+   }
+  },
+  "CDX2": {
+   "name": "CDX2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "426",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CEA": {
+   "name": "CEA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "413",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CICLINAD1": {
+   "name": "CICLINA D1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "474",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CITOQUERATINA": {
+   "name": "Citoqueratina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "478",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CK19": {
+   "name": "CK 19",
+   "cliente": null,
+   "histocell": {
+    "codigo": "466",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CK56": {
+   "name": "CK 5/6",
+   "cliente": null,
+   "histocell": {
+    "codigo": "428",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CK17": {
+   "name": "CK17",
+   "cliente": null,
+   "histocell": {
+    "codigo": "852",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CK20": {
+   "name": "CK20",
+   "cliente": null,
+   "histocell": {
+    "codigo": "429",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CK7": {
+   "name": "CK7",
+   "cliente": null,
+   "histocell": {
+    "codigo": "442",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CMV": {
+   "name": "CMV",
+   "cliente": null,
+   "histocell": {
+    "codigo": "664",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "COLAGENOIV": {
+   "name": "Colageno IV",
+   "cliente": null,
+   "histocell": {
+    "codigo": "792",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "CROMOGRANINA": {
+   "name": "Cromogranina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "430",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "D240": {
+   "name": "D2 40",
+   "cliente": null,
+   "histocell": {
+    "codigo": "833",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "DESMINA": {
+   "name": "Desmina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "443",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "DOG1": {
+   "name": "DOG1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "479",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "EBV": {
+   "name": "EBV",
+   "cliente": null,
+   "histocell": {
+    "codigo": "820",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "EMA": {
+   "name": "EMA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "431",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ENOLASE": {
+   "name": "Enolase",
+   "cliente": null,
+   "histocell": {
+    "codigo": "457",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "ERG": {
+   "name": "ERG",
+   "cliente": null,
+   "histocell": {
+    "codigo": "784",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "FVIII": {
+   "name": "F VIII",
+   "cliente": null,
+   "histocell": {
+    "codigo": "444",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "FSH": {
+   "name": "FSH",
+   "cliente": null,
+   "histocell": {
+    "codigo": "755",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "FXIIIA": {
+   "name": "FXIIIa",
+   "cliente": null,
+   "histocell": {
+    "codigo": "473",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GASTRINA": {
+   "name": "Gastrina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "791",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GATA3": {
+   "name": "Gata 3",
+   "cliente": null,
+   "histocell": {
+    "codigo": "432",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GFAP": {
+   "name": "GFAP",
+   "cliente": null,
+   "histocell": {
+    "codigo": "445",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GH": {
+   "name": "GH",
+   "cliente": null,
+   "histocell": {
+    "codigo": "754",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GLICOFORINAA": {
+   "name": "Glicoforina A",
+   "cliente": null,
+   "histocell": {
+    "codigo": "433",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GLUCAGON": {
+   "name": "Glucagon",
+   "cliente": null,
+   "histocell": {
+    "codigo": "570",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GLUT1": {
+   "name": "GLUT 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "748",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GLYPICAN3": {
+   "name": "GLYPICAN 3",
+   "cliente": null,
+   "histocell": {
+    "codigo": "900",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "GRANZIMAB": {
+   "name": "GRANZIMA B",
+   "cliente": null,
+   "histocell": {
+    "codigo": "712",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "H3K27ME": {
+   "name": "H3K27ME",
+   "cliente": null,
+   "histocell": {
+    "codigo": "762",
+    "valorRotina": 110.0,
+    "valorPesquisa": 110.0
+   }
+  },
+  "HBME1": {
+   "name": "HBME 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "464",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HELICOBACTER": {
+   "name": "HELICOBACTER",
+   "cliente": null,
+   "histocell": {
+    "codigo": "850",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HEPATOCYTE": {
+   "name": "Hepatocyte",
+   "cliente": null,
+   "histocell": {
+    "codigo": "446",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HER2": {
+   "name": "HER 2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "560",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HHF35": {
+   "name": "HHF 35",
+   "cliente": null,
+   "histocell": {
+    "codigo": "441",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HHV8": {
+   "name": "HHV8",
+   "cliente": null,
+   "histocell": {
+    "codigo": "475",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HMB45": {
+   "name": "HMB45",
+   "cliente": null,
+   "histocell": {
+    "codigo": "506",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HSVI": {
+   "name": "HSV I",
+   "cliente": null,
+   "histocell": {
+    "codigo": "747",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "HSVII": {
+   "name": "HSV II",
+   "cliente": null,
+   "histocell": {
+    "codigo": "848",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "IDH1": {
+   "name": "IDH1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "714",
+    "valorRotina": 102.0,
+    "valorPesquisa": 102.0
+   }
+  },
+  "IGD": {
+   "name": "IgD",
+   "cliente": null,
+   "histocell": {
+    "codigo": "854",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "IGG": {
+   "name": "IgG",
+   "cliente": null,
+   "histocell": {
+    "codigo": "718",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "IGG4": {
+   "name": "IgG4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "617",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "IGM": {
+   "name": "IgM",
+   "cliente": null,
+   "histocell": {
+    "codigo": "763",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "INI1": {
+   "name": "INI 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "805",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "INIBINA": {
+   "name": "Inibina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "447",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "INSULINA": {
+   "name": "Insulina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "456",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "KAPPA": {
+   "name": "KAPPA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "710",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "LAMBDA": {
+   "name": "LAMBDA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "711",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "LH": {
+   "name": "LH",
+   "cliente": null,
+   "histocell": {
+    "codigo": "753",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "LISOZIMA": {
+   "name": "LISOZIMA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "482",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "LISOZYME": {
+   "name": "Lisozyme",
+   "cliente": null,
+   "histocell": {
+    "codigo": "455",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MDM2": {
+   "name": "MDM2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "760",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "MELANA": {
+   "name": "Melan A",
+   "cliente": null,
+   "histocell": {
+    "codigo": "435",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MIELOPEROXIDASE": {
+   "name": "MIELOPEROXIDASE",
+   "cliente": null,
+   "histocell": {
+    "codigo": "815",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MIOGENINA": {
+   "name": "MIOGENINA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "525",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MIOGLOBINA": {
+   "name": "MIOGLOBINA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "684",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MLH1": {
+   "name": "MLH 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "563",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MOC31": {
+   "name": "MOC31",
+   "cliente": null,
+   "histocell": {
+    "codigo": "576",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MSAAML": {
+   "name": "MSA (AML",
+   "cliente": null,
+   "histocell": {
+    "codigo": "448",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MSH2": {
+   "name": "MSH 2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "561",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MSH6": {
+   "name": "MSH 6",
+   "cliente": null,
+   "histocell": {
+    "codigo": "562",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MUC1": {
+   "name": "MUC 1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "566",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MUC2": {
+   "name": "MUC 2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "635",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MUC4": {
+   "name": "MUC 4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "720",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MUC6": {
+   "name": "MUC 6",
+   "cliente": null,
+   "histocell": {
+    "codigo": "578",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MUC5A": {
+   "name": "MUC5A",
+   "cliente": null,
+   "histocell": {
+    "codigo": "580",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "MYOD1": {
+   "name": "Myo D1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "716",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "NAPSINA": {
+   "name": "Napsin A",
+   "cliente": null,
+   "histocell": {
+    "codigo": "568",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "NEUN": {
+   "name": "NEU N",
+   "cliente": null,
+   "histocell": {
+    "codigo": "840",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "OCT2": {
+   "name": "OCT 2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "817",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "OCT34": {
+   "name": "OCT 3/4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "686",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "P16": {
+   "name": "P16",
+   "cliente": null,
+   "histocell": {
+    "codigo": "631",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "P40": {
+   "name": "P40",
+   "cliente": null,
+   "histocell": {
+    "codigo": "1022",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "P63": {
+   "name": "p63",
+   "cliente": null,
+   "histocell": {
+    "codigo": "454",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PAX2": {
+   "name": "PAX 2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "811",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "PAX5": {
+   "name": "PAX 5",
+   "cliente": null,
+   "histocell": {
+    "codigo": "449",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PAX8": {
+   "name": "PAX 8",
+   "cliente": null,
+   "histocell": {
+    "codigo": "436",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PGP95": {
+   "name": "Pgp 9.5",
+   "cliente": null,
+   "histocell": {
+    "codigo": "785",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PLA2R": {
+   "name": "PLA2R",
+   "cliente": null,
+   "histocell": {
+    "codigo": "621",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PLAP": {
+   "name": "PLAP",
+   "cliente": null,
+   "histocell": {
+    "codigo": "687",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PMS2": {
+   "name": "PMS2",
+   "cliente": null,
+   "histocell": {
+    "codigo": "564",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PRL": {
+   "name": "PRL",
+   "cliente": null,
+   "histocell": {
+    "codigo": "759",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PS100": {
+   "name": "PS100",
+   "cliente": null,
+   "histocell": {
+    "codigo": "450",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PSA": {
+   "name": "PSA",
+   "cliente": null,
+   "histocell": {
+    "codigo": "437",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PSAP": {
+   "name": "PSAP",
+   "cliente": null,
+   "histocell": {
+    "codigo": "451",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "PTH": {
+   "name": "PTH",
+   "cliente": null,
+   "histocell": {
+    "codigo": "1011",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "RACEMASE": {
+   "name": "RACEMASE",
+   "cliente": null,
+   "histocell": {
+    "codigo": "468",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "RCC": {
+   "name": "RCC",
+   "cliente": null,
+   "histocell": {
+    "codigo": "749",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "RECEPTORDEANDROGENO": {
+   "name": "Receptor de androgeno",
+   "cliente": null,
+   "histocell": {
+    "codigo": "553",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "RECEPTORESTROGENIO": {
+   "name": "Receptor Estrogenio",
+   "cliente": null,
+   "histocell": {
+    "codigo": "539",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "RECEPTORPROGESTERONA": {
+   "name": "Receptor Progesterona",
+   "cliente": null,
+   "histocell": {
+    "codigo": "540",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "S100": {
+   "name": "S100",
+   "cliente": null,
+   "histocell": {
+    "codigo": "472",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "SALL4": {
+   "name": "SALL4",
+   "cliente": null,
+   "histocell": {
+    "codigo": "688",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "SURFACTANTE": {
+   "name": "SURFACTANTE",
+   "cliente": null,
+   "histocell": {
+    "codigo": "819",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "SV40": {
+   "name": "SV40",
+   "cliente": null,
+   "histocell": {
+    "codigo": "603",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "SYNAPTOFISINA": {
+   "name": "Synaptofisina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "438",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "TDT": {
+   "name": "TdT",
+   "cliente": null,
+   "histocell": {
+    "codigo": "565",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "TIREOGLOBULINA": {
+   "name": "Tireoglobulina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "793",
+    "valorRotina": 65.0,
+    "valorPesquisa": 65.0
+   }
+  },
+  "TNFA": {
+   "name": "TNF-a",
+   "cliente": null,
+   "histocell": {
+    "codigo": "853",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "TOXOPLASMA": {
+   "name": "Toxoplasma",
+   "cliente": null,
+   "histocell": {
+    "codigo": "653",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "TREPONEMA": {
+   "name": "Treponema",
+   "cliente": null,
+   "histocell": {
+    "codigo": "758",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "TRYPTASEA1": {
+   "name": "Tryptase A1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "894",
+    "valorRotina": 95.0,
+    "valorPesquisa": 95.0
+   }
+  },
+  "TSH": {
+   "name": "TSH",
+   "cliente": null,
+   "histocell": {
+    "codigo": "756",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "TTF1": {
+   "name": "TTF1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "452",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "VILLINA": {
+   "name": "Villina",
+   "cliente": null,
+   "histocell": {
+    "codigo": "828",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "WT1": {
+   "name": "WT1",
+   "cliente": null,
+   "histocell": {
+    "codigo": "453",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "IMUNOPADRONIZACAO": {
+   "name": "Imuno PADRONIZAÇÃO",
+   "cliente": {
+    "codigo": "284",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IMUNOHISTOQUIMICACANTICORPODOCLIENTE": {
+   "name": "Imunohistoquímica c/ anticorpo do cliente",
+   "cliente": {
+    "codigo": "298",
+    "valorRotina": 32.0,
+    "valorPesquisa": 32.0
+   },
+   "histocell": null
+  },
+  "IMUNOHISTOQUIMICACANTICORPODOCLIENTEIFPARAFINA": {
+   "name": "Imunohistoquímica c/ anticorpo do cliente (IF) parafina",
+   "cliente": {
+    "codigo": "789",
+    "valorRotina": 55.0,
+    "valorPesquisa": 55.0
+   },
+   "histocell": null
+  },
+  "IMUNOHISTOQUIMICACANTICORPOHISTOCELL": {
+   "name": "Imunohistoquimica c/ Anticorpo Histocell",
+   "cliente": null,
+   "histocell": {
+    "codigo": "76",
+    "valorRotina": 85.0,
+    "valorPesquisa": 85.0
+   }
+  },
+  "IMUNOHISTOQUIMICAPAINEL4MARCADORES": {
+   "name": "Imunohistoquimica painel 4 marcadores",
+   "cliente": {
+    "codigo": "1030",
+    "valorRotina": 240.0,
+    "valorPesquisa": 240.0
+   },
+   "histocell": null
+  },
+  "LINFONODOSENTINELAC2IMUNOS3LAMINAS": {
+   "name": "Linfonodo Sentinela c/ 2 imunos 3 laminas",
+   "cliente": {
+    "codigo": "266",
+    "valorRotina": 250.0,
+    "valorPesquisa": 250.0
+   },
+   "histocell": null
+  }
+ },
+ "ihcPainelClinico": [
+  {
+   "nome": "Mama (carcinoma)",
+   "icon": "fa-ribbon",
+   "descricao": "Receptores hormonais + proliferação",
+   "marcadores": [
+    {
+     "query": "RE",
+     "markerKey": "RECEPTORANDROGENIO",
+     "nome": "Receptor Androgenio"
+    },
+    {
+     "query": "RP",
+     "markerKey": "IMUNICANTICORPOHISTOCELLMUM1",
+     "nome": "Imuni c Anticorpo Histocell MUM 1"
+    },
+    {
+     "query": "HER2",
+     "markerKey": "HER2",
+     "nome": "HER 2"
+    },
+    {
+     "query": "KI67",
+     "markerKey": "KI67",
+     "nome": "KI67"
+    }
+   ],
+   "cobertura": "4/4"
+  },
+  {
+   "nome": "Linfoma (triagem)",
+   "icon": "fa-disease",
+   "descricao": "Diferenciação B/T e clonalidade",
+   "marcadores": [
+    {
+     "query": "CD20",
+     "markerKey": "CD20",
+     "nome": "CD 20"
+    },
+    {
+     "query": "CD3",
+     "markerKey": "CD3",
+     "nome": "CD3"
+    },
+    {
+     "query": "CD5",
+     "markerKey": "CD5",
+     "nome": "CD5"
+    },
+    {
+     "query": "CD23",
+     "markerKey": "CD23",
+     "nome": "CD 23"
+    },
+    {
+     "query": "CD10",
+     "markerKey": "CD10",
+     "nome": "CD 10"
+    },
+    {
+     "query": "BCL2",
+     "markerKey": "BCL2",
+     "nome": "BCL2"
+    },
+    {
+     "query": "BCL6",
+     "markerKey": "BCL6",
+     "nome": "Bcl 6"
+    },
+    {
+     "query": "KI67",
+     "markerKey": "KI67",
+     "nome": "KI67"
+    }
+   ],
+   "cobertura": "8/8"
+  },
+  {
+   "nome": "Próstata",
+   "icon": "fa-mars",
+   "descricao": "Confirmação de adenocarcinoma",
+   "marcadores": [
+    {
+     "query": "PSA",
+     "markerKey": "PSA",
+     "nome": "PSA"
+    },
+    {
+     "query": "RACEMASE",
+     "markerKey": "RACEMASE",
+     "nome": "RACEMASE"
+    },
+    {
+     "query": "P63",
+     "markerKey": "P63",
+     "nome": "p63"
+    },
+    {
+     "query": "AE1AE3",
+     "markerKey": "AE1AE3",
+     "nome": "AE1/AE3"
+    }
+   ],
+   "cobertura": "4/4"
+  },
+  {
+   "nome": "Pulmão",
+   "icon": "fa-lungs",
+   "descricao": "Adeno vs escamoso / origem",
+   "marcadores": [
+    {
+     "query": "TTF1",
+     "markerKey": "TTF1",
+     "nome": "TTF1"
+    },
+    {
+     "query": "P40",
+     "markerKey": "P40",
+     "nome": "P40"
+    },
+    {
+     "query": "CK7",
+     "markerKey": "CK7",
+     "nome": "CK7"
+    },
+    {
+     "query": "NAPSINA",
+     "markerKey": "NAPSINA",
+     "nome": "Napsin A"
+    }
+   ],
+   "cobertura": "4/4"
+  },
+  {
+   "nome": "Trato GI / Cólon",
+   "icon": "fa-bowl-food",
+   "descricao": "Origem colorretal",
+   "marcadores": [
+    {
+     "query": "CK20",
+     "markerKey": "CK20",
+     "nome": "CK20"
+    },
+    {
+     "query": "CK7",
+     "markerKey": "CK7",
+     "nome": "CK7"
+    },
+    {
+     "query": "CDX2",
+     "markerKey": "CDX2",
+     "nome": "CDX2"
+    }
+   ],
+   "cobertura": "3/3"
+  },
+  {
+   "nome": "Melanoma",
+   "icon": "fa-circle-dot",
+   "descricao": "Lesão melanocítica",
+   "marcadores": [
+    {
+     "query": "S100",
+     "markerKey": "S100",
+     "nome": "S100"
+    },
+    {
+     "query": "MELANA",
+     "markerKey": "MELANA",
+     "nome": "Melan A"
+    },
+    {
+     "query": "HMB45",
+     "markerKey": "HMB45",
+     "nome": "HMB45"
+    },
+    {
+     "query": "SOX10",
+     "markerKey": null,
+     "nome": "SOX10",
+     "_faltante": true
+    }
+   ],
+   "cobertura": "3/4"
+  },
+  {
+   "nome": "Neuroendócrino",
+   "icon": "fa-brain",
+   "descricao": "Tumor neuroendócrino + índice",
+   "marcadores": [
+    {
+     "query": "CROMOGRANINA",
+     "markerKey": "CROMOGRANINA",
+     "nome": "Cromogranina"
+    },
+    {
+     "query": "SINAPTO",
+     "markerKey": null,
+     "nome": "SINAPTO",
+     "_faltante": true
+    },
+    {
+     "query": "CD56",
+     "markerKey": "CD56",
+     "nome": "CD 56"
+    },
+    {
+     "query": "KI67",
+     "markerKey": "KI67",
+     "nome": "KI67"
+    }
+   ],
+   "cobertura": "3/4"
+  },
+  {
+   "nome": "Origem indeterminada (CUP)",
+   "icon": "fa-question",
+   "descricao": "Sítio primário desconhecido",
+   "marcadores": [
+    {
+     "query": "AE1AE3",
+     "markerKey": "AE1AE3",
+     "nome": "AE1/AE3"
+    },
+    {
+     "query": "CK7",
+     "markerKey": "CK7",
+     "nome": "CK7"
+    },
+    {
+     "query": "CK20",
+     "markerKey": "CK20",
+     "nome": "CK20"
+    },
+    {
+     "query": "TTF1",
+     "markerKey": "TTF1",
+     "nome": "TTF1"
+    },
+    {
+     "query": "CDX2",
+     "markerKey": "CDX2",
+     "nome": "CDX2"
+    },
+    {
+     "query": "PAX8",
+     "markerKey": "PAX8",
+     "nome": "PAX 8"
+    }
+   ],
+   "cobertura": "6/6"
+  },
+  {
+   "nome": "Sarcoma partes moles",
+   "icon": "fa-bone",
+   "descricao": "Triagem mesenquimal",
+   "marcadores": [
+    {
+     "query": "VIMENTINA",
+     "markerKey": "VIMENTINA",
+     "nome": "VIMENTINA"
+    },
+    {
+     "query": "SMA",
+     "markerKey": "ALFASMA",
+     "nome": "ALFA SMA"
+    },
+    {
+     "query": "DESMINA",
+     "markerKey": "DESMINA",
+     "nome": "Desmina"
+    },
+    {
+     "query": "S100",
+     "markerKey": "S100",
+     "nome": "S100"
+    },
+    {
+     "query": "CD34",
+     "markerKey": "CD34",
+     "nome": "CD34"
+    }
+   ],
+   "cobertura": "5/5"
+  },
+  {
+   "nome": "Rim",
+   "icon": "fa-kidneys",
+   "descricao": "Carcinoma renal",
+   "marcadores": [
+    {
+     "query": "PAX8",
+     "markerKey": "PAX8",
+     "nome": "PAX 8"
+    },
+    {
+     "query": "CD10",
+     "markerKey": "CD10",
+     "nome": "CD 10"
+    },
+    {
+     "query": "VIMENTINA",
+     "markerKey": "VIMENTINA",
+     "nome": "VIMENTINA"
+    },
+    {
+     "query": "RCC",
+     "markerKey": "RCC",
+     "nome": "RCC"
+    }
+   ],
+   "cobertura": "4/4"
+  }
+ ],
+ "coloracaoPorPerguntaClinica": [
+  {
+   "pergunta": "Pesquisa de BAAR / micobactéria",
+   "icon": "fa-bacterium",
+   "contexto": "TB, hanseníase",
+   "colorações": [
+    {
+     "nome": "Ziehl Nilsen",
+     "codigo": "44",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Pesquisa de fungos",
+   "icon": "fa-disease",
+   "contexto": "Histoplasma, Aspergillus, etc.",
+   "colorações": [
+    {
+     "nome": "Grocott",
+     "codigo": "29",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "PAS",
+     "codigo": "32",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Pams",
+     "codigo": "31",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Pesquisa de H. pylori",
+   "icon": "fa-bacteria",
+   "contexto": "Gastrite / biópsia gástrica",
+   "colorações": [
+    {
+     "nome": "Giemsa",
+     "codigo": "27",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Warthin Starry",
+     "codigo": "845",
+     "valorRotina": 35.0,
+     "valorPesquisa": 40.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Amiloide",
+   "icon": "fa-wave-square",
+   "contexto": "Suspeita de amiloidose",
+   "colorações": [
+    {
+     "nome": "Vermelho Congo",
+     "codigo": "42",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Fibrose / colágeno (fígado)",
+   "icon": "fa-grip-lines",
+   "contexto": "Estadiamento de fibrose",
+   "colorações": [
+    {
+     "nome": "Tricômico de Masson",
+     "codigo": "40",
+     "valorRotina": 19.8,
+     "valorPesquisa": 20.0
+    },
+    {
+     "nome": "Reticulina",
+     "codigo": "37",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Picrossírius",
+     "codigo": "36",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Ferro (hemossiderose)",
+   "icon": "fa-magnet",
+   "contexto": "Sobrecarga de ferro",
+   "colorações": [
+    {
+     "nome": "Pelrs (Azul da Prússia)",
+     "codigo": "35",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Cobre (Wilson)",
+   "icon": "fa-atom",
+   "contexto": "Doença de Wilson",
+   "colorações": [
+    {
+     "nome": "Rodanina",
+     "codigo": "38",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Muco / células caliciformes",
+   "icon": "fa-droplet",
+   "contexto": "Metaplasia, adenocarcinoma",
+   "colorações": [
+    {
+     "nome": "Alcian Blue",
+     "codigo": "25",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "PAS",
+     "codigo": "32",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Mucicarmin",
+     "codigo": "30",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Membrana basal glomerular",
+   "icon": "fa-kidneys",
+   "contexto": "Biópsia renal",
+   "colorações": [
+    {
+     "nome": "Pams",
+     "codigo": "31",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Prata de Jones",
+     "codigo": "195",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Fibras elásticas",
+   "icon": "fa-spring",
+   "contexto": "Vasos, pulmão",
+   "colorações": [
+    {
+     "nome": "Verhoeff",
+     "codigo": "41",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Resorcina",
+     "codigo": "78",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Melanina vs lipofuscina",
+   "icon": "fa-circle-half-stroke",
+   "contexto": "Lesão pigmentada",
+   "colorações": [
+    {
+     "nome": "Fontana Masson",
+     "codigo": "26",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Cálcio / calcificação",
+   "icon": "fa-snowflake",
+   "contexto": "Depósitos de cálcio",
+   "colorações": [
+    {
+     "nome": "Von Kossa",
+     "codigo": "43",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    },
+    {
+     "nome": "Alzarin Red",
+     "codigo": "776",
+     "valorRotina": 19.8,
+     "valorPesquisa": 25.0
+    }
+   ]
+  },
+  {
+   "pergunta": "Bactérias (Gram)",
+   "icon": "fa-bacterium",
+   "contexto": "Infecção bacteriana",
+   "colorações": [
+    {
+     "nome": "Gram BH/BB",
+     "codigo": "28",
+     "valorRotina": 19.8,
+     "valorPesquisa": 22.0
+    }
+   ]
+  }
+ ],
+ "macroscopiaResolver": {
+  "descricao": "Recepção captura nº de frascos + tipo; código provável é pré-selecionado e CONFIRMADO na clivagem (a recepcionista raramente sabe o nº final de blocos).",
+  "regras": {
+   "simples": {
+    "1": {
+     "codigo": "149",
+     "valorRotina": 8.8,
+     "valorPesquisa": 9.9,
+     "nome": "Simples 1 amostra"
+    },
+    "2": {
+     "codigo": "215",
+     "valorRotina": 12.0,
+     "valorPesquisa": 14.5,
+     "nome": "Simples 2 amostras"
+    },
+    "3": {
+     "codigo": "69",
+     "valorRotina": 14.3,
+     "valorPesquisa": 17.0,
+     "nome": "Simples 3 amostras"
+    },
+    "3+": {
+     "codigo": "99",
+     "valorRotina": 16.5,
+     "valorPesquisa": 19.9,
+     "nome": "Simples acima 3 amostras"
+    }
+   },
+   "comDescricao": {
+    "1": {
+     "codigo": "151",
+     "valorRotina": 11.0,
+     "valorPesquisa": 13.0,
+     "nome": "1 amostra"
+    },
+    "2": {
+     "codigo": "215",
+     "valorRotina": 12.0,
+     "valorPesquisa": 14.5,
+     "nome": "Simples 2 amostras"
+    },
+    "3+": {
+     "codigo": "257",
+     "valorRotina": 18.7,
+     "valorPesquisa": 22.0,
+     "nome": "acima 3 amostra"
+    }
+   },
+   "radical": {
+    "codigo": "375",
+    "valorRotina": 20.0,
+    "valorPesquisa": 24.0,
+    "nome": "Peça radical"
+   },
+   "osseo": {
+    "codigo": "211",
+    "valorRotina": 11.0,
+    "valorPesquisa": 13.0,
+    "nome": "Material ósseo"
+   },
+   "necropsia": {
+    "codigo": "372",
+    "valorRotina": 16.0,
+    "valorPesquisa": 19.0,
+    "nome": "Necro"
+   }
+  },
+  "autoAnexar": {
+   "osseo": {
+    "motivo": "Material ósseo exige descalcificação prévia (+prazo)",
+    "servico": {
+     "codigo": "10",
+     "valorRotina": 6.0,
+     "valorPesquisa": 7.0,
+     "nome": "Descalcificação da amostra"
+    }
+   }
+  }
+ }
+}
