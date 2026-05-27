@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Flame, Star, Clock, GitBranch, Plus, Trash2,
   AlertCircle, ChevronDown, CheckCircle2, Send, Stethoscope,
@@ -15,37 +15,11 @@ import { ServicoSearchInput } from '@/components/ui/ServicoSearchInput'
 import { ClinicoTab } from '@/components/clinico/ClinicoTab'
 import { api } from '@/lib/api'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
+import { useOrderCart, fmtBRL, itemSubtotal } from '@/hooks/useOrderCart'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
 type Tab = 'populares' | 'favoritos' | 'historico' | 'guiado' | 'clinico'
-
-type ItemForm = {
-  key:       string   // uid interno
-  servicoId: number
-  nome:      string
-  categoria: string
-  quantidade: number
-  preco:     number
-  desconto:  number
-}
-
-type ClienteOpt = {
-  id: number
-  nome: string
-  nomeFantasia?: string | null
-  segmento: string
-}
-
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-function fmtBRL(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-function itemSubtotal(item: ItemForm) {
-  return item.preco * item.quantidade * (1 - item.desconto / 100)
-}
 
 // ─── ServicoCard (Populares / Favoritos / Histórico) ─────────────────────────
 
@@ -105,16 +79,14 @@ function ServicoCard({ servico, isPesquisador, onAdd, onFav, isFav }: CardProps)
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PedidosGuiadoPage() {
-  // ── estado geral ──────────────────────────────────────────────────────────
-  const [clienteId, setClienteId]     = useState('')
-  const [observacoes, setObservacoes] = useState('')
-  const [status, setStatus]           = useState<'rascunho' | 'enviado'>('rascunho')
-  const [itens, setItens]             = useState<ItemForm[]>([])
-  const [saving, setSaving]           = useState(false)
-  const [saved, setSaved]             = useState(false)
+  // ── carrinho compartilhado (cliente, itens, preço, submit) ──────────────────
+  const {
+    clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
+    cliente, isPesquisador, totalGeral,
+    addServico, removeItem, updateItem, handleSalvar,
+  } = useOrderCart()
 
-  // ── listas externas ───────────────────────────────────────────────────────
-  const [clientes, setClientes]       = useState<ClienteOpt[]>([])
+  // ── listas externas (específicas do guiado) ─────────────────────────────────
   const [populares, setPopulares]     = useState<(Servico & { totalUsos?: number })[]>([])
   const [favoritos, setFavoritos]     = useState<(Servico & { favoritado?: boolean })[]>([])
   const [historico, setHistorico]     = useState<(Servico & { ultimoPedidoEm?: string })[]>([])
@@ -125,11 +97,6 @@ export default function PedidosGuiadoPage() {
   const [favIds, setFavIds]           = useState<Set<number>>(new Set())
   const [userId, setUserId]           = useState<number | null>(null)
 
-  // ── cliente selecionado ───────────────────────────────────────────────────
-  const cliente = clientes.find((c) => String(c.id) === clienteId)
-  const isPesquisador = cliente?.segmento === 'pesquisador'
-  const priceKey = isPesquisador ? 'precoPesquisa' : 'precoRotina'
-
   // ── carregamento inicial ──────────────────────────────────────────────────
   useEffect(() => {
     const raw = localStorage.getItem('user')
@@ -138,11 +105,9 @@ export default function PedidosGuiadoPage() {
     }
 
     Promise.all([
-      api.get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true'),
       api.get<(Servico & { totalUsos?: number })[]>('/pedidos/servicos/populares'),
       api.get<Servico[]>('/pedidos/servicos'),
-    ]).then(([cRes, pop, all]) => {
-      setClientes(cRes.data)
+    ]).then(([pop, all]) => {
       setPopulares(pop)
       setAllServicos(all)
     }).catch(() => toast.error('Erro ao carregar dados'))
@@ -164,47 +129,6 @@ export default function PedidosGuiadoPage() {
     ).then(setHistorico).catch(() => {})
   }, [clienteId])
 
-  // ── adicionar item ────────────────────────────────────────────────────────
-  const addServico = useCallback(async (s: Servico) => {
-    // Busca preço correto se tiver cliente
-    let preco = Number(s[priceKey as keyof Servico] ?? s.precoRotina)
-    let desconto = 0
-
-    if (clienteId) {
-      try {
-        const res = await api.get<{ preco: number; desconto: number }>(
-          `/pedidos/preco?clienteId=${clienteId}&servicoId=${s.id}`
-        )
-        preco    = res.preco
-        desconto = res.desconto ?? 0
-      } catch {}
-    }
-
-    setItens((prev) => [
-      ...prev,
-      {
-        key:       `${s.id}-${Date.now()}`,
-        servicoId: s.id,
-        nome:      s.nome,
-        categoria: s.categoria,
-        quantidade: 1,
-        preco,
-        desconto,
-      },
-    ])
-    toast.success(`"${s.nome}" adicionado`)
-  }, [clienteId, priceKey])
-
-  function removeItem(key: string) {
-    setItens((prev) => prev.filter((i) => i.key !== key))
-  }
-
-  function updateItem(key: string, field: 'quantidade' | 'preco' | 'desconto', value: number) {
-    setItens((prev) =>
-      prev.map((i) => i.key === key ? { ...i, [field]: value } : i)
-    )
-  }
-
   // ── toggle favorito ───────────────────────────────────────────────────────
   async function toggleFav(s: Servico) {
     try {
@@ -225,41 +149,6 @@ export default function PedidosGuiadoPage() {
       toast.error('Erro ao atualizar favorito')
     }
   }
-
-  // ── salvar ────────────────────────────────────────────────────────────────
-  async function handleSalvar(finalStatus: 'rascunho' | 'enviado') {
-    if (!clienteId) { toast.error('Selecione um cliente.'); return }
-    if (itens.length === 0) { toast.error('Adicione pelo menos um serviço.'); return }
-
-    setSaving(true)
-    try {
-      await api.post('/pedidos', {
-        clienteId: parseInt(clienteId),
-        observacoes: observacoes || undefined,
-        status: finalStatus,
-        itens: itens.map((i) => ({
-          servicoId:  i.servicoId,
-          quantidade: i.quantidade,
-          preco:      i.preco,
-          desconto:   i.desconto,
-        })),
-      })
-      setSaved(true)
-      toast.success(finalStatus === 'enviado' ? 'Pedido enviado!' : 'Rascunho salvo!')
-      setTimeout(() => {
-        setItens([])
-        setClienteId('')
-        setObservacoes('')
-        setSaved(false)
-      }, 2000)
-    } catch (err: any) {
-      toast.error(err.message ?? 'Erro ao salvar pedido')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const totalGeral = itens.reduce((sum, i) => sum + itemSubtotal(i), 0)
 
   // ─────────────────────────────────────────────────────────────────────────
   return (

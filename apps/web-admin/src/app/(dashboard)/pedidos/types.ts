@@ -49,6 +49,7 @@ export type Servico = {
   precoBase: number
   precoRotina: number
   precoPesquisa: number
+  observacoes?: string | null
   tipo?:      string | null
   variante1?: string | null
   variante2?: string | null
