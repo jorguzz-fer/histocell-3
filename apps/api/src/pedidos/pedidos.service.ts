@@ -2,11 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
 import { FilterPedidoDto } from './dto/filter-pedido.dto';
+import { UpdateServicoDto } from './dto/update-servico.dto';
+import { FilterServicoDto } from './dto/filter-servico.dto';
 
 const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'cancelado'];
 
@@ -88,6 +91,7 @@ export class PedidosService {
     variante3?: string
     variante4?: string
     variante5?: string
+    observacoes?: string
   }) {
     const servico = await this.prisma.servico.create({
       data: {
@@ -103,6 +107,7 @@ export class PedidosService {
         variante3:    dto.variante3 ?? null,
         variante4:    dto.variante4 ?? null,
         variante5:    dto.variante5 ?? null,
+        observacoes:  dto.observacoes ?? null,
       },
     });
     return {
@@ -268,13 +273,29 @@ export class PedidosService {
     }));
   }
 
-  // ── Servicos disponíveis (para o picker do form) ────────────────────────────
-  async listarServicos() {
+  // ── Servicos disponíveis (para o picker do form / catálogo legado) ──────────
+  async listarServicos(filter?: FilterServicoDto) {
+    const where: any = {};
+    if (!filter?.incluirInativos || filter.incluirInativos === 'false') {
+      where.ativo = true;
+    }
+    if (filter?.categoria) where.categoria = filter.categoria;
+    if (filter?.busca) {
+      const q = filter.busca.trim();
+      where.OR = [
+        { nome: { contains: q, mode: 'insensitive' } },
+        { codigo: { contains: q, mode: 'insensitive' } },
+      ];
+      const asNum = parseInt(q, 10);
+      if (!Number.isNaN(asNum)) where.OR.push({ codigoLegado: asNum });
+    }
     const servicos = await this.prisma.servico.findMany({
-      where: { ativo: true },
+      where,
       select: {
         id: true, codigo: true, codigoLegado: true, categoria: true,
         nome: true, precoBase: true, precoRotina: true, precoPesquisa: true,
+        ativo: true, observacoes: true,
+        variante1: true, variante2: true, variante3: true, variante4: true, variante5: true,
       },
       orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
     });
@@ -284,6 +305,59 @@ export class PedidosService {
       precoRotina:   Number(s.precoRotina),
       precoPesquisa: Number(s.precoPesquisa),
     }));
+  }
+
+  // ── Editar serviço ──────────────────────────────────────────────────────────
+  async atualizarServico(id: number, dto: UpdateServicoDto) {
+    const atual = await this.prisma.servico.findUnique({ where: { id } });
+    if (!atual) throw new NotFoundException('Serviço não encontrado');
+
+    if (dto.codigo && dto.codigo !== atual.codigo) {
+      const dup = await this.prisma.servico.findUnique({ where: { codigo: dto.codigo } });
+      if (dup) throw new ConflictException('Já existe um serviço com esse código');
+    }
+
+    const data: any = { ...dto };
+    if (dto.precoRotina != null) data.precoBase = dto.precoRotina;
+
+    const servico = await this.prisma.servico.update({ where: { id }, data });
+    return {
+      ...servico,
+      precoBase: Number(servico.precoBase),
+      precoRotina: Number(servico.precoRotina),
+      precoPesquisa: Number(servico.precoPesquisa),
+    };
+  }
+
+  // ── Arquivar / desarquivar ──────────────────────────────────────────────────
+  async arquivarServico(id: number, ativo: boolean) {
+    const atual = await this.prisma.servico.findUnique({ where: { id } });
+    if (!atual) throw new NotFoundException('Serviço não encontrado');
+    const servico = await this.prisma.servico.update({ where: { id }, data: { ativo } });
+    return { id: servico.id, ativo: servico.ativo };
+  }
+
+  // ── Deletar (só se nunca usado) ──────────────────────────────────────────────
+  async removerServico(id: number) {
+    const atual = await this.prisma.servico.findUnique({ where: { id } });
+    if (!atual) throw new NotFoundException('Serviço não encontrado');
+
+    const [usosPedido, usosOrcamento] = await Promise.all([
+      this.prisma.itemPedido.count({ where: { servicoId: id } }),
+      this.prisma.itemOrcamento.count({ where: { servicoId: id } }),
+    ]);
+    if (usosPedido + usosOrcamento > 0) {
+      throw new ConflictException(
+        'Serviço em uso em pedidos/orçamentos — arquive em vez de deletar',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.servicoFavorito.deleteMany({ where: { servicoId: id } }),
+      this.prisma.tabelaPreco.deleteMany({ where: { servicoId: id } }),
+      this.prisma.servico.delete({ where: { id } }),
+    ]);
+    return { id, deleted: true };
   }
 
   // ── Preço unitário: TabelaPreco → preço pelo segmento do cliente → base ─────

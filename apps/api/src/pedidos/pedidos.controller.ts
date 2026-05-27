@@ -18,6 +18,9 @@ import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
 import { FilterPedidoDto } from './dto/filter-pedido.dto';
+import { UpdateServicoDto } from './dto/update-servico.dto';
+import { ArquivarServicoDto } from './dto/arquivar-servico.dto';
+import { FilterServicoDto } from './dto/filter-servico.dto';
 
 @Controller('pedidos')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,8 +32,8 @@ export class PedidosController {
   /** Lista serviços disponíveis para seleção nos itens do pedido */
   @Get('servicos')
   @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
-  listarServicos() {
-    return this.service.listarServicos();
+  listarServicos(@Query() filter: FilterServicoDto) {
+    return this.service.listarServicos(filter);
   }
 
   /** Cria um serviço customizado on-the-fly (quando o serviço não existe na lista) */
@@ -44,8 +47,41 @@ export class PedidosController {
     precoBase: number
     precoRotina: number
     precoPesquisa: number
+    observacoes?: string
+    variante1?: string
+    variante2?: string
+    variante3?: string
+    variante4?: string
+    variante5?: string
   }) {
     return this.service.criarServico(body);
+  }
+
+  /** Editar serviço (campos do formato legado) */
+  @Patch('servicos/:id')
+  @Roles('gerencia', 'recepcao')
+  atualizarServico(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateServicoDto,
+  ) {
+    return this.service.atualizarServico(id, dto);
+  }
+
+  /** Arquivar / desarquivar serviço */
+  @Patch('servicos/:id/arquivar')
+  @Roles('gerencia', 'recepcao')
+  arquivarServico(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ArquivarServicoDto,
+  ) {
+    return this.service.arquivarServico(id, dto.ativo);
+  }
+
+  /** Deletar serviço (bloqueia se em uso) */
+  @Delete('servicos/:id')
+  @Roles('gerencia')
+  removerServico(@Param('id', ParseIntPipe) id: number) {
+    return this.service.removerServico(id);
   }
 
   /** Preço unitário para um cliente + serviço (TabelaPreco ou precoBase) */
