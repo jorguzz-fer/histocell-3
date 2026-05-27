@@ -26,7 +26,7 @@ export default function PedidosLegadoPage() {
         {isPesquisador && <Badge variant="amber">Preço Pesquisa</Badge>}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
         {/* Esquerda: cliente + tabela legado */}
         <div className="space-y-5">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">

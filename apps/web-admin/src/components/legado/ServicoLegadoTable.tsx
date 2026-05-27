@@ -102,7 +102,7 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
       </div>
 
       {/* Pills de categoria */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => setCategoria('')}
           className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full ${!categoria ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
@@ -119,7 +119,16 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
       {/* Tabela */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="max-h-[60vh] overflow-y-auto">
-          <table className="w-full text-[12px]">
+          <table className="w-full table-fixed text-[12px]">
+            <colgroup>
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '30%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '13%' }} />
+            </colgroup>
             <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
               <tr className="text-left text-slate-500 dark:text-slate-400">
                 <th className="px-3 py-2 font-medium">Categoria</th>
@@ -133,15 +142,19 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.map((s) => (
-                <tr key={s.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${s.ativo === false ? 'opacity-40' : ''}`}>
-                  <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{s.categoria}</td>
-                  <td className="px-3 py-2 text-slate-800 dark:text-slate-100">{s.nome}</td>
-                  <td className="px-3 py-2 text-slate-400">{variantes(s)}</td>
-                  <td className="px-3 py-2 font-mono text-slate-500">{s.codigo}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{fmtBRL(Number(s.precoRotina))}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{fmtBRL(Number(s.precoPesquisa))}</td>
+                <tr key={s.id} className={`align-top hover:bg-slate-50 dark:hover:bg-slate-800/50 ${s.ativo === false ? 'opacity-40' : ''}`}>
+                  <td className="px-3 py-2 text-slate-500 dark:text-slate-400 break-words">{s.categoria}</td>
+                  <td className="px-3 py-2 text-slate-800 dark:text-slate-100">
+                    <span className="line-clamp-2 break-words" title={s.nome}>{s.nome}</span>
+                  </td>
+                  <td className="px-3 py-2 text-slate-400">
+                    <span className="line-clamp-2 break-words" title={variantes(s)}>{variantes(s)}</span>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-slate-500 break-words">{s.codigo}</td>
+                  <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtBRL(Number(s.precoRotina))}</td>
+                  <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtBRL(Number(s.precoPesquisa))}</td>
                   <td className="px-3 py-2">
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-1">
                       <button onClick={() => onAdd(s)} title="Adicionar ao pedido" className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded">
                         <Plus className="h-3.5 w-3.5" />
                       </button>
