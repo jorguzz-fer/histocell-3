@@ -2,9 +2,12 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -95,6 +98,13 @@ export class CreateClienteDto {
   @IsEnum(['recorrente', 'esporadico', 'pesquisador'])
   @IsOptional()
   segmento?: 'recorrente' | 'esporadico' | 'pesquisador';
+
+  /** Desconto fixo recorrente (%) aplicado automaticamente a cada pedido deste cliente */
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  descontoPadrao?: number;
 
   @IsString()
   @IsOptional()

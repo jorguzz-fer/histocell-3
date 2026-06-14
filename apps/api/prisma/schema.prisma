@@ -62,6 +62,7 @@ model Cliente {
   telefone          String?
   celular           String?
   segmento          String    @default("recorrente") // recorrente, esporadico, pesquisador
+  descontoPadrao    Decimal   @default(0) @db.Decimal(5, 2) // desconto fixo recorrente (%) aplicado a todo pedido deste cliente
   observacoes       String?   @db.Text
   ativo             Boolean   @default(true)
   createdAt         DateTime  @default(now())

@@ -1,10 +1,11 @@
 'use client'
 
-import { Trash2, CheckCircle2, Send, ChevronDown } from 'lucide-react'
+import { CheckCircle2, Send, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
-import { useOrderCart, fmtBRL, itemSubtotal } from '@/hooks/useOrderCart'
+import { useOrderCart, fmtBRL } from '@/hooks/useOrderCart'
+import { CartItemRow } from '@/components/ui/CartItemRow'
 import { ServicoLegadoTable } from '@/components/legado/ServicoLegadoTable'
 
 export default function PedidosLegadoPage() {
@@ -69,38 +70,7 @@ export default function PedidosLegadoPage() {
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[460px] overflow-y-auto">
                 {itens.map((item) => (
-                  <div key={item.key} className="px-4 py-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 leading-tight line-clamp-2">{item.nome}</p>
-                        <p className="text-[11px] text-slate-400">{item.categoria}</p>
-                      </div>
-                      <button onClick={() => removeItem(item.key)} className="text-slate-300 hover:text-red-500 shrink-0 mt-0.5">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-400 block mb-0.5">Qtd</label>
-                        <input type="number" min="1" step="1" value={item.quantidade}
-                          onChange={(e) => updateItem(item.key, 'quantidade', parseInt(e.target.value) || 1)}
-                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 block mb-0.5">Preço (R$)</label>
-                        <input type="number" min="0" step="0.01" value={item.preco}
-                          onChange={(e) => updateItem(item.key, 'preco', parseFloat(e.target.value) || 0)}
-                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 block mb-0.5">Desc.%</label>
-                        <input type="number" min="0" max="100" step="0.5" value={item.desconto}
-                          onChange={(e) => updateItem(item.key, 'desconto', parseFloat(e.target.value) || 0)}
-                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                    </div>
-                    <div className="text-right text-[12px] font-semibold text-slate-700 dark:text-slate-300">{fmtBRL(itemSubtotal(item))}</div>
-                  </div>
+                  <CartItemRow key={item.key} item={item} onRemove={removeItem} onUpdate={updateItem} />
                 ))}
               </div>
             )}
