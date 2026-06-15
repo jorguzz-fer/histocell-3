@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Flame, Star, Clock, GitBranch, Plus,
+  Flame, Star, Clock, GitBranch, Plus, Archive,
   AlertCircle, ChevronDown, CheckCircle2, Send, Stethoscope,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -27,27 +27,39 @@ type Tab = 'populares' | 'favoritos' | 'historico' | 'guiado' | 'clinico'
 interface CardProps {
   servico: Servico & { totalUsos?: number; ultimoPedidoEm?: string; favoritado?: boolean }
   isPesquisador: boolean
-  onAdd:    () => void
-  onFav?:   () => void
-  isFav?:   boolean
+  onAdd:      () => void
+  onFav?:     () => void
+  onArchive?: () => void
+  isFav?:     boolean
 }
 
-function ServicoCard({ servico, isPesquisador, onAdd, onFav, isFav }: CardProps) {
+function ServicoCard({ servico, isPesquisador, onAdd, onFav, onArchive, isFav }: CardProps) {
   const preco = isPesquisador ? servico.precoPesquisa : servico.precoRotina
   return (
     <div className="relative flex flex-col gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all group">
-      {/* Favorito */}
-      {onFav && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onFav() }}
-          className={`absolute top-3 right-3 transition-colors ${isFav ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400'}`}
-          title={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-        >
-          <Star className="h-4 w-4" fill={isFav ? 'currentColor' : 'none'} />
-        </button>
-      )}
+      {/* Ações do card: favoritar + arquivar */}
+      <div className="absolute top-3 right-3 flex items-center gap-2">
+        {onFav && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onFav() }}
+            className={`transition-colors ${isFav ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400'}`}
+            title={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          >
+            <Star className="h-4 w-4" fill={isFav ? 'currentColor' : 'none'} />
+          </button>
+        )}
+        {onArchive && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onArchive() }}
+            className="text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            title="Arquivar serviço (tirar da lista)"
+          >
+            <Archive className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
-      <div className="pr-6">
+      <div className="pr-12">
         <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight line-clamp-2">
           {servico.nome}
         </p>
@@ -148,6 +160,26 @@ export default function PedidosGuiadoPage() {
       toast.success(res.favoritado ? 'Adicionado aos favoritos' : 'Removido dos favoritos')
     } catch {
       toast.error('Erro ao atualizar favorito')
+    }
+  }
+
+  // ── arquivar serviço (tira da lista de sugestões) ─────────────────────────
+  async function archiveServico(s: Servico) {
+    if (!confirm(`Arquivar "${s.nome}"? Ele sai das listas mas pode ser reativado no Pedido Legado.`)) return
+    try {
+      await api.patch(`/pedidos/servicos/${s.id}/arquivar`, { ativo: false })
+      setPopulares((l) => l.filter((x) => x.id !== s.id))
+      setFavoritos((l) => l.filter((x) => x.id !== s.id))
+      setHistorico((l) => l.filter((x) => x.id !== s.id))
+      setAllServicos((l) => l.filter((x) => x.id !== s.id))
+      setFavIds((prev) => {
+        const next = new Set(prev)
+        next.delete(s.id)
+        return next
+      })
+      toast.success(`"${s.nome}" arquivado`)
+    } catch {
+      toast.error('Erro ao arquivar serviço')
     }
   }
 
@@ -257,6 +289,7 @@ export default function PedidosGuiadoPage() {
                         isPesquisador={isPesquisador}
                         onAdd={() => addServico(s)}
                         onFav={() => toggleFav(s)}
+                        onArchive={() => archiveServico(s)}
                         isFav={favIds.has(s.id)}
                       />
                     ))}
@@ -286,6 +319,7 @@ export default function PedidosGuiadoPage() {
                           isPesquisador={isPesquisador}
                           onAdd={() => addServico(s)}
                           onFav={() => toggleFav(s)}
+                          onArchive={() => archiveServico(s)}
                           isFav={true}
                         />
                       ))}
@@ -321,6 +355,7 @@ export default function PedidosGuiadoPage() {
                             isPesquisador={isPesquisador}
                             onAdd={() => addServico(s)}
                             onFav={() => toggleFav(s)}
+                            onArchive={() => archiveServico(s)}
                             isFav={favIds.has(s.id)}
                           />
                         ))}
