@@ -4,15 +4,6 @@ import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-function toDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}${m}${day}`;
-}
-
 // ─── include padrão de amostra ────────────────────────────────────────────────
 
 const INCLUDE_AMOSTRA = {
@@ -31,14 +22,12 @@ const INCLUDE_AMOSTRA = {
 export class RecebimentoService {
   constructor(private prisma: PrismaService) {}
 
-  // ── número interno sequencial diário ─────────────────────────────────────────
+  // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
   private async gerarNumeroInterno(): Promise<string> {
-    const hoje = toDateStr(new Date());
-    const prefix = `AM-${hoje}-`;
-    const count = await this.prisma.amostra.count({
-      where: { numeroInterno: { startsWith: prefix } },
-    });
-    return `${prefix}${String(count + 1).padStart(3, '0')}`;
+    const rows = await this.prisma.$queryRawUnsafe<{ nextval: bigint }[]>(
+      `SELECT nextval('histocell_amostra_numero_seq') AS nextval`,
+    );
+    return String(Number(rows[0].nextval)).padStart(5, '0');
   }
 
   // ── Fila: pedidos enviados aguardando recebimento ─────────────────────────────
