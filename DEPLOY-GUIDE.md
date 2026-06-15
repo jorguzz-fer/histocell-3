@@ -121,20 +121,17 @@ CORS_ORIGINS=https://histocell-cliente.tudomudou.com.br,https://histocell-admin.
 
 ### 3.1 Migrations (Prisma) — auto-deploy
 
-O `apps/api/Dockerfile` roda `npx prisma migrate deploy` no boot, então **cada deploy aplica as migrations versionadas em `apps/api/prisma/migrations/` automaticamente**. Não use mais `prisma db push` em produção.
+O start da API é o `apps/api/docker-entrypoint.sh`, que a cada boot:
 
-**⚠️ Banco já existente (criado por `db push`):** antes do **primeiro** deploy com migrations, é preciso "baselinar" o banco uma única vez — marcar o baseline como já aplicado para o `migrate deploy` não tentar recriar tabelas existentes. Rode uma vez, apontando para o banco de produção:
+1. **Baseline automático (1ª vez):** se o banco já tem tabelas da app (criadas pelo antigo `prisma db push`) mas ainda não tem o histórico de migrations, marca o `0_init` como aplicado — sem recriar nada e sem comando manual.
+2. `npx prisma migrate deploy` — aplica as migrations versionadas pendentes de `apps/api/prisma/migrations/`.
+3. Roda o seed e sobe a API.
 
-```bash
-# a partir de apps/api, com DATABASE_URL apontando para a prod
-npx prisma migrate resolve --applied 0_init
-```
+Ou seja: **cada deploy aplica o schema sozinho via migrations**. Não se usa mais `prisma db push` em produção (saiu o `--accept-data-loss`).
 
-Isso cria a tabela de controle `_prisma_migrations` e registra o `0_init` (todo o schema que já existe) como aplicado. A partir daí, os deploys aplicam só as migrations novas (ex.: `descontoPadrao`, `Pacote`/`PacoteItem`).
-
-> **Banco novo / vazio:** nada a fazer — `migrate deploy` cria tudo do zero (baseline + deltas) no primeiro deploy.
+> **Banco vazio/novo:** o `migrate deploy` cria tudo do zero (baseline + deltas) no primeiro deploy. Nada manual.
 >
-> **Novas mudanças de schema:** gere a migration localmente com `npx prisma migrate dev --name <descricao>` e commite a pasta gerada. O deploy aplica sozinho.
+> **Novas mudanças de schema:** gere a migration localmente com `npx prisma migrate dev --name <descricao>` e commite a pasta gerada em `apps/api/prisma/migrations/`. O deploy aplica sozinho.
 
 
 
