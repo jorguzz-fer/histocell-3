@@ -372,7 +372,10 @@ export class PedidosService {
 
     // 2. Segmento do cliente determina rotina vs pesquisa
     const [cliente, servico] = await Promise.all([
-      this.prisma.cliente.findUnique({ where: { id: clienteId }, select: { segmento: true } }),
+      this.prisma.cliente.findUnique({
+        where: { id: clienteId },
+        select: { segmento: true, descontoPadrao: true },
+      }),
       this.prisma.servico.findUnique({
         where: { id: servicoId },
         select: { precoRotina: true, precoPesquisa: true, precoBase: true },
@@ -383,9 +386,12 @@ export class PedidosService {
     const isPesquisador = cliente?.segmento === 'pesquisador';
     const preco = isPesquisador ? Number(servico.precoPesquisa) : Number(servico.precoRotina || servico.precoBase);
 
+    // Desconto fixo recorrente do cliente (%) aplicado por padrão
+    const descontoPadrao = cliente?.descontoPadrao != null ? Number(cliente.descontoPadrao) : 0;
+
     return {
       preco,
-      desconto: 0,
+      desconto: descontoPadrao,
       origem: isPesquisador ? 'pesquisa' : 'rotina',
     };
   }
@@ -440,12 +446,15 @@ export class PedidosService {
     if (!cliente) throw new NotFoundException(`Cliente #${dto.clienteId} não encontrado.`);
 
     const numero = await this.gerarNumero();
+    const status = dto.status ?? 'rascunho';
 
     const pedido = await this.prisma.pedido.create({
       data: {
         clienteId: dto.clienteId,
         numero,
+        status,
         observacoes: dto.observacoes,
+        dataEnvio: status === 'enviado' ? new Date() : undefined,
         itens: {
           create: dto.itens.map((item) => ({
             servicoId: item.servicoId,

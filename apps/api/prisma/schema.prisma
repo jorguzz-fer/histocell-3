@@ -62,6 +62,7 @@ model Cliente {
   telefone          String?
   celular           String?
   segmento          String    @default("recorrente") // recorrente, esporadico, pesquisador
+  descontoPadrao    Decimal   @default(0) @db.Decimal(5, 2) // desconto fixo recorrente (%) aplicado a todo pedido deste cliente
   observacoes       String?   @db.Text
   ativo             Boolean   @default(true)
   createdAt         DateTime  @default(now())
@@ -151,11 +152,44 @@ model Servico {
   itensPedido    ItemPedido[]
   itensOrcamento ItemOrcamento[]
   favoritos      ServicoFavorito[]
+  pacoteItens    PacoteItem[]
 
   @@index([codigo])
   @@index([categoria])
   @@index([codigoLegado])
   @@index([tipo])
+}
+
+// ==========================================
+// PACOTES (combos de serviços com preço próprio)
+// ==========================================
+model Pacote {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique
+  nome        String
+  descricao   String?  @db.Text
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       PacoteItem[]
+
+  @@index([codigo])
+  @@index([ativo])
+}
+
+model PacoteItem {
+  id         Int     @id @default(autoincrement())
+  pacoteId   Int
+  servicoId  Int
+  quantidade Int     @default(1)
+  preco      Decimal @db.Decimal(10, 2) // preço do componente dentro do pacote
+
+  pacote  Pacote  @relation(fields: [pacoteId], references: [id], onDelete: Cascade)
+  servico Servico @relation(fields: [servicoId], references: [id])
+
+  @@index([pacoteId])
+  @@index([servicoId])
 }
 
 model ServicoFavorito {

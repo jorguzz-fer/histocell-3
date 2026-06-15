@@ -1,10 +1,12 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { IsOptional, IsString, IsIn } from 'class-validator';
 import { CreatePedidoDto } from './create-pedido.dto';
 
 const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'cancelado'] as const;
 
-export class UpdatePedidoDto extends PartialType(CreatePedidoDto) {
+export class UpdatePedidoDto extends PartialType(
+  OmitType(CreatePedidoDto, ['status'] as const),
+) {
   @IsOptional()
   @IsString()
   @IsIn(STATUS_VALIDOS)

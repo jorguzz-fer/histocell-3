@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Flame, Star, Clock, GitBranch, Plus, Trash2,
+  Flame, Star, Clock, GitBranch, Plus, Archive, Boxes,
   AlertCircle, ChevronDown, CheckCircle2, Send, Stethoscope,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -13,40 +13,54 @@ import { Badge } from '@/components/ui/Badge'
 import { CascadingServicoSelector } from '@/components/ui/CascadingServicoSelector'
 import { ServicoSearchInput } from '@/components/ui/ServicoSearchInput'
 import { ClinicoTab } from '@/components/clinico/ClinicoTab'
+import { CartItemRow } from '@/components/ui/CartItemRow'
 import { api } from '@/lib/api'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
-import { useOrderCart, fmtBRL, itemSubtotal } from '@/hooks/useOrderCart'
+import type { Pacote } from '@/app/(dashboard)/pacotes/types'
+import { useOrderCart, fmtBRL } from '@/hooks/useOrderCart'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
-type Tab = 'populares' | 'favoritos' | 'historico' | 'guiado' | 'clinico'
+type Tab = 'populares' | 'favoritos' | 'historico' | 'pacotes' | 'guiado' | 'clinico'
 
 // ─── ServicoCard (Populares / Favoritos / Histórico) ─────────────────────────
 
 interface CardProps {
   servico: Servico & { totalUsos?: number; ultimoPedidoEm?: string; favoritado?: boolean }
   isPesquisador: boolean
-  onAdd:    () => void
-  onFav?:   () => void
-  isFav?:   boolean
+  onAdd:      () => void
+  onFav?:     () => void
+  onArchive?: () => void
+  isFav?:     boolean
 }
 
-function ServicoCard({ servico, isPesquisador, onAdd, onFav, isFav }: CardProps) {
+function ServicoCard({ servico, isPesquisador, onAdd, onFav, onArchive, isFav }: CardProps) {
   const preco = isPesquisador ? servico.precoPesquisa : servico.precoRotina
   return (
     <div className="relative flex flex-col gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all group">
-      {/* Favorito */}
-      {onFav && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onFav() }}
-          className={`absolute top-3 right-3 transition-colors ${isFav ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400'}`}
-          title={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-        >
-          <Star className="h-4 w-4" fill={isFav ? 'currentColor' : 'none'} />
-        </button>
-      )}
+      {/* Ações do card: favoritar + arquivar */}
+      <div className="absolute top-3 right-3 flex items-center gap-2">
+        {onFav && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onFav() }}
+            className={`transition-colors ${isFav ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400'}`}
+            title={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          >
+            <Star className="h-4 w-4" fill={isFav ? 'currentColor' : 'none'} />
+          </button>
+        )}
+        {onArchive && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onArchive() }}
+            className="text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            title="Arquivar serviço (tirar da lista)"
+          >
+            <Archive className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
-      <div className="pr-6">
+      <div className="pr-12">
         <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight line-clamp-2">
           {servico.nome}
         </p>
@@ -83,7 +97,7 @@ export default function PedidosGuiadoPage() {
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral,
-    addServico, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
   // ── listas externas (específicas do guiado) ─────────────────────────────────
@@ -91,6 +105,7 @@ export default function PedidosGuiadoPage() {
   const [favoritos, setFavoritos]     = useState<(Servico & { favoritado?: boolean })[]>([])
   const [historico, setHistorico]     = useState<(Servico & { ultimoPedidoEm?: string })[]>([])
   const [allServicos, setAllServicos] = useState<Servico[]>([])
+  const [pacotes, setPacotes]         = useState<Pacote[]>([])
 
   // ── tab + UI ──────────────────────────────────────────────────────────────
   const [tab, setTab]                 = useState<Tab>('populares')
@@ -119,6 +134,9 @@ export default function PedidosGuiadoPage() {
         setFavIds(new Set(favs.map((f) => f.id)))
       })
       .catch(() => {})
+
+    // Pacotes (combos de serviços)
+    api.get<Pacote[]>('/pacotes').then(setPacotes).catch(() => {})
   }, [])
 
   // ── histórico do cliente quando muda ─────────────────────────────────────
@@ -148,6 +166,38 @@ export default function PedidosGuiadoPage() {
     } catch {
       toast.error('Erro ao atualizar favorito')
     }
+  }
+
+  // ── arquivar serviço (tira da lista de sugestões) ─────────────────────────
+  async function archiveServico(s: Servico) {
+    if (!confirm(`Arquivar "${s.nome}"? Ele sai das listas mas pode ser reativado no Pedido Legado.`)) return
+    try {
+      await api.patch(`/pedidos/servicos/${s.id}/arquivar`, { ativo: false })
+      setPopulares((l) => l.filter((x) => x.id !== s.id))
+      setFavoritos((l) => l.filter((x) => x.id !== s.id))
+      setHistorico((l) => l.filter((x) => x.id !== s.id))
+      setAllServicos((l) => l.filter((x) => x.id !== s.id))
+      setFavIds((prev) => {
+        const next = new Set(prev)
+        next.delete(s.id)
+        return next
+      })
+      toast.success(`"${s.nome}" arquivado`)
+    } catch {
+      toast.error('Erro ao arquivar serviço')
+    }
+  }
+
+  // ── adicionar pacote (explode nos serviços-componentes) ───────────────────
+  function addPacote(p: Pacote) {
+    p.itens.forEach((it) => addItemDireto({
+      servicoId: it.servicoId,
+      nome: it.servico.nome,
+      categoria: it.servico.categoria,
+      preco: Number(it.preco),
+      quantidade: it.quantidade,
+    }))
+    toast.success(`Pacote "${p.nome}" adicionado (${p.totalItens} ${p.totalItens === 1 ? 'serviço' : 'serviços'})`)
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -208,6 +258,7 @@ export default function PedidosGuiadoPage() {
                   { key: 'populares', label: 'Populares', icon: Flame },
                   { key: 'favoritos', label: 'Favoritos', icon: Star },
                   { key: 'historico', label: 'Histórico',  icon: Clock },
+                  { key: 'pacotes',  label: 'Pacotes',    icon: Boxes },
                   { key: 'guiado',   label: 'Guiado',     icon: GitBranch },
                   { key: 'clinico',  label: 'Clínico',    icon: Stethoscope },
                 ] as { key: Tab; label: string; icon: React.ElementType }[]
@@ -256,6 +307,7 @@ export default function PedidosGuiadoPage() {
                         isPesquisador={isPesquisador}
                         onAdd={() => addServico(s)}
                         onFav={() => toggleFav(s)}
+                        onArchive={() => archiveServico(s)}
                         isFav={favIds.has(s.id)}
                       />
                     ))}
@@ -285,6 +337,7 @@ export default function PedidosGuiadoPage() {
                           isPesquisador={isPesquisador}
                           onAdd={() => addServico(s)}
                           onFav={() => toggleFav(s)}
+                          onArchive={() => archiveServico(s)}
                           isFav={true}
                         />
                       ))}
@@ -320,10 +373,51 @@ export default function PedidosGuiadoPage() {
                             isPesquisador={isPesquisador}
                             onAdd={() => addServico(s)}
                             onFav={() => toggleFav(s)}
+                            onArchive={() => archiveServico(s)}
                             isFav={favIds.has(s.id)}
                           />
                         ))}
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pacotes */}
+              {tab === 'pacotes' && (
+                <div>
+                  {pacotes.length === 0 ? (
+                    <div className="text-center py-8 space-y-2">
+                      <Boxes className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                      <p className="text-sm text-slate-400 dark:text-slate-500">Nenhum pacote cadastrado.</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Crie combos de serviços no menu <span className="font-medium">Pacotes</span>.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {pacotes.map((p) => (
+                        <div key={p.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-all">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight">{p.nome}</p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                {p.itens.map((it) => (it.quantidade > 1 ? `${it.quantidade}× ` : '') + it.servico.nome).join(' + ')}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtBRL(p.precoTotal)}</p>
+                              <p className="text-[10px] text-slate-400">{p.totalItens} serviços</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => addPacote(p)}
+                            className="mt-3 w-full flex items-center justify-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 transition-colors"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> Adicionar pacote
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -371,56 +465,7 @@ export default function PedidosGuiadoPage() {
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[460px] overflow-y-auto">
                 {itens.map((item) => (
-                  <div key={item.key} className="px-4 py-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 leading-tight line-clamp-2">
-                          {item.nome}
-                        </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500">{item.categoria}</p>
-                      </div>
-                      <button
-                        onClick={() => removeItem(item.key)}
-                        className="text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 transition-colors shrink-0 mt-0.5"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-0.5">Qtd</label>
-                        <input
-                          type="number" min="1" step="1"
-                          value={item.quantidade}
-                          onChange={(e) => updateItem(item.key, 'quantidade', parseInt(e.target.value) || 1)}
-                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-0.5">Preço (R$)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={item.preco}
-                          onChange={(e) => updateItem(item.key, 'preco', parseFloat(e.target.value) || 0)}
-                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-0.5">Desc.%</label>
-                        <input
-                          type="number" min="0" max="100" step="0.5"
-                          value={item.desconto}
-                          onChange={(e) => updateItem(item.key, 'desconto', parseFloat(e.target.value) || 0)}
-                          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="text-right text-[12px] font-semibold text-slate-700 dark:text-slate-300">
-                      {fmtBRL(itemSubtotal(item))}
-                    </div>
-                  </div>
+                  <CartItemRow key={item.key} item={item} onRemove={removeItem} onUpdate={updateItem} />
                 ))}
               </div>
             )}

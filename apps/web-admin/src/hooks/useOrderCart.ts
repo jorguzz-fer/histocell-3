@@ -12,6 +12,8 @@ export type ClienteOpt = {
   segmento: string
 }
 
+export type DescontoTipo = 'pct' | 'valor'
+
 export type OrderCartItem = {
   key: string
   servicoId: number
@@ -19,7 +21,8 @@ export type OrderCartItem = {
   categoria: string
   quantidade: number
   preco: number
-  desconto: number
+  desconto: number          // valor digitado — interpretado conforme descontoTipo
+  descontoTipo: DescontoTipo // 'pct' = percentual | 'valor' = R$ abatidos do total do item
 }
 
 export function fmtBRL(v: number) {
@@ -27,7 +30,20 @@ export function fmtBRL(v: number) {
 }
 
 export function itemSubtotal(item: OrderCartItem) {
-  return item.preco * item.quantidade * (1 - item.desconto / 100)
+  const bruto = item.preco * item.quantidade
+  if (item.descontoTipo === 'valor') return Math.max(0, bruto - item.desconto)
+  return bruto * (1 - item.desconto / 100)
+}
+
+/** Converte o desconto do item para percentual (contrato do backend, que armazena %) */
+export function descontoComoPct(item: OrderCartItem): number {
+  if (item.descontoTipo !== 'valor') {
+    return Math.min(100, Math.max(0, item.desconto))
+  }
+  const bruto = item.preco * item.quantidade
+  if (bruto <= 0) return 0
+  const pct = (item.desconto / bruto) * 100
+  return Math.min(100, Math.max(0, Math.round(pct * 100) / 100))
 }
 
 export function useOrderCart() {
@@ -62,7 +78,7 @@ export function useOrderCart() {
     }
     setItens((prev) => [
       ...prev,
-      { key: `${s.id}-${Date.now()}`, servicoId: s.id, nome: s.nome, categoria: s.categoria, quantidade: 1, preco, desconto },
+      { key: `${s.id}-${Date.now()}`, servicoId: s.id, nome: s.nome, categoria: s.categoria, quantidade: 1, preco, desconto, descontoTipo: 'pct' },
     ])
     toast.success(`"${s.nome}" adicionado`)
   }, [clienteId, priceKey])
@@ -71,7 +87,31 @@ export function useOrderCart() {
     setItens((prev) => prev.filter((i) => i.key !== key))
   }
 
-  function updateItem(key: string, field: 'quantidade' | 'preco' | 'desconto', value: number) {
+  /** Adiciona um item com preço/quantidade explícitos, sem buscar preço por cliente.
+   *  Usado por pacotes, que carregam o preço definido em cada componente. */
+  const addItemDireto = useCallback((args: {
+    servicoId: number; nome: string; categoria: string; preco: number; quantidade?: number
+  }) => {
+    setItens((prev) => [
+      ...prev,
+      {
+        key: `${args.servicoId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        servicoId: args.servicoId,
+        nome: args.nome,
+        categoria: args.categoria,
+        quantidade: args.quantidade ?? 1,
+        preco: args.preco,
+        desconto: 0,
+        descontoTipo: 'pct',
+      },
+    ])
+  }, [])
+
+  function updateItem(
+    key: string,
+    field: 'quantidade' | 'preco' | 'desconto' | 'descontoTipo',
+    value: number | DescontoTipo,
+  ) {
     setItens((prev) => prev.map((i) => (i.key === key ? { ...i, [field]: value } : i)))
   }
 
@@ -84,7 +124,7 @@ export function useOrderCart() {
         clienteId: parseInt(clienteId),
         observacoes: observacoes || undefined,
         status: finalStatus,
-        itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: i.desconto })),
+        itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
       })
       setSaved(true)
       toast.success(finalStatus === 'enviado' ? 'Pedido enviado!' : 'Rascunho salvo!')
@@ -101,6 +141,6 @@ export function useOrderCart() {
   return {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral,
-    addServico, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   }
 }

@@ -24,6 +24,7 @@ const SELECT_SAFE = {
   telefone: true,
   celular: true,
   segmento: true,
+  descontoPadrao: true,
   observacoes: true,
   ativo: true,
   createdAt: true,
@@ -62,9 +63,10 @@ export class ClientesService {
 
   /** Monta objeto de resposta com documento mascarado */
   private toResponseShape(raw: any) {
-    const { documento, ...rest } = raw;
+    const { documento, descontoPadrao, ...rest } = raw;
     return {
       ...rest,
+      descontoPadrao: descontoPadrao != null ? Number(descontoPadrao) : 0,
       documentoMascarado: documento ? this.crypto.mascarar(this.crypto.decrypt(documento)) : null,
     };
   }
@@ -154,6 +156,7 @@ export class ClientesService {
         telefone: dto.telefone,
         celular: dto.celular,
         segmento: dto.segmento ?? 'recorrente',
+        descontoPadrao: dto.descontoPadrao ?? 0,
         observacoes: dto.observacoes,
         // Cria endereço principal inline, se fornecido
         enderecos: dto.endereco

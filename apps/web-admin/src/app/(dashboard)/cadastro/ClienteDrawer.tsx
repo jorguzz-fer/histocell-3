@@ -54,6 +54,7 @@ type FormState = {
   telefone: string
   celular: string
   segmento: string
+  descontoPadrao: string
   observacoes: string
   // endereço inline
   endTipo: string
@@ -79,6 +80,7 @@ const EMPTY: FormState = {
   telefone: '',
   celular: '',
   segmento: 'recorrente',
+  descontoPadrao: '',
   observacoes: '',
   endTipo: 'sede',
   endLogradouro: '',
@@ -105,6 +107,7 @@ function clienteToForm(c: Cliente): FormState {
     telefone: c.telefone ?? '',
     celular: c.celular ?? '',
     segmento: c.segmento,
+    descontoPadrao: c.descontoPadrao ? String(c.descontoPadrao) : '',
     observacoes: c.observacoes ?? '',
     endTipo: end?.tipo ?? 'sede',
     endLogradouro: end?.logradouro ?? '',
@@ -187,6 +190,7 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
         telefone: form.telefone.replace(/\D/g, '') || undefined,
         celular: form.celular.replace(/\D/g, '') || undefined,
         segmento: form.segmento,
+        descontoPadrao: form.descontoPadrao.trim() ? Number(form.descontoPadrao) : 0,
         observacoes: form.observacoes.trim() || undefined,
         ...(hasEndereco
           ? {
@@ -305,16 +309,29 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
             )}
           </div>
 
-          <Select
-            label="Atividade / Segmento"
-            value={form.segmento}
-            onChange={(e) => set('segmento', e.target.value)}
-            options={[
-              { value: 'recorrente', label: 'Recorrente' },
-              { value: 'esporadico', label: 'Esporádico' },
-              { value: 'pesquisador', label: 'Pesquisador' },
-            ]}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Atividade / Segmento"
+              value={form.segmento}
+              onChange={(e) => set('segmento', e.target.value)}
+              options={[
+                { value: 'recorrente', label: 'Recorrente' },
+                { value: 'esporadico', label: 'Esporádico' },
+                { value: 'pesquisador', label: 'Pesquisador' },
+              ]}
+            />
+            <Input
+              label="Desconto padrão (%)"
+              type="number"
+              min={0}
+              max={100}
+              step="0.5"
+              value={form.descontoPadrao}
+              onChange={(e) => set('descontoPadrao', e.target.value)}
+              placeholder="0"
+              hint="Aplicado automaticamente em cada pedido deste cliente"
+            />
+          </div>
         </section>
 
         {/* ── Contato ── */}

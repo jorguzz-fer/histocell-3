@@ -7,6 +7,7 @@ import { Button } from './Button'
 import { Input } from './Input'
 import { Select } from './Select'
 import { api } from '@/lib/api'
+import { agruparCategorias } from '@/lib/categorias'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
@@ -258,6 +259,33 @@ export function CascadingServicoSelector({ isPesquisador, onSelect }: Props) {
     )
   }
 
+  // Passo 1 (Categoria) agrupado nos macro-grupos — navegação simplificada
+  function renderCategoriaDropdown(cats: string[]) {
+    if (cats.length === 0) return null
+    const grupos = agruparCategorias(cats)
+    return (
+      <div className="flex flex-col gap-1">
+        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+          Categoria / Serviço
+        </label>
+        <select
+          value={state.categoria}
+          onChange={(e) => set('categoria', e.target.value)}
+          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Selecione…</option>
+          {grupos.map(({ grupo, categorias }) => (
+            <optgroup key={grupo} label={grupo}>
+              {categorias.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+    )
+  }
+
   const o = options
 
   // Determine which cascata steps to show
@@ -290,8 +318,8 @@ export function CascadingServicoSelector({ isPesquisador, onSelect }: Props) {
           )}
         </div>
 
-        {/* Step 1: Categoria */}
-        {renderDropdown('Categoria / Serviço', state.categoria, o?.categorias ?? [], (v) => set('categoria', v))}
+        {/* Step 1: Categoria (agrupada por macro-grupo) */}
+        {renderCategoriaDropdown(o?.categorias ?? [])}
 
         {/* Step 2: Tipo */}
         {showTipo && renderDropdown('Tipo', state.tipo, o?.tipos ?? [], (v) => set('tipo', v))}

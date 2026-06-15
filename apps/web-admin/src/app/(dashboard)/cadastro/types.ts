@@ -25,6 +25,7 @@ export type Cliente = {
   telefone?: string
   celular?: string
   segmento: string
+  descontoPadrao?: number
   observacoes?: string
   ativo: boolean
   createdAt: string

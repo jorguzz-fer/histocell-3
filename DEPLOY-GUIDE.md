@@ -119,7 +119,21 @@ PORT=3001
 CORS_ORIGINS=https://histocell-cliente.tudomudou.com.br,https://histocell-admin.tudomudou.com.br
 ```
 
-### 4. Deploy do Web Cliente (Next.js)
+### 3.1 Migrations (Prisma) — auto-deploy
+
+O start da API é o `apps/api/docker-entrypoint.sh`, que a cada boot:
+
+1. **Baseline automático (1ª vez):** se o banco já tem tabelas da app (criadas pelo antigo `prisma db push`) mas ainda não tem o histórico de migrations, marca o `0_init` como aplicado — sem recriar nada e sem comando manual.
+2. `npx prisma migrate deploy` — aplica as migrations versionadas pendentes de `apps/api/prisma/migrations/`.
+3. Roda o seed e sobe a API.
+
+Ou seja: **cada deploy aplica o schema sozinho via migrations**. Não se usa mais `prisma db push` em produção (saiu o `--accept-data-loss`).
+
+> **Banco vazio/novo:** o `migrate deploy` cria tudo do zero (baseline + deltas) no primeiro deploy. Nada manual.
+>
+> **Novas mudanças de schema:** gere a migration localmente com `npx prisma migrate dev --name <descricao>` e commite a pasta gerada em `apps/api/prisma/migrations/`. O deploy aplica sozinho.
+
+
 
 No Coolify:
 1. **Resources → New → Application**

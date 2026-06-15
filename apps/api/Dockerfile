@@ -19,7 +19,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/prisma ./prisma
+COPY --from=builder /app/apps/api/scripts ./scripts
+COPY --from=builder /app/apps/api/docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json ./
+RUN chmod +x ./docker-entrypoint.sh
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node dist/prisma/seed.js && node dist/src/main.js"]
+CMD ["sh", "./docker-entrypoint.sh"]
