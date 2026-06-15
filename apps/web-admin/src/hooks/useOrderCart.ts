@@ -87,6 +87,26 @@ export function useOrderCart() {
     setItens((prev) => prev.filter((i) => i.key !== key))
   }
 
+  /** Adiciona um item com preço/quantidade explícitos, sem buscar preço por cliente.
+   *  Usado por pacotes, que carregam o preço definido em cada componente. */
+  const addItemDireto = useCallback((args: {
+    servicoId: number; nome: string; categoria: string; preco: number; quantidade?: number
+  }) => {
+    setItens((prev) => [
+      ...prev,
+      {
+        key: `${args.servicoId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        servicoId: args.servicoId,
+        nome: args.nome,
+        categoria: args.categoria,
+        quantidade: args.quantidade ?? 1,
+        preco: args.preco,
+        desconto: 0,
+        descontoTipo: 'pct',
+      },
+    ])
+  }, [])
+
   function updateItem(
     key: string,
     field: 'quantidade' | 'preco' | 'desconto' | 'descontoTipo',
@@ -121,6 +141,6 @@ export function useOrderCart() {
   return {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral,
-    addServico, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   }
 }

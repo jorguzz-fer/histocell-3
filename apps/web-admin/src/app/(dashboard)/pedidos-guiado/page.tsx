@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Flame, Star, Clock, GitBranch, Plus, Archive,
+  Flame, Star, Clock, GitBranch, Plus, Archive, Boxes,
   AlertCircle, ChevronDown, CheckCircle2, Send, Stethoscope,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,11 +16,12 @@ import { ClinicoTab } from '@/components/clinico/ClinicoTab'
 import { CartItemRow } from '@/components/ui/CartItemRow'
 import { api } from '@/lib/api'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
+import type { Pacote } from '@/app/(dashboard)/pacotes/types'
 import { useOrderCart, fmtBRL } from '@/hooks/useOrderCart'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
-type Tab = 'populares' | 'favoritos' | 'historico' | 'guiado' | 'clinico'
+type Tab = 'populares' | 'favoritos' | 'historico' | 'pacotes' | 'guiado' | 'clinico'
 
 // ─── ServicoCard (Populares / Favoritos / Histórico) ─────────────────────────
 
@@ -96,7 +97,7 @@ export default function PedidosGuiadoPage() {
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral,
-    addServico, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
   // ── listas externas (específicas do guiado) ─────────────────────────────────
@@ -104,6 +105,7 @@ export default function PedidosGuiadoPage() {
   const [favoritos, setFavoritos]     = useState<(Servico & { favoritado?: boolean })[]>([])
   const [historico, setHistorico]     = useState<(Servico & { ultimoPedidoEm?: string })[]>([])
   const [allServicos, setAllServicos] = useState<Servico[]>([])
+  const [pacotes, setPacotes]         = useState<Pacote[]>([])
 
   // ── tab + UI ──────────────────────────────────────────────────────────────
   const [tab, setTab]                 = useState<Tab>('populares')
@@ -132,6 +134,9 @@ export default function PedidosGuiadoPage() {
         setFavIds(new Set(favs.map((f) => f.id)))
       })
       .catch(() => {})
+
+    // Pacotes (combos de serviços)
+    api.get<Pacote[]>('/pacotes').then(setPacotes).catch(() => {})
   }, [])
 
   // ── histórico do cliente quando muda ─────────────────────────────────────
@@ -181,6 +186,18 @@ export default function PedidosGuiadoPage() {
     } catch {
       toast.error('Erro ao arquivar serviço')
     }
+  }
+
+  // ── adicionar pacote (explode nos serviços-componentes) ───────────────────
+  function addPacote(p: Pacote) {
+    p.itens.forEach((it) => addItemDireto({
+      servicoId: it.servicoId,
+      nome: it.servico.nome,
+      categoria: it.servico.categoria,
+      preco: Number(it.preco),
+      quantidade: it.quantidade,
+    }))
+    toast.success(`Pacote "${p.nome}" adicionado (${p.totalItens} ${p.totalItens === 1 ? 'serviço' : 'serviços'})`)
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -241,6 +258,7 @@ export default function PedidosGuiadoPage() {
                   { key: 'populares', label: 'Populares', icon: Flame },
                   { key: 'favoritos', label: 'Favoritos', icon: Star },
                   { key: 'historico', label: 'Histórico',  icon: Clock },
+                  { key: 'pacotes',  label: 'Pacotes',    icon: Boxes },
                   { key: 'guiado',   label: 'Guiado',     icon: GitBranch },
                   { key: 'clinico',  label: 'Clínico',    icon: Stethoscope },
                 ] as { key: Tab; label: string; icon: React.ElementType }[]
@@ -360,6 +378,46 @@ export default function PedidosGuiadoPage() {
                           />
                         ))}
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pacotes */}
+              {tab === 'pacotes' && (
+                <div>
+                  {pacotes.length === 0 ? (
+                    <div className="text-center py-8 space-y-2">
+                      <Boxes className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                      <p className="text-sm text-slate-400 dark:text-slate-500">Nenhum pacote cadastrado.</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Crie combos de serviços no menu <span className="font-medium">Pacotes</span>.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {pacotes.map((p) => (
+                        <div key={p.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-all">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight">{p.nome}</p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                {p.itens.map((it) => (it.quantidade > 1 ? `${it.quantidade}× ` : '') + it.servico.nome).join(' + ')}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtBRL(p.precoTotal)}</p>
+                              <p className="text-[10px] text-slate-400">{p.totalItens} serviços</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => addPacote(p)}
+                            className="mt-3 w-full flex items-center justify-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 transition-colors"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> Adicionar pacote
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
