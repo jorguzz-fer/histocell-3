@@ -2,6 +2,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsIn,
   IsNumber,
   Min,
   Max,
@@ -38,6 +39,11 @@ export class CreatePedidoDto {
   @IsOptional()
   @IsString()
   observacoes?: string;
+
+  /** Status inicial do pedido (rascunho ao salvar, enviado ao enviar) */
+  @IsOptional()
+  @IsIn(['rascunho', 'enviado'])
+  status?: 'rascunho' | 'enviado';
 
   @ValidateNested({ each: true })
   @Type(() => CreateItemPedidoDto)

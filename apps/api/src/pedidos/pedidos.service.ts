@@ -446,12 +446,15 @@ export class PedidosService {
     if (!cliente) throw new NotFoundException(`Cliente #${dto.clienteId} não encontrado.`);
 
     const numero = await this.gerarNumero();
+    const status = dto.status ?? 'rascunho';
 
     const pedido = await this.prisma.pedido.create({
       data: {
         clienteId: dto.clienteId,
         numero,
+        status,
         observacoes: dto.observacoes,
+        dataEnvio: status === 'enviado' ? new Date() : undefined,
         itens: {
           create: dto.itens.map((item) => ({
             servicoId: item.servicoId,
