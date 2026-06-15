@@ -121,20 +121,20 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
         <div className="max-h-[60vh] overflow-y-auto">
           <table className="w-full table-fixed text-[12px]">
             <colgroup>
+              <col style={{ width: '9%' }} />
               <col style={{ width: '13%' }} />
               <col style={{ width: '30%' }} />
               <col style={{ width: '15%' }} />
-              <col style={{ width: '9%' }} />
               <col style={{ width: '10%' }} />
               <col style={{ width: '10%' }} />
               <col style={{ width: '13%' }} />
             </colgroup>
             <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
               <tr className="text-left text-slate-500 dark:text-slate-400">
+                <th className="px-3 py-2 font-medium">Código</th>
                 <th className="px-3 py-2 font-medium">Categoria</th>
                 <th className="px-3 py-2 font-medium">Serviço Base</th>
                 <th className="px-3 py-2 font-medium">Variantes</th>
-                <th className="px-3 py-2 font-medium">Código</th>
                 <th className="px-3 py-2 font-medium text-right">Rotina</th>
                 <th className="px-3 py-2 font-medium text-right">Pesquisa</th>
                 <th className="px-3 py-2 font-medium text-right">Ações</th>
@@ -143,6 +143,7 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.map((s) => (
                 <tr key={s.id} className={`align-top hover:bg-slate-50 dark:hover:bg-slate-800/50 ${s.ativo === false ? 'opacity-40' : ''}`}>
+                  <td className="px-3 py-2 font-mono text-slate-500 break-words">{s.codigo}</td>
                   <td className="px-3 py-2 text-slate-500 dark:text-slate-400 break-words">{s.categoria}</td>
                   <td className="px-3 py-2 text-slate-800 dark:text-slate-100">
                     <span className="line-clamp-2 break-words" title={s.nome}>{s.nome}</span>
@@ -150,7 +151,6 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
                   <td className="px-3 py-2 text-slate-400">
                     <span className="line-clamp-2 break-words" title={variantes(s)}>{variantes(s)}</span>
                   </td>
-                  <td className="px-3 py-2 font-mono text-slate-500 break-words">{s.codigo}</td>
                   <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtBRL(Number(s.precoRotina))}</td>
                   <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtBRL(Number(s.precoPesquisa))}</td>
                   <td className="px-3 py-2">
