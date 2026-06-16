@@ -12,6 +12,10 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* precisa estar presente no build (é embutido no bundle).
+# No Coolify, marcar NEXT_PUBLIC_API_URL como "Build Time".
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npx turbo run build --filter=@histocell/web-admin
 
 FROM base AS runner
