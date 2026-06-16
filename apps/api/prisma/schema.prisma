@@ -330,17 +330,24 @@ model Laudo {
 // M06 — ETIQUETAS
 // ==========================================
 model Etiqueta {
-  id         Int      @id @default(autoincrement())
-  amostraId  Int
-  codigo     String   @unique // código de barras / QR
-  tipo       String   // cassete, lamina, bloco
-  impresso   Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id            Int       @id @default(autoincrement())
+  amostraId     Int
+  numero        Int       @unique // sequencial global (ex: 1384126) — impresso sob o barcode
+  codigo        String    @unique // conteúdo do código de barras Code128 (composto: cliente+histocell+lâmina)
+  tipo          String    // cassete, lamina, bloco
+  coloracao     String?   // ex: ".HE"
+  identificacao String?   // linha-topo da etiqueta (ex: "PatoVetLab-DF/01 /M10 1")
+  laminaSeq     Int       @default(1) // nº da lâmina/cassete dentro da amostra
+  impresso      Boolean   @default(false)
+  impressoEm    DateTime?
+  createdAt     DateTime  @default(now())
 
   amostra Amostra @relation(fields: [amostraId], references: [id])
 
   @@index([codigo])
+  @@index([numero])
   @@index([amostraId])
+  @@index([impresso])
 }
 
 // ==========================================
