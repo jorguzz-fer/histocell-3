@@ -28,15 +28,39 @@ export class RastreioService {
     return DEPARTAMENTOS;
   }
 
+  // ── Resolve uma etiqueta a partir do que foi escaneado/digitado ───────────────
+  // Aceita o código composto (conteúdo do barcode) OU o número impresso
+  // (ex.: "00000032 - 17062026" → número 32).
+  private async resolveEtiquetaId(input: string): Promise<{ id: number; codigo: string } | null> {
+    const texto = input.trim();
+    if (!texto) return null;
+
+    const byCodigo = await this.prisma.etiqueta.findUnique({
+      where: { codigo: texto },
+      select: { id: true, codigo: true },
+    });
+    if (byCodigo) return byCodigo;
+
+    // tenta pelo primeiro grupo de dígitos (= número da etiqueta)
+    const m = texto.match(/\d+/);
+    if (m) {
+      const numero = parseInt(m[0], 10);
+      if (Number.isFinite(numero) && numero > 0) {
+        const byNumero = await this.prisma.etiqueta.findUnique({
+          where: { numero },
+          select: { id: true, codigo: true },
+        });
+        if (byNumero) return byNumero;
+      }
+    }
+    return null;
+  }
+
   // ── Scan: registra entrada/saída de uma etiqueta num departamento ─────────────
   async scan(dto: ScanDto) {
-    const codigo = dto.codigo.trim();
-    const etiqueta = await this.prisma.etiqueta.findUnique({
-      where: { codigo },
-      include: INCLUDE_ETIQUETA,
-    });
-    if (!etiqueta) {
-      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${codigo}".`);
+    const found = await this.resolveEtiquetaId(dto.codigo);
+    if (!found) {
+      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${dto.codigo.trim()}".`);
     }
 
     const isFinal = dto.departamento === DEPARTAMENTO_FINAL;
@@ -46,7 +70,7 @@ export class RastreioService {
     const [evento, atualizada] = await this.prisma.$transaction([
       this.prisma.rastreioEvento.create({
         data: {
-          etiquetaId: etiqueta.id,
+          etiquetaId: found.id,
           departamento: dto.departamento,
           tipo: dto.tipo,
           scannedPor: dto.scannedPor,
@@ -54,7 +78,7 @@ export class RastreioService {
         },
       }),
       this.prisma.etiqueta.update({
-        where: { id: etiqueta.id },
+        where: { id: found.id },
         data: {
           departamentoAtual: dto.departamento,
           rastreioStatus,
@@ -67,23 +91,27 @@ export class RastreioService {
     const labelDep = DEPARTAMENTOS.find((d) => d.key === dto.departamento)?.label ?? dto.departamento;
     const acao = dto.tipo === 'entrada' ? 'entrou em' : 'saiu de';
     return {
-      message: `Etiqueta ${etiqueta.codigo} ${acao} ${labelDep}.`,
+      message: `Etiqueta ${atualizada.codigo} ${acao} ${labelDep}.`,
       evento,
       etiqueta: atualizada,
     };
   }
 
-  // ── Timeline de uma etiqueta (por código) ─────────────────────────────────────
+  // ── Timeline de uma etiqueta (por código ou número) ───────────────────────────
   async timeline(codigo: string) {
+    const found = await this.resolveEtiquetaId(codigo);
+    if (!found) {
+      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${(codigo ?? '').trim()}".`);
+    }
     const etiqueta = await this.prisma.etiqueta.findUnique({
-      where: { codigo: codigo.trim() },
+      where: { id: found.id },
       include: {
         ...INCLUDE_ETIQUETA,
         eventos: { orderBy: { createdAt: 'asc' } },
       },
     });
     if (!etiqueta) {
-      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${codigo}".`);
+      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${(codigo ?? '').trim()}".`);
     }
 
     // monta segmentos (entrada → saída) por departamento, com duração
