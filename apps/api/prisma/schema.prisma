@@ -344,13 +344,36 @@ model Etiqueta {
   impresso      Boolean   @default(false)
   impressoEm    DateTime?
   createdAt     DateTime  @default(now())
+  // ── Rastreio por departamento (scan de código de barras) ──
+  departamentoAtual String?   // departamento corrente (recepcao, macroscopia, …)
+  rastreioStatus    String    @default("nao_iniciado") // nao_iniciado, em_andamento, aguardando, concluido
+  ultimoEventoEm    DateTime?
 
   amostra Amostra @relation(fields: [amostraId], references: [id])
+  eventos RastreioEvento[]
 
   @@index([codigo])
   @@index([numero])
   @@index([amostraId])
   @@index([impresso])
+  @@index([departamentoAtual])
+}
+
+// ── Eventos de rastreio: entrada/saída de cada etiqueta nos departamentos ──
+model RastreioEvento {
+  id           Int      @id @default(autoincrement())
+  etiquetaId   Int
+  departamento String   // recepcao, macroscopia, processamento, microtomia, coloracao, laudo, expedicao
+  tipo         String   // entrada, saida
+  scannedPor   String?  // operador/estação que escaneou
+  observacoes  String?
+  createdAt    DateTime @default(now())
+
+  etiqueta Etiqueta @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@index([etiquetaId])
+  @@index([departamento])
+  @@index([createdAt])
 }
 
 // ==========================================

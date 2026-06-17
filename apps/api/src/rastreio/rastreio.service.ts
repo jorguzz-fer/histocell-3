@@ -1,0 +1,201 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../common/prisma.service';
+import { ScanDto } from './dto/scan.dto';
+import { FilterRastreioDto } from './dto/filter-rastreio.dto';
+import { DEPARTAMENTOS, DEPARTAMENTO_FINAL } from './departamentos';
+
+const INCLUDE_ETIQUETA = {
+  amostra: {
+    select: {
+      id: true,
+      numeroInterno: true,
+      pedido: {
+        select: {
+          numero: true,
+          cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+        },
+      },
+    },
+  },
+} as const;
+
+@Injectable()
+export class RastreioService {
+  constructor(private prisma: PrismaService) {}
+
+  /** Lista de departamentos do fluxo (para seldtores no front). */
+  departamentos() {
+    return DEPARTAMENTOS;
+  }
+
+  // ── Scan: registra entrada/saída de uma etiqueta num departamento ─────────────
+  async scan(dto: ScanDto) {
+    const codigo = dto.codigo.trim();
+    const etiqueta = await this.prisma.etiqueta.findUnique({
+      where: { codigo },
+      include: INCLUDE_ETIQUETA,
+    });
+    if (!etiqueta) {
+      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${codigo}".`);
+    }
+
+    const isFinal = dto.departamento === DEPARTAMENTO_FINAL;
+    const rastreioStatus =
+      dto.tipo === 'entrada' ? 'em_andamento' : isFinal ? 'concluido' : 'aguardando';
+
+    const [evento, atualizada] = await this.prisma.$transaction([
+      this.prisma.rastreioEvento.create({
+        data: {
+          etiquetaId: etiqueta.id,
+          departamento: dto.departamento,
+          tipo: dto.tipo,
+          scannedPor: dto.scannedPor,
+          observacoes: dto.observacoes,
+        },
+      }),
+      this.prisma.etiqueta.update({
+        where: { id: etiqueta.id },
+        data: {
+          departamentoAtual: dto.departamento,
+          rastreioStatus,
+          ultimoEventoEm: new Date(),
+        },
+        include: INCLUDE_ETIQUETA,
+      }),
+    ]);
+
+    const labelDep = DEPARTAMENTOS.find((d) => d.key === dto.departamento)?.label ?? dto.departamento;
+    const acao = dto.tipo === 'entrada' ? 'entrou em' : 'saiu de';
+    return {
+      message: `Etiqueta ${etiqueta.codigo} ${acao} ${labelDep}.`,
+      evento,
+      etiqueta: atualizada,
+    };
+  }
+
+  // ── Timeline de uma etiqueta (por código) ─────────────────────────────────────
+  async timeline(codigo: string) {
+    const etiqueta = await this.prisma.etiqueta.findUnique({
+      where: { codigo: codigo.trim() },
+      include: {
+        ...INCLUDE_ETIQUETA,
+        eventos: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!etiqueta) {
+      throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${codigo}".`);
+    }
+
+    // monta segmentos (entrada → saída) por departamento, com duração
+    type Segmento = {
+      departamento: string;
+      entrada: Date | null;
+      saida: Date | null;
+      duracaoMin: number | null;
+    };
+    const abertos: Record<string, Segmento> = {};
+    const segmentos: Segmento[] = [];
+    for (const ev of etiqueta.eventos) {
+      if (ev.tipo === 'entrada') {
+        const seg: Segmento = {
+          departamento: ev.departamento,
+          entrada: ev.createdAt,
+          saida: null,
+          duracaoMin: null,
+        };
+        abertos[ev.departamento] = seg;
+        segmentos.push(seg);
+      } else {
+        const seg = abertos[ev.departamento];
+        if (seg) {
+          seg.saida = ev.createdAt;
+          seg.duracaoMin = Math.round(
+            (ev.createdAt.getTime() - (seg.entrada?.getTime() ?? ev.createdAt.getTime())) / 60000,
+          );
+          delete abertos[ev.departamento];
+        } else {
+          // saída sem entrada registrada — segmento solto
+          segmentos.push({
+            departamento: ev.departamento,
+            entrada: null,
+            saida: ev.createdAt,
+            duracaoMin: null,
+          });
+        }
+      }
+    }
+
+    return { etiqueta, segmentos };
+  }
+
+  // ── Lista paginada de etiquetas com filtros de rastreio ───────────────────────
+  async findAll(filter: FilterRastreioDto) {
+    const page = Math.max(1, filter.page ?? 1);
+    const limit = Math.min(200, Math.max(1, filter.limit ?? 50));
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (filter.departamento) where.departamentoAtual = filter.departamento;
+    if (filter.status) where.rastreioStatus = filter.status;
+    if (filter.busca) {
+      where.OR = [
+        { codigo: { contains: filter.busca, mode: 'insensitive' } },
+        { identificacao: { contains: filter.busca, mode: 'insensitive' } },
+        { amostra: { numeroInterno: { contains: filter.busca, mode: 'insensitive' } } },
+        {
+          amostra: {
+            pedido: { cliente: { nome: { contains: filter.busca, mode: 'insensitive' } } },
+          },
+        },
+        {
+          amostra: {
+            pedido: {
+              cliente: { nomeFantasia: { contains: filter.busca, mode: 'insensitive' } },
+            },
+          },
+        },
+      ];
+    }
+
+    const [total, items] = await this.prisma.$transaction([
+      this.prisma.etiqueta.count({ where }),
+      this.prisma.etiqueta.findMany({
+        where,
+        include: INCLUDE_ETIQUETA,
+        orderBy: { ultimoEventoEm: { sort: 'desc', nulls: 'last' } },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      data: items,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  // ── Resumo: quantas etiquetas estão em cada departamento ──────────────────────
+  async resumo() {
+    const grupos = await this.prisma.etiqueta.groupBy({
+      by: ['departamentoAtual'],
+      where: { rastreioStatus: { in: ['em_andamento', 'aguardando'] } },
+      _count: { _all: true },
+    });
+    const mapa = new Map(grupos.map((g) => [g.departamentoAtual, g._count._all]));
+
+    const departamentos = DEPARTAMENTOS.map((d) => ({
+      key: d.key,
+      label: d.label,
+      ordem: d.ordem,
+      emProcesso: mapa.get(d.key) ?? 0,
+    }));
+
+    const [concluidas, naoIniciadas, total] = await this.prisma.$transaction([
+      this.prisma.etiqueta.count({ where: { rastreioStatus: 'concluido' } }),
+      this.prisma.etiqueta.count({ where: { rastreioStatus: 'nao_iniciado' } }),
+      this.prisma.etiqueta.count(),
+    ]);
+
+    return { departamentos, concluidas, naoIniciadas, total };
+  }
+}
