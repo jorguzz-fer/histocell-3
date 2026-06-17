@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, LogIn, LogOut } from 'lucide-react'
+import { ArrowLeft, Clock, LogIn, LogOut, Tv } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { api } from '@/lib/api'
 import { ScanBox } from '../../ScanBox'
@@ -81,12 +81,22 @@ export default function DepartamentoBoardPage() {
         title={label}
         subtitle="Fila do departamento — atualiza automaticamente"
         action={
-          <Link
-            href="/rastreio"
-            className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          >
-            <ArrowLeft className="h-4 w-4" /> Rastreio
-          </Link>
+          <div className="flex items-center gap-4">
+            <a
+              href={`/rastreio-tv/${key}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              <Tv className="h-4 w-4" /> Modo TV
+            </a>
+            <Link
+              href="/rastreio"
+              className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            >
+              <ArrowLeft className="h-4 w-4" /> Rastreio
+            </Link>
+          </div>
         }
       />
 
