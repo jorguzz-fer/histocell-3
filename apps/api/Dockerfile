@@ -11,8 +11,10 @@ RUN npm ci
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx turbo run build --filter=@histocell/api
+# Gera o Prisma Client ANTES do build: o nest build (tsc) precisa dos tipos
+# gerados (ex.: $queryRawUnsafe<T>), senão falha com TS2347.
 RUN cd apps/api && npx prisma generate
+RUN npx turbo run build --filter=@histocell/api
 
 FROM base AS runner
 WORKDIR /app
