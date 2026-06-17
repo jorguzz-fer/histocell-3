@@ -32,6 +32,31 @@ export type EtiquetaListResponse = {
   meta: { total: number; page: number; limit: number; totalPages: number }
 }
 
+/** Linha editável da conferência de etiquetas de um pedido. */
+export type LinhaConferencia = {
+  amostraId: number
+  numeroInterno: string
+  itemPedidoId: number
+  servicoNome: string
+  servicoCodigo: string
+  quantidadeItem: number
+  jaGeradas: number
+  tipo: TipoEtiqueta
+  quantidade: number
+  coloracao: string
+  identificacao: string
+}
+
+export type PrepararPedidoResponse = {
+  pedido: { id: number; numero: string; clienteNome: string }
+  linhas: LinhaConferencia[]
+}
+
+export type GerarLoteResponse = {
+  message: string
+  etiquetas: Etiqueta[]
+}
+
 export type AmostraComContagem = {
   id: number
   numeroInterno: string

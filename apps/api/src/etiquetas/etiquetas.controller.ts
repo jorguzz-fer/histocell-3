@@ -15,6 +15,8 @@ import { EtiquetasService } from './etiquetas.service';
 import { GerarEtiquetasDto } from './dto/gerar-etiquetas.dto';
 import { FilterEtiquetaDto } from './dto/filter-etiqueta.dto';
 import { ImprimirEtiquetasDto } from './dto/imprimir-etiquetas.dto';
+import { PrepararPedidoDto } from './dto/preparar-pedido.dto';
+import { GerarLoteDto } from './dto/gerar-lote.dto';
 
 @Controller('etiquetas')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -47,6 +49,20 @@ export class EtiquetasController {
   @Roles('gerencia', 'recepcao', 'tecnico')
   gerar(@Body() dto: GerarEtiquetasDto) {
     return this.service.gerar(dto);
+  }
+
+  /** Prepara a conferência de etiquetas de um pedido (cria amostras por item) */
+  @Post('preparar-pedido')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  prepararPedido(@Body() dto: PrepararPedidoDto) {
+    return this.service.prepararPedido(dto.pedidoId);
+  }
+
+  /** Gera etiquetas para várias amostras de uma vez (conferência do pedido) */
+  @Post('gerar-lote')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  gerarLote(@Body() dto: GerarLoteDto) {
+    return this.service.gerarLote(dto);
   }
 
   /** Marca um lote de etiquetas como impressas */
