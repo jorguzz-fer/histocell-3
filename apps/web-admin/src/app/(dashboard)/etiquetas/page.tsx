@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
 import { GerarEtiquetasDrawer } from './GerarEtiquetasDrawer'
-import { EtiquetaLabel } from './EtiquetaLabel'
+import { EtiquetaPrintArea } from './EtiquetaPrintArea'
 import type { Etiqueta, EtiquetaListResponse } from './types'
 
 const TIPO_LABEL: Record<string, string> = { lamina: 'Lâmina', cassete: 'Cassete', bloco: 'Bloco' }
@@ -300,48 +300,7 @@ export default function EtiquetasPage() {
       />
 
       {/* Área de impressão (oculta em tela, visível só na impressão) */}
-      <div className="etiqueta-print-area" aria-hidden>
-        {printList.map((e) => (
-          <EtiquetaLabel key={e.id} etiqueta={e} />
-        ))}
-      </div>
-
-      <style>{`
-        .etiqueta-print-area { display: none; }
-        .etiqueta-label {
-          box-sizing: border-box;
-          width: 50mm;
-          padding: 1mm 1.5mm;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          color: #000;
-          font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.15;
-          break-inside: avoid;
-        }
-        .etiqueta-ident { font-size: 7pt; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .etiqueta-coloracao { font-size: 10pt; font-weight: 700; }
-        .etiqueta-barcode { width: 100%; height: auto; }
-        .etiqueta-numero { font-family: 'Courier New', monospace; font-size: 8pt; }
-        .etiqueta-histocell { font-size: 8pt; }
-        @media print {
-          body * { visibility: hidden; }
-          .etiqueta-print-area, .etiqueta-print-area * { visibility: visible; }
-          .etiqueta-print-area {
-            display: flex !important;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            gap: 2mm;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          @page { margin: 8mm; }
-        }
-      `}</style>
+      <EtiquetaPrintArea etiquetas={printList} />
     </div>
   )
 }

@@ -53,6 +53,7 @@ export function useOrderCart() {
   const [saving, setSaving]           = useState(false)
   const [saved, setSaved]             = useState(false)
   const [clientes, setClientes]       = useState<ClienteOpt[]>([])
+  const [pedidoCriado, setPedidoCriado] = useState<{ id: number; numero: string } | null>(null)
 
   useEffect(() => {
     api.get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true')
@@ -120,15 +121,21 @@ export function useOrderCart() {
     if (itens.length === 0) { toast.error('Adicione pelo menos um serviço.'); return }
     setSaving(true)
     try {
-      await api.post('/pedidos', {
+      const pedido = await api.post<{ id: number; numero: string }>('/pedidos', {
         clienteId: parseInt(clienteId),
         observacoes: observacoes || undefined,
         status: finalStatus,
         itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
       })
-      setSaved(true)
-      toast.success(finalStatus === 'enviado' ? 'Pedido enviado!' : 'Rascunho salvo!')
-      setTimeout(() => { setItens([]); setClienteId(''); setObservacoes(''); setSaved(false) }, 2000)
+      toast.success(finalStatus === 'enviado' ? 'Pedido gerado!' : 'Rascunho salvo!')
+      if (finalStatus === 'enviado') {
+        // limpa o carrinho e mostra o painel de "Pedido gerado" com ação de etiquetas
+        setPedidoCriado({ id: pedido.id, numero: pedido.numero })
+        setItens([]); setClienteId(''); setObservacoes('')
+      } else {
+        setSaved(true)
+        setTimeout(() => { setItens([]); setClienteId(''); setObservacoes(''); setSaved(false) }, 2000)
+      }
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao salvar pedido')
     } finally {
@@ -136,11 +143,15 @@ export function useOrderCart() {
     }
   }
 
+  function limparPedidoCriado() {
+    setPedidoCriado(null)
+  }
+
   const totalGeral = itens.reduce((sum, i) => sum + itemSubtotal(i), 0)
 
   return {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
-    cliente, isPesquisador, totalGeral,
+    cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   }
 }

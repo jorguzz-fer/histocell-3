@@ -1,6 +1,7 @@
 'use client'
 
-import { CheckCircle2, Send, ChevronDown } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CheckCircle2, Send, ChevronDown, Tags, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
@@ -9,9 +10,10 @@ import { CartItemRow } from '@/components/ui/CartItemRow'
 import { ServicoLegadoTable } from '@/components/legado/ServicoLegadoTable'
 
 export default function PedidosLegadoPage() {
+  const router = useRouter()
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
-    cliente, isPesquisador, totalGeral,
+    cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     addServico, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
@@ -56,6 +58,32 @@ export default function PedidosLegadoPage() {
 
         {/* Direita: resumo do pedido */}
         <div className="sticky top-6 space-y-4">
+          {pedidoCriado && (
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-500/30 overflow-hidden">
+              <div className="px-5 py-4 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pedido gerado!</p>
+                  <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70">{pedidoCriado.numero}</p>
+                </div>
+              </div>
+              <div className="px-5 py-4 space-y-2">
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                  Gere as etiquetas dos itens deste pedido para conferência e impressão.
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => router.push(`/etiquetas/conferencia?pedido=${pedidoCriado.id}`)}
+                >
+                  <Tags className="h-4 w-4 mr-2" /> Gerar Etiquetas
+                </Button>
+                <Button variant="secondary" className="w-full" onClick={limparPedidoCriado}>
+                  <Plus className="h-4 w-4 mr-2" /> Novo pedido
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Itens do Pedido</h2>

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { GerarEtiquetasDto } from './dto/gerar-etiquetas.dto';
 import { FilterEtiquetaDto } from './dto/filter-etiqueta.dto';
+import { GerarLoteDto } from './dto/gerar-lote.dto';
 
 // ─── include padrão ────────────────────────────────────────────────────────────
 
@@ -36,8 +37,32 @@ export class EtiquetasService {
     return rows.map((r) => Number(r.nextval));
   }
 
-  // ── Gera N etiquetas para uma amostra ─────────────────────────────────────────
-  async gerar(dto: GerarEtiquetasDto) {
+  // ── número interno Histocell da amostra (sequencial contínuo, ex: 00045) ───────
+  private async gerarNumeroInterno(): Promise<string> {
+    const rows = await this.prisma.$queryRawUnsafe<{ nextval: bigint }[]>(
+      `SELECT nextval('histocell_amostra_numero_seq') AS nextval`,
+    );
+    return String(Number(rows[0].nextval)).padStart(5, '0');
+  }
+
+  // ── Coloração sugerida a partir do nome do serviço ────────────────────────────
+  private sugerirColoracao(nome: string): string {
+    const n = nome.toUpperCase();
+    if (/(^|[^A-Z])HE([^A-Z]|$)/.test(n)) return '.HE';
+    if (n.includes('PAS')) return 'PAS';
+    return '';
+  }
+
+  // ── Gera N etiquetas para uma amostra (núcleo reutilizável) ────────────────────
+  private async gerarParaAmostra(dto: {
+    amostraId: number;
+    tipo: string;
+    quantidade: number;
+    coloracao?: string;
+    identificacao?: string;
+  }) {
+    if (dto.quantidade < 1) return [];
+
     const amostra = await this.prisma.amostra.findUnique({
       where: { id: dto.amostraId },
       select: {
@@ -66,7 +91,7 @@ export class EtiquetasService {
 
     const numeros = await this.gerarNumeros(dto.quantidade);
 
-    const criadas = await this.prisma.$transaction(
+    return this.prisma.$transaction(
       numeros.map((numero, i) => {
         const laminaSeq = jaExistentes + i + 1;
         const identificacao = dto.identificacao
@@ -88,10 +113,115 @@ export class EtiquetasService {
         });
       }),
     );
+  }
+
+  // ── Gera N etiquetas para uma amostra ─────────────────────────────────────────
+  async gerar(dto: GerarEtiquetasDto) {
+    const criadas = await this.gerarParaAmostra(dto);
+    const numeroInterno = criadas[0]?.amostra?.numeroInterno;
+    return {
+      message: `${criadas.length} etiqueta(s) gerada(s)${
+        numeroInterno ? ` para a amostra ${numeroInterno}` : ''
+      }.`,
+      etiquetas: criadas,
+    };
+  }
+
+  // ── Gera etiquetas para várias amostras (conferência do pedido) ───────────────
+  async gerarLote(dto: GerarLoteDto) {
+    const todas: Awaited<ReturnType<typeof this.gerarParaAmostra>> = [];
+    for (const linha of dto.linhas) {
+      const criadas = await this.gerarParaAmostra(linha);
+      todas.push(...criadas);
+    }
+    todas.sort((a, b) => a.numero - b.numero);
+    return {
+      message: `${todas.length} etiqueta(s) gerada(s).`,
+      etiquetas: todas,
+    };
+  }
+
+  // ── Prepara a conferência de etiquetas de um pedido ───────────────────────────
+  // Cria uma amostra por item (idempotente via itemPedidoId) e devolve as linhas
+  // com sugestões editáveis (identificação, coloração, tipo, quantidade).
+  async prepararPedido(pedidoId: number) {
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      include: {
+        cliente: {
+          select: { id: true, nome: true, nomeFantasia: true, idEtiqueta: true },
+        },
+        itens: {
+          include: {
+            servico: { select: { nome: true, codigo: true } },
+            amostra: { select: { id: true, numeroInterno: true } },
+          },
+          orderBy: { id: 'asc' },
+        },
+      },
+    });
+    if (!pedido) throw new NotFoundException(`Pedido #${pedidoId} não encontrado.`);
+
+    const clienteLabel =
+      pedido.cliente.idEtiqueta || pedido.cliente.nomeFantasia || pedido.cliente.nome;
+    const agora = new Date();
+
+    const linhas: any[] = [];
+    for (const item of pedido.itens) {
+      // cria a amostra para o item se ainda não existir (idempotente)
+      let amostra = item.amostra;
+      if (!amostra) {
+        const numeroInterno = await this.gerarNumeroInterno();
+        amostra = await this.prisma.amostra.create({
+          data: {
+            pedidoId: pedido.id,
+            itemPedidoId: item.id,
+            numeroInterno,
+            especie: 'A definir',
+            material: 'A definir',
+            status: 'pendente',
+            dataRecebimento: agora,
+            observacoes: `Serviço: ${item.servico.nome} — amostra criada na emissão de etiquetas.`,
+          },
+          select: { id: true, numeroInterno: true },
+        });
+      }
+
+      const jaGeradas = await this.prisma.etiqueta.count({
+        where: { amostraId: amostra.id },
+      });
+
+      linhas.push({
+        amostraId: amostra.id,
+        numeroInterno: amostra.numeroInterno,
+        itemPedidoId: item.id,
+        servicoNome: item.servico.nome,
+        servicoCodigo: item.servico.codigo,
+        quantidadeItem: item.quantidade,
+        jaGeradas,
+        // sugestões editáveis na tela de conferência
+        tipo: 'lamina',
+        quantidade: Math.max(0, item.quantidade - jaGeradas),
+        coloracao: this.sugerirColoracao(item.servico.nome),
+        identificacao: clienteLabel,
+      });
+    }
+
+    // amostras passaram a existir → tira o pedido da fila de recebimento
+    if (['enviado', 'rascunho'].includes(pedido.status)) {
+      await this.prisma.pedido.update({
+        where: { id: pedido.id },
+        data: { status: 'recebido', dataRecebimento: pedido.dataRecebimento ?? agora },
+      });
+    }
 
     return {
-      message: `${criadas.length} etiqueta(s) gerada(s) para a amostra ${amostra.numeroInterno}.`,
-      etiquetas: criadas,
+      pedido: {
+        id: pedido.id,
+        numero: pedido.numero,
+        clienteNome: pedido.cliente.nomeFantasia ?? pedido.cliente.nome,
+      },
+      linhas,
     };
   }
 

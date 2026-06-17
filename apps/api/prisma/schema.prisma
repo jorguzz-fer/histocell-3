@@ -238,6 +238,7 @@ model ItemPedido {
 
   pedido  Pedido  @relation(fields: [pedidoId], references: [id])
   servico Servico @relation(fields: [servicoId], references: [id])
+  amostra Amostra? // amostra gerada a partir deste item (emissão de etiquetas)
 
   @@index([pedidoId])
 }
@@ -248,6 +249,7 @@ model ItemPedido {
 model Amostra {
   id              Int       @id @default(autoincrement())
   pedidoId        Int
+  itemPedidoId    Int?      @unique // item de origem (quando criada via emissão de etiquetas)
   numeroInterno   String    @unique // Numeração diária Histocell
   numeroCliente   String?   // Número do cliente (ex: Alquimipet)
   especie         String    // canino, felino, bovino, humano, etc
@@ -261,6 +263,7 @@ model Amostra {
   updatedAt       DateTime  @updatedAt
 
   pedido          Pedido    @relation(fields: [pedidoId], references: [id])
+  itemPedido      ItemPedido? @relation(fields: [itemPedidoId], references: [id])
   ordemServico    OrdemServico?
   etiquetas       Etiqueta[]
 
