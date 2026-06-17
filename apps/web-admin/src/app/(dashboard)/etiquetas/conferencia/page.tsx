@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Printer, Tags } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Printer, RefreshCw, Tags } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -36,6 +36,7 @@ function ConferenciaPedido() {
   const [pedido, setPedido] = useState<PrepararPedidoResponse['pedido'] | null>(null)
   const [linhas, setLinhas] = useState<LinhaConferencia[]>([])
   const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [printList, setPrintList] = useState<Etiqueta[]>([])
 
@@ -45,6 +46,7 @@ function ConferenciaPedido() {
       return
     }
     setLoading(true)
+    setErro(null)
     try {
       const res = await api.post<PrepararPedidoResponse>('/etiquetas/preparar-pedido', {
         pedidoId: Number(pedidoId),
@@ -52,7 +54,9 @@ function ConferenciaPedido() {
       setPedido(res.pedido)
       setLinhas(res.linhas)
     } catch (err: any) {
-      toast.error(err.message ?? 'Erro ao preparar etiquetas do pedido')
+      const msg = err.message ?? 'Erro ao preparar etiquetas do pedido'
+      setErro(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -151,6 +155,16 @@ function ConferenciaPedido() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
+        </div>
+      ) : erro ? (
+        <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-500/30 rounded-card py-12 px-6 text-center">
+          <AlertTriangle className="h-8 w-8 text-rose-400 mx-auto mb-2" />
+          <p className="text-sm font-medium text-rose-600 dark:text-rose-400">Não foi possível carregar as etiquetas</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">{erro}</p>
+          <Button variant="secondary" className="mt-4" onClick={carregar}>
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Tentar novamente
+          </Button>
         </div>
       ) : linhas.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card py-16 text-center">
