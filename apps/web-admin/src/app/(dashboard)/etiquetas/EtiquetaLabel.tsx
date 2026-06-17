@@ -26,7 +26,8 @@ export function EtiquetaLabel({ etiqueta }: { etiqueta: Etiqueta }) {
     <div className="etiqueta-label">
       <div className="etiqueta-ident">{ident}</div>
       {etiqueta.coloracao && <div className="etiqueta-coloracao">{etiqueta.coloracao}</div>}
-      <Barcode value={etiqueta.codigo} height={34} width={1.3} className="etiqueta-barcode" />
+      {/* Code128 com o número da etiqueta (igual ao número impresso abaixo) */}
+      <Barcode value={numeroFmt(etiqueta.numero)} height={34} width={1.3} className="etiqueta-barcode" />
       <div className="etiqueta-numero">
         {numeroFmt(etiqueta.numero)} - {ddmmaaaa(etiqueta.createdAt)}
       </div>
