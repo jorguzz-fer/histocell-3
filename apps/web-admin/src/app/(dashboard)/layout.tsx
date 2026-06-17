@@ -6,8 +6,6 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
-  ClipboardList,
-  GitBranch,
   FileSpreadsheet,
   Boxes,
   PackageOpen,
@@ -32,8 +30,7 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/cadastro', label: 'Clientes', icon: Users },
-  { href: '/pedidos', label: 'Pedidos', icon: ClipboardList },
-  { href: '/pedidos-guiado', label: 'Pedido Guiado', icon: GitBranch },
+  // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
   { href: '/pedidos-legado', label: 'Pedido Legado', icon: FileSpreadsheet },
   { href: '/pacotes', label: 'Pacotes', icon: Boxes },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen },

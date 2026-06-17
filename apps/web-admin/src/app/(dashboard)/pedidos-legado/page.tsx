@@ -8,13 +8,14 @@ import { Select } from '@/components/ui/Select'
 import { useOrderCart, fmtBRL } from '@/hooks/useOrderCart'
 import { CartItemRow } from '@/components/ui/CartItemRow'
 import { ServicoLegadoTable } from '@/components/legado/ServicoLegadoTable'
+import { CatalogoTabs } from '@/components/pedidos/CatalogoTabs'
 
 export default function PedidosLegadoPage() {
   const router = useRouter()
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
-    addServico, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
   return (
@@ -51,9 +52,14 @@ export default function PedidosLegadoPage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-            <ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} />
-          </div>
+          <CatalogoTabs
+            clienteId={clienteId}
+            isPesquisador={isPesquisador}
+            cliente={cliente}
+            onAdd={addServico}
+            addItemDireto={addItemDireto}
+            legadoSlot={<ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} />}
+          />
         </div>
 
         {/* Direita: resumo do pedido */}
