@@ -57,6 +57,14 @@ export class PedidosController {
     return this.service.criarServico(body);
   }
 
+  /** Renumera o catálogo (códigos 1..N em ordem alfabética). apply=false → só pré-visualiza. */
+  @Post('servicos/renumerar')
+  @HttpCode(200)
+  @Roles('gerencia')
+  renumerarServicos(@Body() body: { apply?: boolean }) {
+    return this.service.renumerarServicos(body?.apply === true);
+  }
+
   /** Editar serviço (campos do formato legado) */
   @Patch('servicos/:id')
   @Roles('gerencia', 'recepcao')
