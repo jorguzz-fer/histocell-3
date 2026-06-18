@@ -136,6 +136,16 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [saving, setSaving] = useState(false)
   const [portalToken, setPortalToken] = useState<string | null>(null)
+  const [portalBase, setPortalBase] = useState('')
+
+  // base do portal do cliente: env explícito OU deduzido do domínio do admin
+  useEffect(() => {
+    const env = process.env.NEXT_PUBLIC_CLIENTE_URL
+    if (env) { setPortalBase(env.replace(/\/$/, '')); return }
+    if (typeof window !== 'undefined') {
+      setPortalBase(window.location.origin.replace('-admin', '-cliente'))
+    }
+  }, [])
 
   // Popula o form quando o drawer abre
   useEffect(() => {
@@ -146,7 +156,6 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
     }
   }, [open, cliente])
 
-  const portalBase = process.env.NEXT_PUBLIC_CLIENTE_URL ?? ''
   const portalUrl = portalToken ? `${portalBase}/p/${portalToken}` : ''
 
   async function copiarLink() {
