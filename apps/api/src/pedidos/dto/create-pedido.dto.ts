@@ -56,6 +56,11 @@ export class CreatePedidoDto {
   @IsIn(['rascunho', 'enviado'])
   status?: 'rascunho' | 'enviado';
 
+  /** Origem do pedido: local (interno) ou web (portal do cliente) */
+  @IsOptional()
+  @IsIn(['local', 'web'])
+  origem?: 'local' | 'web';
+
   @ValidateNested({ each: true })
   @Type(() => CreateItemPedidoDto)
   @ArrayMinSize(1)
