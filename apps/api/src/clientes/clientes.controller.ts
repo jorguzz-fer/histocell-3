@@ -92,4 +92,16 @@ export class ClientesController {
   reativar(@Param('id', ParseIntPipe) id: number) {
     return this.service.reativar(id);
   }
+
+  /**
+   * DELETE /clientes/:id/definitivo
+   * Exclusão permanente — só permitida se o cliente não tiver histórico.
+   * Roles: gerencia apenas
+   */
+  @Delete(':id/definitivo')
+  @Roles('gerencia')
+  @HttpCode(HttpStatus.OK)
+  removerDefinitivo(@Param('id', ParseIntPipe) id: number) {
+    return this.service.removerDefinitivo(id);
+  }
 }

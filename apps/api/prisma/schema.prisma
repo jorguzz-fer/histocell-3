@@ -75,6 +75,7 @@ model Cliente {
   orcamentos    Orcamento[]
   faturas       Fatura[]
   users         User[]
+  creditos      CreditoPrePago[]
 
   @@index([documento])
   @@index([nome])
@@ -489,8 +490,10 @@ model CreditoPrePago {
   valor     Decimal  @db.Decimal(10, 2)
   tipo      String   // credito, debito
   descricao String
-  saldo     Decimal  @db.Decimal(10, 2)
+  saldo     Decimal  @db.Decimal(10, 2) // saldo acumulado após o lançamento
   createdAt DateTime @default(now())
+
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
 
   @@index([clienteId])
 }

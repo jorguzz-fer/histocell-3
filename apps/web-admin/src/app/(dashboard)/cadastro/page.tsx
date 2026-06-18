@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Search, Plus, Pencil, PowerOff, Power, SlidersHorizontal } from 'lucide-react'
+import { Search, Plus, Pencil, PowerOff, Power, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -107,6 +107,21 @@ export default function CadastroPage() {
     } finally {
       setToggling(false)
       setConfirmId(null)
+    }
+  }
+
+  async function excluirDefinitivo(c: Cliente) {
+    if (!confirm(
+      `Excluir definitivamente "${c.nomeFantasia || c.nome}"?\n\n` +
+      'Ação permanente. Só funciona se o cliente não tiver pedidos/orçamentos/faturas — ' +
+      'caso contrário, use "Desativar".',
+    )) return
+    try {
+      await api.delete(`/clientes/${c.id}/definitivo`)
+      toast.success('Cliente excluído definitivamente.')
+      await fetchClientes()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao excluir cliente')
     }
   }
 
@@ -317,6 +332,13 @@ export default function CadastroPage() {
                                 }`}
                               >
                                 {c.ativo ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => excluirDefinitivo(c)}
+                                title="Excluir definitivamente (sem histórico)"
+                                className="p-1.5 rounded-md text-slate-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
