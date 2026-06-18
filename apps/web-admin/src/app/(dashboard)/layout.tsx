@@ -31,7 +31,7 @@ const menuItems: MenuItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/cadastro', label: 'Clientes', icon: Users },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
-  { href: '/pedidos-legado', label: 'Pedido Legado', icon: FileSpreadsheet },
+  { href: '/pedidos-legado', label: 'Pedido', icon: FileSpreadsheet },
   { href: '/pacotes', label: 'Pacotes', icon: Boxes },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen },
   { href: '/ordens', label: 'Ordens de Serviço', icon: Microscope },

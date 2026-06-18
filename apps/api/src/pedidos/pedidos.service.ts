@@ -495,6 +495,7 @@ export class PedidosService {
         clienteId: dto.clienteId,
         numero,
         status,
+        origem: dto.origem ?? 'local',
         observacoes: dto.observacoes,
         urgente: dto.urgente ?? false,
         pagamentoAdiantado: dto.pagamentoAdiantado ?? false,

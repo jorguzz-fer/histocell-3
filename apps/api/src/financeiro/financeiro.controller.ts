@@ -31,6 +31,13 @@ export class FinanceiroController {
     return this.service.resumoCreditos();
   }
 
+  /** Saldo de um cliente (leve — recepção pode ver para informar no pedido) */
+  @Get('creditos/:clienteId/saldo')
+  @Roles('gerencia', 'financeiro', 'recepcao')
+  saldoCliente(@Param('clienteId', ParseIntPipe) clienteId: number) {
+    return this.service.saldoCliente(clienteId);
+  }
+
   /** Extrato (movimentos + saldo) de um cliente */
   @Get('creditos/:clienteId')
   @Roles('gerencia', 'financeiro')

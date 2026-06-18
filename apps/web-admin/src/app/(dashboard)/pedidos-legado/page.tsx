@@ -15,7 +15,7 @@ export default function PedidosLegadoPage() {
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
-    urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado,
+    urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
     addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
@@ -46,9 +46,14 @@ export default function PedidosLegadoPage() {
               ]}
             />
             {cliente && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={isPesquisador ? 'amber' : 'slate'}>{isPesquisador ? 'Pesquisador' : cliente.segmento}</Badge>
                 <span className="text-xs text-slate-400">Preços em {isPesquisador ? 'pesquisa' : 'rotina'}</span>
+                {creditoSaldo != null && creditoSaldo > 0 && (
+                  <Badge variant="green">
+                    Crédito disponível: {creditoSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </Badge>
+                )}
               </div>
             )}
           </div>

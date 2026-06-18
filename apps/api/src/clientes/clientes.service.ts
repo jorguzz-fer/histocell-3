@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../common/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
@@ -25,6 +26,7 @@ const SELECT_SAFE = {
   celular: true,
   segmento: true,
   descontoPadrao: true,
+  portalToken: true,
   observacoes: true,
   ativo: true,
   createdAt: true,
@@ -157,6 +159,7 @@ export class ClientesService {
         celular: dto.celular,
         segmento: dto.segmento ?? 'recorrente',
         descontoPadrao: dto.descontoPadrao ?? 0,
+        portalToken: randomBytes(16).toString('hex'),
         observacoes: dto.observacoes,
         // Cria endereço principal inline, se fornecido
         enderecos: dto.endereco
@@ -251,6 +254,17 @@ export class ClientesService {
       data: { ativo: true },
     });
     return { message: `Cliente #${id} reativado com sucesso.` };
+  }
+
+  // -------------------------------------------------------------------------
+  // PORTAL: (re)gera o token do link público do cliente
+  // -------------------------------------------------------------------------
+
+  async regenerarToken(id: number) {
+    await this.findOne(id); // garante que existe
+    const portalToken = randomBytes(16).toString('hex');
+    await this.prisma.cliente.update({ where: { id }, data: { portalToken } });
+    return { id, portalToken };
   }
 
   // -------------------------------------------------------------------------

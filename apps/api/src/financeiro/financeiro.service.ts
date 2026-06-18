@@ -37,6 +37,63 @@ export class FinanceiroService {
     });
   }
 
+  // ── Débito automático ao receber um pedido (consome o crédito disponível) ────
+  // Idempotente (1 débito por pedido); consome só até zerar o saldo. Retorna o
+  // valor abatido (0 se não havia crédito ou já debitado).
+  async debitarPorPedido(args: {
+    clienteId: number;
+    pedidoId: number;
+    pedidoNumero: string;
+    valorPedido: number;
+  }): Promise<{ abatido: number; saldo: number } | null> {
+    if (args.valorPedido <= 0) return null;
+
+    return this.prisma.$transaction(async (tx) => {
+      // já debitado para este pedido? (idempotência)
+      const existente = await tx.creditoPrePago.findFirst({
+        where: { pedidoId: args.pedidoId },
+        select: { id: true },
+      });
+      if (existente) return null;
+
+      const ultimo = await tx.creditoPrePago.findFirst({
+        where: { clienteId: args.clienteId },
+        orderBy: { id: 'desc' },
+        select: { saldo: true },
+      });
+      const saldoAtual = ultimo ? Number(ultimo.saldo) : 0;
+      if (saldoAtual <= 0) return null; // sem crédito → cobrança normal
+
+      const abatido = Math.round(Math.min(saldoAtual, args.valorPedido) * 100) / 100;
+      const saldo = Math.round((saldoAtual - abatido) * 100) / 100;
+      const parcial = abatido < args.valorPedido;
+
+      await tx.creditoPrePago.create({
+        data: {
+          clienteId: args.clienteId,
+          pedidoId: args.pedidoId,
+          tipo: 'debito',
+          valor: abatido,
+          descricao:
+            `Consumo do pedido ${args.pedidoNumero}` +
+            (parcial ? ` (parcial — pedido R$ ${args.valorPedido.toFixed(2)})` : ''),
+          saldo,
+        },
+      });
+      return { abatido, saldo };
+    });
+  }
+
+  // ── Saldo atual de um cliente (leve — para exibir no pedido) ─────────────────
+  async saldoCliente(clienteId: number) {
+    const ultimo = await this.prisma.creditoPrePago.findFirst({
+      where: { clienteId },
+      orderBy: { id: 'desc' },
+      select: { saldo: true },
+    });
+    return { clienteId, saldo: ultimo ? Number(ultimo.saldo) : 0 };
+  }
+
   // ── Extrato de um cliente (movimentos + saldo atual) ─────────────────────────
   async extrato(clienteId: number) {
     const cliente = await this.prisma.cliente.findUnique({
