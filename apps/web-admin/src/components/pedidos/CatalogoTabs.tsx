@@ -104,6 +104,8 @@ export function CatalogoTabs({
   const [allServicos, setAllServicos] = useState<Servico[]>([])
   const [pacotes, setPacotes] = useState<Pacote[]>([])
   const [favIds, setFavIds] = useState<Set<number>>(new Set())
+  const [pacoteBusca, setPacoteBusca] = useState('')
+  const [pacoteCat, setPacoteCat] = useState('')
 
   const tabs = [
     { key: 'populares', label: 'Populares', icon: Flame },
@@ -313,44 +315,92 @@ export function CatalogoTabs({
           </div>
         )}
 
-        {tab === 'pacotes' && (
-          <div>
-            {pacotes.length === 0 ? (
-              <div className="text-center py-8 space-y-2">
-                <Boxes className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto" />
-                <p className="text-sm text-slate-400 dark:text-slate-500">Nenhum pacote cadastrado.</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Crie combos de serviços no menu <span className="font-medium">Pacotes</span>.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {pacotes.map((p) => (
-                  <div key={p.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-all">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight">{p.nome}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {p.itens.map((it) => (it.quantidade > 1 ? `${it.quantidade}× ` : '') + it.servico.nome).join(' + ')}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtBRL(p.precoTotal)}</p>
-                        <p className="text-[10px] text-slate-400">{p.totalItens} serviços</p>
-                      </div>
+        {tab === 'pacotes' && (() => {
+          const cats = Array.from(new Set(pacotes.flatMap((p) => p.categorias ?? []))).sort()
+          const q = pacoteBusca.trim().toLowerCase()
+          const lista = pacotes.filter((p) => {
+            if (pacoteCat && !(p.categorias ?? []).includes(pacoteCat)) return false
+            if (!q) return true
+            return p.codigo.toLowerCase().includes(q) || p.nome.toLowerCase().includes(q)
+          })
+          return (
+            <div className="space-y-3">
+              {pacotes.length === 0 ? (
+                <div className="text-center py-8 space-y-2">
+                  <Boxes className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                  <p className="text-sm text-slate-400 dark:text-slate-500">Nenhum pacote cadastrado.</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Crie combos/painéis no menu <span className="font-medium">Pacotes</span>.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <input
+                    value={pacoteBusca}
+                    onChange={(e) => setPacoteBusca(e.target.value)}
+                    placeholder="Buscar pacote por código ou nome…"
+                    className="w-full rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2 text-[13px]
+                      bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400
+                      focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {cats.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        onClick={() => setPacoteCat('')}
+                        className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${!pacoteCat ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                      >Todas</button>
+                      {cats.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setPacoteCat(c === pacoteCat ? '' : c)}
+                          className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${pacoteCat === c ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                        >{c}</button>
+                      ))}
                     </div>
-                    <button
-                      onClick={() => addPacote(p)}
-                      className="mt-3 w-full flex items-center justify-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 transition-colors"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Adicionar pacote
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+
+                  {lista.length === 0 ? (
+                    <p className="text-center text-[12px] text-slate-400 py-6">Nenhum pacote encontrado.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {lista.map((p) => (
+                        <div key={p.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-all">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight">
+                                <span className="font-mono text-slate-400 mr-1.5">{p.codigo}</span>{p.nome}
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                {p.itens.map((it) => (it.quantidade > 1 ? `${it.quantidade}× ` : '') + it.servico.nome).join(' + ')}
+                              </p>
+                              {(p.categorias ?? []).length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {(p.categorias ?? []).map((c) => (
+                                    <span key={c} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">{c}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtBRL(p.precoTotal)}</p>
+                              <p className="text-[10px] text-slate-400">{p.totalItens} serviços</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => addPacote(p)}
+                            className="mt-3 w-full flex items-center justify-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 transition-colors"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> Adicionar pacote
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )
+        })()}
 
         {tab === 'guiado' && (
           <CascadingServicoSelector isPesquisador={isPesquisador} onSelect={onAdd} />
