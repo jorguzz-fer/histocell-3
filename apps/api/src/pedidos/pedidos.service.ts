@@ -46,13 +46,18 @@ export class PedidosService {
   constructor(private prisma: PrismaService) {}
 
   // ── numero sequencial diário ────────────────────────────────────────────────
+  // Usa o MAIOR sufixo do dia + 1 (à prova de buracos deixados por exclusões;
+  // count+1 colidia com números existentes após deletar pedidos).
   private async gerarNumero(): Promise<string> {
     const hoje = toDateStr(new Date());
     const prefix = `PED-${hoje}-`;
-    const count = await this.prisma.pedido.count({
+    const ultimo = await this.prisma.pedido.findFirst({
       where: { numero: { startsWith: prefix } },
+      orderBy: { numero: 'desc' },
+      select: { numero: true },
     });
-    return `${prefix}${String(count + 1).padStart(3, '0')}`;
+    const seq = ultimo ? parseInt(ultimo.numero.slice(prefix.length), 10) || 0 : 0;
+    return `${prefix}${String(seq + 1).padStart(3, '0')}`;
   }
 
   // ── shape de resposta com totais ────────────────────────────────────────────
