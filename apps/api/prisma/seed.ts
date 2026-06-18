@@ -116,7 +116,7 @@ async function main() {
   await prisma.servico.deleteMany({ where: { codigo: { in: placeholders } } });
 
   let criados = 0;
-  let atualizados = 0;
+  let mantidos = 0;
 
   for (const s of SERVICOS_LEGADO) {
     const existing = await prisma.servico.findFirst({
@@ -124,20 +124,9 @@ async function main() {
     });
 
     if (existing) {
-      await prisma.servico.update({
-        where: { id: existing.id },
-        data: {
-          codigo: s.codigo,
-          codigoLegado: s.codigoLegado,
-          categoria: s.categoria,
-          nome: s.nome,
-          precoBase: s.precoRotina,
-          precoRotina: s.precoRotina,
-          precoPesquisa: s.precoPesquisa,
-          ativo: true,
-        },
-      });
-      atualizados++;
+      // NÃO sobrescreve serviços existentes — preserva edições feitas no sistema
+      // (nome, preço, código/renumeração, arquivamento). Só cria o que falta.
+      mantidos++;
     } else {
       await prisma.servico.create({
         data: {
@@ -154,7 +143,7 @@ async function main() {
     }
   }
 
-  console.log(`   ✅ ${criados} serviços criados, ${atualizados} atualizados`);
+  console.log(`   ✅ ${criados} serviços criados, ${mantidos} preservados (não sobrescritos)`);
 
   // ── Popula campos de seleção guiada (cascata) para Cortes ───────────────────
   console.log('🔧 Populando variantes de Cortes para seleção guiada...');
@@ -203,6 +192,8 @@ async function main() {
   for (const v of CORTES_VARIANTS) {
     const servico = await prisma.servico.findUnique({ where: { codigoLegado: v.codigoLegado } });
     if (!servico) continue;
+    // só configura variantes quando ainda não foram definidas — não sobrescreve edições
+    if (servico.tipo) continue;
     await prisma.servico.update({
       where: { id: servico.id },
       data: {
