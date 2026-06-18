@@ -75,6 +75,7 @@ model Cliente {
   orcamentos    Orcamento[]
   faturas       Fatura[]
   users         User[]
+  creditos      CreditoPrePago[]
 
   @@index([documento])
   @@index([nome])
@@ -213,9 +214,14 @@ model Pedido {
   clienteId     Int
   numero        String    @unique // PED-20260410-001
   status        String    @default("rascunho")
+  urgente            Boolean  @default(false) // prioridade do pedido
+  pagamentoAdiantado Boolean  @default(false) // já pago/adiantado (não cobrar no fechamento)
+  qtdPrevista   Int?      // qtd de amostras prevista (conferência no recebimento)
+  qtdRecebida   Int?      // qtd de amostras efetivamente recebida
+  excedente     Boolean   @default(false) // recebeu mais que o previsto → verificar cobrança
   dataEnvio     DateTime?
   dataRecebimento DateTime?
-  observacoes   String?   @db.Text
+  observacoes   String?   @db.Text // observação interna (não visível ao cliente)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -484,8 +490,10 @@ model CreditoPrePago {
   valor     Decimal  @db.Decimal(10, 2)
   tipo      String   // credito, debito
   descricao String
-  saldo     Decimal  @db.Decimal(10, 2)
+  saldo     Decimal  @db.Decimal(10, 2) // saldo acumulado após o lançamento
   createdAt DateTime @default(now())
+
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
 
   @@index([clienteId])
 }

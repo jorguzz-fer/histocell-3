@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Send, ChevronDown, Tags, Plus } from 'lucide-react'
+import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
@@ -15,6 +15,7 @@ export default function PedidosLegadoPage() {
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
+    urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado,
     addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
@@ -111,7 +112,31 @@ export default function PedidosLegadoPage() {
 
             {itens.length > 0 && (
               <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                <textarea placeholder="Observações (opcional)…" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUrgente(!urgente)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                      urgente
+                        ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" /> Urgente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPagamentoAdiantado(!pagamentoAdiantado)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                      pagamentoAdiantado
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    <BadgeDollarSign className="h-3.5 w-3.5" /> Pago adiantado
+                  </button>
+                </div>
+                <textarea placeholder="Observações internas (não visível ao cliente)…" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2}
                   className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-slate-400" />
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-500">Total</span>

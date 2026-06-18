@@ -20,6 +20,11 @@ export type Pedido = {
   clienteNome: string
   clienteNomeFantasia?: string | null
   status: string
+  urgente?: boolean
+  pagamentoAdiantado?: boolean
+  excedente?: boolean
+  qtdPrevista?: number | null
+  qtdRecebida?: number | null
   dataEnvio?: string | null
   dataRecebimento?: string | null
   observacoes?: string | null

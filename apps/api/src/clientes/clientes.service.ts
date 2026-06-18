@@ -252,4 +252,33 @@ export class ClientesService {
     });
     return { message: `Cliente #${id} reativado com sucesso.` };
   }
+
+  // -------------------------------------------------------------------------
+  // EXCLUSÃO DEFINITIVA (só sem histórico) — para limpar cadastros de teste
+  // -------------------------------------------------------------------------
+
+  async removerDefinitivo(id: number) {
+    const cliente = await this.prisma.cliente.findUnique({ where: { id } });
+    if (!cliente) throw new NotFoundException(`Cliente #${id} não encontrado.`);
+
+    const [pedidos, orcamentos, faturas] = await Promise.all([
+      this.prisma.pedido.count({ where: { clienteId: id } }),
+      this.prisma.orcamento.count({ where: { clienteId: id } }),
+      this.prisma.fatura.count({ where: { clienteId: id } }),
+    ]);
+    if (pedidos + orcamentos + faturas > 0) {
+      throw new ConflictException(
+        'Cliente possui histórico (pedidos/orçamentos/faturas) — desative em vez de excluir.',
+      );
+    }
+
+    // remove dependências leves e o cliente, em transação
+    await this.prisma.$transaction([
+      this.prisma.endereco.deleteMany({ where: { clienteId: id } }),
+      this.prisma.contato.deleteMany({ where: { clienteId: id } }),
+      this.prisma.tabelaPreco.deleteMany({ where: { clienteId: id } }),
+      this.prisma.cliente.delete({ where: { id } }),
+    ]);
+    return { message: `Cliente #${id} excluído definitivamente.`, deleted: true };
+  }
 }

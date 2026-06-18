@@ -107,7 +107,12 @@ export class RecebimentoService {
   async receberPedido(dto: ReceberPedidoDto) {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id: dto.pedidoId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        observacoes: true,
+        itens: { select: { quantidade: true } },
+      },
     });
     if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
     if (!['enviado', 'rascunho'].includes(pedido.status)) {
@@ -139,15 +144,49 @@ export class RecebimentoService {
       amostrasCreated.push(amostra);
     }
 
-    // Avança pedido para "recebido"
+    // ── Conferência: previsto x recebido ──────────────────────────────────────
+    const recebida = amostrasCreated.length;
+    const somaItens = pedido.itens.reduce((s, i) => s + i.quantidade, 0);
+    const prevista =
+      dto.qtdPrevista != null && dto.qtdPrevista >= 0 ? dto.qtdPrevista : somaItens;
+    const diferenca = recebida - prevista;
+    const excedente = diferenca > 0;
+
+    // Notas de conferência (automática + manual)
+    const dataStr = agora.toLocaleDateString('pt-BR');
+    const notas: string[] = [];
+    if (excedente) {
+      notas.push(
+        `[Conferência ${dataStr}] Recebidas ${recebida} amostra(s) vs ${prevista} prevista(s) — ` +
+          `${diferenca} a mais. Verificar cobrança do excedente.`,
+      );
+    } else if (diferenca < 0) {
+      notas.push(
+        `[Conferência ${dataStr}] Recebidas ${recebida} amostra(s) vs ${prevista} prevista(s) — ` +
+          `${Math.abs(diferenca)} a menos.`,
+      );
+    }
+    if (dto.observacaoConferencia?.trim()) {
+      notas.push(`[Conferência ${dataStr}] ${dto.observacaoConferencia.trim()}`);
+    }
+    const observacoes = [pedido.observacoes, ...notas].filter(Boolean).join('\n');
+
     await this.prisma.pedido.update({
       where: { id: dto.pedidoId },
-      data: { status: 'recebido', dataRecebimento: agora },
+      data: {
+        status: 'recebido',
+        dataRecebimento: agora,
+        qtdPrevista: prevista,
+        qtdRecebida: recebida,
+        excedente,
+        observacoes: observacoes || undefined,
+      },
     });
 
     return {
-      message: `${amostrasCreated.length} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
+      message: `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
+      conferencia: { prevista, recebida, diferenca, excedente },
     };
   }
 

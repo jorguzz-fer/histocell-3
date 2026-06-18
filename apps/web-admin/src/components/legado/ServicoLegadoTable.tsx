@@ -14,6 +14,12 @@ function norm(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+/** valor num\u00e9rico do c\u00f3digo para ordena\u00e7\u00e3o (menor \u2192 maior) */
+function codeNum(s: Servico) {
+  const n = parseInt(s.codigo, 10)
+  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER
+}
+
 function variantes(s: Servico) {
   return [s.variante1, s.variante2, s.variante3, s.variante4, s.variante5].filter(Boolean).join(' · ')
 }
@@ -30,6 +36,11 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
   const [showInativos, setShowInativos] = useState(false)
   const [editing, setEditing]           = useState<Servico | null>(null)
   const [creating, setCreating]         = useState(false)
+  const [isGerencia, setIsGerencia]     = useState(false)
+
+  useEffect(() => {
+    try { setIsGerencia(JSON.parse(localStorage.getItem('user') || '{}')?.role === 'gerencia') } catch {}
+  }, [])
 
   const load = useCallback(() => {
     const params = new URLSearchParams()
@@ -48,13 +59,33 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
   )
 
   const rows = useMemo(() => {
-    const q = norm(query.trim())
-    return servicos.filter((s) => {
-      if (categoria && s.categoria !== categoria) return false
-      if (!q) return true
-      return norm(s.nome).includes(q) || s.codigo.toLowerCase().includes(q) ||
-        (s.codigoLegado != null && String(s.codigoLegado).includes(q))
-    })
+    const raw = query.trim()
+    const q = norm(raw)
+    let list = servicos.filter((s) => !categoria || s.categoria === categoria)
+
+    if (q) {
+      if (/^\d+$/.test(raw)) {
+        // Busca numérica: casamento EXATO de código tem prioridade — digitou 42, traz só o 42.
+        const qn = parseInt(raw, 10)
+        const exato = list.filter(
+          (s) => s.codigo === raw || codeNum(s) === qn || s.codigoLegado === qn,
+        )
+        list = exato.length
+          ? exato
+          : // sem exato: mostra os que começam com o dígito (não "contém"), p/ digitação parcial
+            list.filter(
+              (s) =>
+                s.codigo.startsWith(raw) ||
+                (s.codigoLegado != null && String(s.codigoLegado).startsWith(raw)),
+            )
+      } else {
+        // Busca textual: nome ou código
+        list = list.filter((s) => norm(s.nome).includes(q) || norm(s.codigo).includes(q))
+      }
+    }
+
+    // sempre do menor para o maior código
+    return [...list].sort((a, b) => codeNum(a) - codeNum(b) || a.codigo.localeCompare(b.codigo))
   }, [servicos, query, categoria])
 
   async function arquivar(s: ServicoRow) {
@@ -63,6 +94,23 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
       toast.success((s.ativo ?? true) ? 'Serviço arquivado' : 'Serviço desarquivado')
       load()
     } catch (err: any) { toast.error(err.message ?? 'Erro ao arquivar') }
+  }
+
+  async function renumerar() {
+    try {
+      const dry = await api.post<{ total: number; mudancas: number }>(
+        '/pedidos/servicos/renumerar', { apply: false },
+      )
+      if (!confirm(
+        `Renumerar o catálogo para códigos 1 a ${dry.total} (ordem alfabética, ativos primeiro)?\n\n` +
+        `${dry.mudancas} serviço(s) terão o código alterado. Pedidos e itens já existentes não são afetados.`,
+      )) return
+      await api.post('/pedidos/servicos/renumerar', { apply: true })
+      toast.success('Catálogo renumerado.')
+      load()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao renumerar')
+    }
   }
 
   async function deletar(s: ServicoRow) {
@@ -99,6 +147,15 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
         >
           <Plus className="h-3.5 w-3.5" /> Novo serviço
         </button>
+        {isGerencia && (
+          <button
+            onClick={renumerar}
+            title="Renumerar códigos do catálogo (1..N, ordem alfabética)"
+            className="rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[12px] font-medium px-3 py-2"
+          >
+            Renumerar
+          </button>
+        )}
       </div>
 
       {/* Pills de categoria */}

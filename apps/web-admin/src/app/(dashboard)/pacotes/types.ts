@@ -16,6 +16,7 @@ export type Pacote = {
   itens: PacoteItem[]
   precoTotal: number
   totalItens: number
+  categorias?: string[]
   createdAt?: string
   updatedAt?: string
 }

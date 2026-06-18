@@ -27,11 +27,17 @@ export class PacotesService {
       subtotal: Math.round(Number(it.preco) * it.quantidade * 100) / 100,
     }));
     const precoTotal = itens.reduce((sum: number, it: any) => sum + it.subtotal, 0);
+    // categorias do pacote = união das categorias dos serviços componentes
+    // (ex.: um pacote corte+coloração aparece nas duas categorias)
+    const categorias = Array.from(
+      new Set(itens.map((it: any) => it.servico?.categoria).filter(Boolean)),
+    ).sort() as string[];
     return {
       ...pacote,
       itens,
       precoTotal: Math.round(precoTotal * 100) / 100,
       totalItens: itens.length,
+      categorias,
     };
   }
 

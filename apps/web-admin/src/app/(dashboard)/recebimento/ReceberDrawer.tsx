@@ -51,6 +51,8 @@ interface ReceberDrawerProps {
 export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerProps) {
   const [amostras, setAmostras] = useState<AmostraItemForm[]>([{ ...EMPTY_AMOSTRA }])
   const [recebidoPor, setRecebidoPor] = useState('')
+  const [qtdPrevista, setQtdPrevista] = useState('')
+  const [obsConferencia, setObsConferencia] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -61,8 +63,13 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
         Array.from({ length: Math.max(1, qtdItens) }, () => ({ ...EMPTY_AMOSTRA }))
       )
       setRecebidoPor('')
+      setQtdPrevista(String(qtdItens))
+      setObsConferencia('')
     }
   }, [open, pedido])
+
+  const previstaNum = parseInt(qtdPrevista, 10)
+  const diferenca = Number.isFinite(previstaNum) ? amostras.length - previstaNum : 0
 
   function setAmostra(i: number, field: keyof AmostraItemForm, value: string) {
     setAmostras((prev) => {
@@ -100,6 +107,8 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
       await api.post('/recebimento/receber', {
         pedidoId: pedido!.id,
         recebidoPor: recebidoPor.trim() || undefined,
+        qtdPrevista: Number.isFinite(previstaNum) ? previstaNum : undefined,
+        observacaoConferencia: obsConferencia.trim() || undefined,
         amostras: amostras.map((a) => ({
           numeroCliente: a.numeroCliente.trim() || undefined,
           especie: a.especie,
@@ -166,6 +175,55 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
             value={recebidoPor}
             onChange={(e) => setRecebidoPor(e.target.value)}
             placeholder="Nome do responsável pelo recebimento"
+          />
+        </section>
+
+        {/* ── Conferência (previsto x recebido) ── */}
+        <section className="space-y-3">
+          <h3 className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Conferência
+          </h3>
+          <div className="grid grid-cols-3 gap-3 items-end">
+            <Input
+              label="Qtd prevista"
+              type="number"
+              min="0"
+              value={qtdPrevista}
+              onChange={(e) => setQtdPrevista(e.target.value)}
+              hint="Padrão = soma do pedido"
+            />
+            <div>
+              <span className="block text-[12px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">Recebendo</span>
+              <div className="rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2 text-[13px] tabular-nums bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200">
+                {amostras.length}
+              </div>
+            </div>
+            <div>
+              <span className="block text-[12px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">Diferença</span>
+              <div className={`rounded-md border px-3 py-2 text-[13px] tabular-nums font-semibold ${
+                diferenca > 0
+                  ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300'
+                  : diferenca < 0
+                    ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-500'
+              }`}>
+                {diferenca > 0 ? `+${diferenca}` : diferenca}
+              </div>
+            </div>
+          </div>
+          {diferenca > 0 && (
+            <p className="text-[12px] text-rose-600 dark:text-rose-400">
+              Excedente: {diferenca} amostra(s) a mais que o previsto — será sinalizado para cobrança.
+            </p>
+          )}
+          <textarea
+            value={obsConferencia}
+            onChange={(e) => setObsConferencia(e.target.value)}
+            rows={2}
+            placeholder="Observação da conferência (opcional) — ex: divergência, condição das amostras…"
+            className="w-full rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2 text-[13px]
+              bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400
+              focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-colors"
           />
         </section>
 

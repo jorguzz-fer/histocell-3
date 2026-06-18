@@ -4,6 +4,7 @@ import {
   IsString,
   IsIn,
   IsNumber,
+  IsBoolean,
   Min,
   Max,
   ValidateNested,
@@ -39,6 +40,16 @@ export class CreatePedidoDto {
   @IsOptional()
   @IsString()
   observacoes?: string;
+
+  /** Pedido urgente (prioridade) */
+  @IsOptional()
+  @IsBoolean()
+  urgente?: boolean;
+
+  /** Pagamento já adiantado (não cobrar no fechamento) */
+  @IsOptional()
+  @IsBoolean()
+  pagamentoAdiantado?: boolean;
 
   /** Status inicial do pedido (rascunho ao salvar, enviado ao enviar) */
   @IsOptional()

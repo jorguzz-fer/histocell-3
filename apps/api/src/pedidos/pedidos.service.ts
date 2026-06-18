@@ -273,6 +273,48 @@ export class PedidosService {
     }));
   }
 
+  // ── Renumeração sequencial do catálogo (códigos 1..N, ordem alfabética) ─────
+  // dryRun por padrão: retorna o plano sem aplicar. Ativos recebem os números
+  // mais baixos; aplica em duas fases para não colidir com o unique de "codigo".
+  async renumerarServicos(apply: boolean) {
+    const servicos = await this.prisma.servico.findMany({
+      select: { id: true, codigo: true, codigoLegado: true, nome: true, ativo: true },
+    });
+
+    const ordenados = [...servicos].sort((a, b) => {
+      if (a.ativo !== b.ativo) return a.ativo ? -1 : 1; // ativos primeiro
+      return a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' });
+    });
+
+    const plano = ordenados.map((s, i) => ({
+      id: s.id,
+      nome: s.nome,
+      ativo: s.ativo,
+      categoria: undefined as string | undefined,
+      codigoAntigo: s.codigo,
+      codigoNovo: String(i + 1),
+      codigoLegado: s.codigoLegado,
+    }));
+
+    const mudancas = plano.filter((p) => p.codigoAntigo !== p.codigoNovo).length;
+
+    if (!apply) {
+      return { apply: false, total: plano.length, mudancas, plano };
+    }
+
+    // Fase 1: códigos temporários (evita violar o unique). Fase 2: códigos finais.
+    await this.prisma.$transaction([
+      ...plano.map((p) =>
+        this.prisma.servico.update({ where: { id: p.id }, data: { codigo: `__tmp_${p.id}` } }),
+      ),
+      ...plano.map((p) =>
+        this.prisma.servico.update({ where: { id: p.id }, data: { codigo: p.codigoNovo } }),
+      ),
+    ]);
+
+    return { apply: true, total: plano.length, mudancas };
+  }
+
   // ── Servicos disponíveis (para o picker do form / catálogo legado) ──────────
   async listarServicos(filter?: FilterServicoDto) {
     const where: any = {};
@@ -454,6 +496,8 @@ export class PedidosService {
         numero,
         status,
         observacoes: dto.observacoes,
+        urgente: dto.urgente ?? false,
+        pagamentoAdiantado: dto.pagamentoAdiantado ?? false,
         dataEnvio: status === 'enviado' ? new Date() : undefined,
         itens: {
           create: dto.itens.map((item) => ({

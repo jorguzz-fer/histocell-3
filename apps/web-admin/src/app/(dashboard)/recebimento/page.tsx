@@ -187,6 +187,12 @@ export default function RecebimentoPage() {
                       <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
                         {p.clienteNomeFantasia ?? p.clienteNome}
                       </p>
+                      {(p.urgente || p.pagamentoAdiantado) && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {p.urgente && <Badge variant="rose">Urgente</Badge>}
+                          {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
+                        </div>
+                      )}
                     </div>
                     {diasNaFila > 0 && (
                       <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full ${
@@ -213,6 +219,12 @@ export default function RecebimentoPage() {
                       </li>
                     )}
                   </ul>
+
+                  {p.observacoes && (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 rounded px-2 py-1">
+                      {p.observacoes}
+                    </p>
+                  )}
 
                   {/* Footer do card */}
                   <div className="flex items-center justify-between pt-1">
