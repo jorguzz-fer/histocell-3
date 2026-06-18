@@ -23,6 +23,12 @@ export class PortalController {
     return this.service.catalogo(token);
   }
 
+  /** Últimos pedidos do cliente */
+  @Get(':token/pedidos')
+  pedidos(@Param('token') token: string) {
+    return this.service.listarPedidos(token);
+  }
+
   /** Cria o pedido do cliente (origem=web) */
   @Post(':token/pedido')
   criarPedido(@Param('token') token: string, @Body() dto: PortalPedidoDto) {
