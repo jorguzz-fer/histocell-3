@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { FinanceiroService } from '../financeiro/financeiro.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
@@ -20,7 +21,10 @@ const INCLUDE_AMOSTRA = {
 
 @Injectable()
 export class RecebimentoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private financeiro: FinanceiroService,
+  ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
   private async gerarNumeroInterno(): Promise<string> {
@@ -109,9 +113,12 @@ export class RecebimentoService {
       where: { id: dto.pedidoId },
       select: {
         id: true,
+        numero: true,
+        clienteId: true,
         status: true,
         observacoes: true,
-        itens: { select: { quantidade: true } },
+        pagamentoAdiantado: true,
+        itens: { select: { quantidade: true, preco: true, desconto: true } },
       },
     });
     if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
@@ -183,10 +190,33 @@ export class RecebimentoService {
       },
     });
 
+    // ── Abatimento automático do crédito pré-pago (se houver e não pago adiantado) ──
+    let credito: { abatido: number; saldo: number } | null = null;
+    if (!pedido.pagamentoAdiantado) {
+      const valorPedido =
+        Math.round(
+          pedido.itens.reduce(
+            (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
+            0,
+          ) * 100,
+        ) / 100;
+      try {
+        credito = await this.financeiro.debitarPorPedido({
+          clienteId: pedido.clienteId,
+          pedidoId: pedido.id,
+          pedidoNumero: pedido.numero,
+          valorPedido,
+        });
+      } catch {
+        /* falha no abatimento não bloqueia o recebimento */
+      }
+    }
+
     return {
       message: `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
       conferencia: { prevista, recebida, diferenca, excedente },
+      credito, // { abatido, saldo } quando consumiu crédito; senão null
     };
   }
 

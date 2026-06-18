@@ -228,6 +228,7 @@ model Pedido {
   cliente  Cliente      @relation(fields: [clienteId], references: [id])
   itens    ItemPedido[]
   amostras Amostra[]
+  creditos CreditoPrePago[]
 
   @@index([clienteId])
   @@index([numero])
@@ -487,6 +488,7 @@ model ItemFatura {
 model CreditoPrePago {
   id        Int      @id @default(autoincrement())
   clienteId Int
+  pedidoId  Int?     // pedido que originou o débito (consumo automático)
   valor     Decimal  @db.Decimal(10, 2)
   tipo      String   // credito, debito
   descricao String
@@ -494,8 +496,10 @@ model CreditoPrePago {
   createdAt DateTime @default(now())
 
   cliente   Cliente  @relation(fields: [clienteId], references: [id])
+  pedido    Pedido?  @relation(fields: [pedidoId], references: [id])
 
   @@index([clienteId])
+  @@index([pedidoId])
 }
 
 // ==========================================

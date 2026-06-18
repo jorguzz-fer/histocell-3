@@ -104,21 +104,28 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
 
     setSaving(true)
     try {
-      await api.post('/recebimento/receber', {
-        pedidoId: pedido!.id,
-        recebidoPor: recebidoPor.trim() || undefined,
-        qtdPrevista: Number.isFinite(previstaNum) ? previstaNum : undefined,
-        observacaoConferencia: obsConferencia.trim() || undefined,
-        amostras: amostras.map((a) => ({
-          numeroCliente: a.numeroCliente.trim() || undefined,
-          especie: a.especie,
-          material: a.material,
-          localizacao: a.localizacao.trim() || undefined,
-          observacoes: a.observacoes.trim() || undefined,
-        })),
-      })
+      const res = await api.post<{ credito?: { abatido: number; saldo: number } | null }>(
+        '/recebimento/receber',
+        {
+          pedidoId: pedido!.id,
+          recebidoPor: recebidoPor.trim() || undefined,
+          qtdPrevista: Number.isFinite(previstaNum) ? previstaNum : undefined,
+          observacaoConferencia: obsConferencia.trim() || undefined,
+          amostras: amostras.map((a) => ({
+            numeroCliente: a.numeroCliente.trim() || undefined,
+            especie: a.especie,
+            material: a.material,
+            localizacao: a.localizacao.trim() || undefined,
+            observacoes: a.observacoes.trim() || undefined,
+          })),
+        },
+      )
 
       toast.success(`${amostras.length} amostra(s) registrada(s) com sucesso!`)
+      if (res.credito && res.credito.abatido > 0) {
+        const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        toast.success(`Crédito abatido: ${fmt(res.credito.abatido)} · saldo ${fmt(res.credito.saldo)}`)
+      }
       onSaved()
       onClose()
     } catch (err: any) {
