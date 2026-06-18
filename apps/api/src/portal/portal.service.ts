@@ -148,6 +148,37 @@ export class PortalService {
     return { servicos, pacotes, populares, historico };
   }
 
+  // ── Últimos pedidos do cliente ──────────────────────────────────────────────
+  async listarPedidos(token: string) {
+    const cliente = await this.resolverCliente(token);
+    const pedidos = await this.prisma.pedido.findMany({
+      where: { clienteId: cliente.id },
+      select: {
+        numero: true,
+        status: true,
+        origem: true,
+        createdAt: true,
+        itens: { select: { preco: true, quantidade: true, desconto: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    return pedidos.map((p) => ({
+      numero: p.numero,
+      status: p.status,
+      origem: p.origem,
+      createdAt: p.createdAt,
+      totalItens: p.itens.length,
+      valorTotal:
+        Math.round(
+          p.itens.reduce(
+            (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
+            0,
+          ) * 100,
+        ) / 100,
+    }));
+  }
+
   // ── Criar pedido (origem=web; preços recalculados no servidor) ─────────────
   async criarPedido(token: string, dto: PortalPedidoDto) {
     const cliente = await this.resolverCliente(token);
