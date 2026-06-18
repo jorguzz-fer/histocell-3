@@ -84,6 +84,16 @@ export class FinanceiroService {
     });
   }
 
+  // ── Saldo atual de um cliente (leve — para exibir no pedido) ─────────────────
+  async saldoCliente(clienteId: number) {
+    const ultimo = await this.prisma.creditoPrePago.findFirst({
+      where: { clienteId },
+      orderBy: { id: 'desc' },
+      select: { saldo: true },
+    });
+    return { clienteId, saldo: ultimo ? Number(ultimo.saldo) : 0 };
+  }
+
   // ── Extrato de um cliente (movimentos + saldo atual) ─────────────────────────
   async extrato(clienteId: number) {
     const cliente = await this.prisma.cliente.findUnique({

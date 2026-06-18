@@ -56,12 +56,21 @@ export function useOrderCart() {
   const [pedidoCriado, setPedidoCriado] = useState<{ id: number; numero: string } | null>(null)
   const [urgente, setUrgente]             = useState(false)
   const [pagamentoAdiantado, setPagamentoAdiantado] = useState(false)
+  const [creditoSaldo, setCreditoSaldo]   = useState<number | null>(null)
 
   useEffect(() => {
     api.get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true')
       .then((res) => setClientes(res.data))
       .catch(() => toast.error('Erro ao carregar clientes'))
   }, [])
+
+  // saldo de crédito pré-pago do cliente selecionado
+  useEffect(() => {
+    if (!clienteId) { setCreditoSaldo(null); return }
+    api.get<{ saldo: number }>(`/financeiro/creditos/${clienteId}/saldo`)
+      .then((r) => setCreditoSaldo(r.saldo))
+      .catch(() => setCreditoSaldo(null))
+  }, [clienteId])
 
   const cliente = clientes.find((c) => String(c.id) === clienteId)
   const isPesquisador = cliente?.segmento === 'pesquisador'
@@ -159,7 +168,7 @@ export function useOrderCart() {
   return {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
-    urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado,
+    urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
     addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   }
 }
