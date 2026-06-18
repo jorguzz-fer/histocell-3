@@ -36,6 +36,16 @@ export class ReceberPedidoDto {
   @IsString()
   recebidoPor?: string;
 
+  /** Quantidade prevista (conferência). Default: soma das qtds do pedido. */
+  @IsOptional()
+  @IsInt()
+  qtdPrevista?: number;
+
+  /** Observação manual da conferência (anexada às observações do pedido). */
+  @IsOptional()
+  @IsString()
+  observacaoConferencia?: string;
+
   @ValidateNested({ each: true })
   @Type(() => AmostraItemDto)
   @ArrayMinSize(1)

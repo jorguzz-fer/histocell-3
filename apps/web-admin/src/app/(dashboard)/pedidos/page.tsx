@@ -229,6 +229,11 @@ export default function PedidosPage() {
                             <Badge variant={st.variant}>{st.label}</Badge>
                             {p.urgente && <Badge variant="rose">Urgente</Badge>}
                             {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
+                            {p.excedente && (
+                              <Badge variant="amber">
+                                Excedente{p.qtdPrevista != null && p.qtdRecebida != null ? ` ${p.qtdPrevista}→${p.qtdRecebida}` : ''}
+                              </Badge>
+                            )}
                           </div>
                         </td>
 

@@ -215,6 +215,9 @@ model Pedido {
   status        String    @default("rascunho")
   urgente            Boolean  @default(false) // prioridade do pedido
   pagamentoAdiantado Boolean  @default(false) // já pago/adiantado (não cobrar no fechamento)
+  qtdPrevista   Int?      // qtd de amostras prevista (conferência no recebimento)
+  qtdRecebida   Int?      // qtd de amostras efetivamente recebida
+  excedente     Boolean   @default(false) // recebeu mais que o previsto → verificar cobrança
   dataEnvio     DateTime?
   dataRecebimento DateTime?
   observacoes   String?   @db.Text // observação interna (não visível ao cliente)
