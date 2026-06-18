@@ -5,6 +5,7 @@ export type PedidoFila = {
   clienteNome: string
   clienteNomeFantasia?: string | null
   status: string
+  origem?: string
   urgente?: boolean
   pagamentoAdiantado?: boolean
   dataEnvio?: string | null

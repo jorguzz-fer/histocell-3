@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Inbox, FlaskConical, Pencil, RefreshCw } from 'lucide-react'
+import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -48,6 +48,94 @@ function labelMaterial(m: string) {
     outro:              'Outro',
   }
   return MAP[m] ?? m
+}
+
+// ─── card + coluna da fila ──────────────────────────────────────────────────
+
+function FilaCard({ p, onReceber }: { p: PedidoFila; onReceber: () => void }) {
+  const diasNaFila = Math.floor(
+    (Date.now() - new Date(p.dataEnvio ?? p.createdAt).getTime()) / 86400000,
+  )
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-slate-200">{p.numero}</p>
+          <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
+            {p.clienteNomeFantasia ?? p.clienteNome}
+          </p>
+          {(p.urgente || p.pagamentoAdiantado) && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {p.urgente && <Badge variant="rose">Urgente</Badge>}
+              {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
+            </div>
+          )}
+        </div>
+        {diasNaFila > 0 && (
+          <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+            diasNaFila > 2
+              ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400'
+              : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
+          }`}>
+            {diasNaFila}d na fila
+          </span>
+        )}
+      </div>
+
+      <ul className="space-y-0.5">
+        {p.itens.slice(0, 3).map((it, i) => (
+          <li key={i} className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span className="truncate">{it.servico.nome}</span>
+            <span className="text-slate-400 shrink-0 ml-2">×{it.quantidade}</span>
+          </li>
+        ))}
+        {p.itens.length > 3 && (
+          <li className="text-[11px] text-slate-400">+{p.itens.length - 3} serviço(s)</li>
+        )}
+      </ul>
+
+      {p.observacoes && (
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 rounded px-2 py-1">
+          {p.observacoes}
+        </p>
+      )}
+
+      <div className="flex items-center justify-between pt-1">
+        <span className="text-[11px] text-slate-400">Enviado {fmtDate(p.dataEnvio)}</span>
+        <Button size="sm" onClick={onReceber}>Receber</Button>
+      </div>
+    </div>
+  )
+}
+
+function FilaColuna({
+  titulo, icon: Icon, itens, onReceber,
+}: {
+  titulo: string
+  icon: typeof Globe
+  itens: PedidoFila[]
+  onReceber: (p: PedidoFila) => void
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-slate-400" />
+        <h3 className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">{titulo}</h3>
+        <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5">
+          {itens.length}
+        </span>
+      </div>
+      {itens.length === 0 ? (
+        <p className="text-[12px] text-slate-400 py-6 text-center border border-dashed border-slate-200 dark:border-slate-700 rounded-card">
+          Nenhum pedido.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {itens.map((p) => <FilaCard key={p.id} p={p} onReceber={() => onReceber(p)} />)}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -168,76 +256,19 @@ export default function RecebimentoPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {fila.map((p) => {
-              const diasNaFila = Math.floor(
-                (Date.now() - new Date(p.dataEnvio ?? p.createdAt).getTime()) / 86400000,
-              )
-              return (
-                <div
-                  key={p.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card p-4 space-y-3"
-                >
-                  {/* Header do card */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        {p.numero}
-                      </p>
-                      <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
-                        {p.clienteNomeFantasia ?? p.clienteNome}
-                      </p>
-                      {(p.urgente || p.pagamentoAdiantado) && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {p.urgente && <Badge variant="rose">Urgente</Badge>}
-                          {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
-                        </div>
-                      )}
-                    </div>
-                    {diasNaFila > 0 && (
-                      <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                        diasNaFila > 2
-                          ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400'
-                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
-                      }`}>
-                        {diasNaFila}d na fila
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Itens */}
-                  <ul className="space-y-0.5">
-                    {p.itens.slice(0, 3).map((it, i) => (
-                      <li key={i} className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                        <span className="truncate">{it.servico.nome}</span>
-                        <span className="text-slate-400 shrink-0 ml-2">×{it.quantidade}</span>
-                      </li>
-                    ))}
-                    {p.itens.length > 3 && (
-                      <li className="text-[11px] text-slate-400">
-                        +{p.itens.length - 3} serviço(s)
-                      </li>
-                    )}
-                  </ul>
-
-                  {p.observacoes && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 rounded px-2 py-1">
-                      {p.observacoes}
-                    </p>
-                  )}
-
-                  {/* Footer do card */}
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-400">
-                      Enviado {fmtDate(p.dataEnvio)}
-                    </span>
-                    <Button size="sm" onClick={() => abrirReceber(p)}>
-                      Receber
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
+          <div className="grid gap-5 lg:grid-cols-2 items-start">
+            <FilaColuna
+              titulo="Pedidos do Portal (Web)"
+              icon={Globe}
+              itens={fila.filter((p) => p.origem === 'web')}
+              onReceber={abrirReceber}
+            />
+            <FilaColuna
+              titulo="Pedidos locais"
+              icon={Building2}
+              itens={fila.filter((p) => p.origem !== 'web')}
+              onReceber={abrirReceber}
+            />
           </div>
         )}
       </section>

@@ -26,6 +26,7 @@ export type Cliente = {
   celular?: string
   segmento: string
   descontoPadrao?: number
+  portalToken?: string | null
   observacoes?: string
   ativo: boolean
   createdAt: string
