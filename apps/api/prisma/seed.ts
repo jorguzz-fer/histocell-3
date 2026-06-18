@@ -211,8 +211,12 @@ async function main() {
 
   // ── Clientes do legado ──────────────────────────────────────────────────────
   const encryptKey = getEncryptKey();
+  const totalClientes = await prisma.cliente.count();
 
-  if (!encryptKey) {
+  if (totalClientes > 0) {
+    // Já existem clientes → NÃO recria os de teste (evita "voltar" após exclusão).
+    console.log(`   ↩  ${totalClientes} cliente(s) já cadastrados — seed de clientes ignorado.`);
+  } else if (!encryptKey) {
     console.warn('⚠️  ENCRYPT_KEY não definida — clientes do legado serão ignorados.');
   } else {
     for (const c of clientesSeed) {
