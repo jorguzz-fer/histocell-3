@@ -2,11 +2,9 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import {
-  Flame, Star, Clock, GitBranch, Plus, Archive, Boxes, Stethoscope, FileSpreadsheet,
+  Flame, Star, Clock, Plus, Archive, Boxes, FileSpreadsheet,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { CascadingServicoSelector } from '@/components/ui/CascadingServicoSelector'
-import { ClinicoTab } from '@/components/clinico/ClinicoTab'
 import { api } from '@/lib/api'
 import { fmtBRL } from '@/hooks/useOrderCart'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
@@ -108,16 +106,14 @@ export function CatalogoTabs({
   const [pacoteCat, setPacoteCat] = useState('')
 
   const tabs = [
-    { key: 'populares', label: 'Populares', icon: Flame },
+    ...(legadoSlot ? [{ key: 'legado', label: 'Pedido', icon: FileSpreadsheet }] : []),
     { key: 'favoritos', label: 'Favoritos', icon: Star },
+    { key: 'populares', label: 'Populares', icon: Flame },
     { key: 'historico', label: 'Histórico', icon: Clock },
     { key: 'pacotes', label: 'Pacotes', icon: Boxes },
-    { key: 'guiado', label: 'Guiado', icon: GitBranch },
-    { key: 'clinico', label: 'Clínico', icon: Stethoscope },
-    ...(legadoSlot ? [{ key: 'legado', label: 'Legado', icon: FileSpreadsheet }] : []),
   ] as { key: string; label: string; icon: React.ElementType }[]
 
-  const [tab, setTab] = useState<string>(defaultTab ?? 'populares')
+  const [tab, setTab] = useState<string>(defaultTab ?? tabs[0].key)
 
   useEffect(() => {
     Promise.all([
@@ -401,18 +397,6 @@ export function CatalogoTabs({
             </div>
           )
         })()}
-
-        {tab === 'guiado' && (
-          <CascadingServicoSelector isPesquisador={isPesquisador} onSelect={onAdd} />
-        )}
-
-        {tab === 'clinico' && (
-          <ClinicoTab
-            servicos={allServicos}
-            onSelect={onAdd}
-            onServicoCriado={(s) => setAllServicos((prev) => [s, ...prev])}
-          />
-        )}
 
         {tab === 'legado' && legadoSlot}
       </div>
