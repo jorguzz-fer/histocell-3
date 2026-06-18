@@ -23,7 +23,7 @@ export default function PedidosLegadoPage() {
     <div className="min-h-screen space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pedido Legado</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pedido</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Catálogo no formato da planilha — busque pelo código, edite, arquive ou crie serviços
           </p>
