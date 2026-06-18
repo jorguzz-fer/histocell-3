@@ -54,6 +54,8 @@ export function useOrderCart() {
   const [saved, setSaved]             = useState(false)
   const [clientes, setClientes]       = useState<ClienteOpt[]>([])
   const [pedidoCriado, setPedidoCriado] = useState<{ id: number; numero: string } | null>(null)
+  const [urgente, setUrgente]             = useState(false)
+  const [pagamentoAdiantado, setPagamentoAdiantado] = useState(false)
 
   useEffect(() => {
     api.get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true')
@@ -124,17 +126,22 @@ export function useOrderCart() {
       const pedido = await api.post<{ id: number; numero: string }>('/pedidos', {
         clienteId: parseInt(clienteId),
         observacoes: observacoes || undefined,
+        urgente,
+        pagamentoAdiantado,
         status: finalStatus,
         itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
       })
       toast.success(finalStatus === 'enviado' ? 'Pedido gerado!' : 'Rascunho salvo!')
+      const limpar = () => {
+        setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false)
+      }
       if (finalStatus === 'enviado') {
         // limpa o carrinho e mostra o painel de "Pedido gerado" com ação de etiquetas
         setPedidoCriado({ id: pedido.id, numero: pedido.numero })
-        setItens([]); setClienteId(''); setObservacoes('')
+        limpar()
       } else {
         setSaved(true)
-        setTimeout(() => { setItens([]); setClienteId(''); setObservacoes(''); setSaved(false) }, 2000)
+        setTimeout(() => { limpar(); setSaved(false) }, 2000)
       }
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao salvar pedido')
@@ -152,6 +159,7 @@ export function useOrderCart() {
   return {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
+    urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado,
     addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   }
 }

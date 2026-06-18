@@ -213,9 +213,11 @@ model Pedido {
   clienteId     Int
   numero        String    @unique // PED-20260410-001
   status        String    @default("rascunho")
+  urgente            Boolean  @default(false) // prioridade do pedido
+  pagamentoAdiantado Boolean  @default(false) // já pago/adiantado (não cobrar no fechamento)
   dataEnvio     DateTime?
   dataRecebimento DateTime?
-  observacoes   String?   @db.Text
+  observacoes   String?   @db.Text // observação interna (não visível ao cliente)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

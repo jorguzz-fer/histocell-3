@@ -496,6 +496,8 @@ export class PedidosService {
         numero,
         status,
         observacoes: dto.observacoes,
+        urgente: dto.urgente ?? false,
+        pagamentoAdiantado: dto.pagamentoAdiantado ?? false,
         dataEnvio: status === 'enviado' ? new Date() : undefined,
         itens: {
           create: dto.itens.map((item) => ({
