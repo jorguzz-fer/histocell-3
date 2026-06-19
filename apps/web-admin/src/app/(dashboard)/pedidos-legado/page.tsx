@@ -16,7 +16,7 @@ export default function PedidosLegadoPage() {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
-    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
   return (
@@ -64,7 +64,7 @@ export default function PedidosLegadoPage() {
             cliente={cliente}
             onAdd={addServico}
             addItemDireto={addItemDireto}
-            legadoSlot={<ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} />}
+            legadoSlot={<ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} onAddPacote={addPacote} />}
           />
         </div>
 

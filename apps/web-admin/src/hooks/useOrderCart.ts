@@ -119,6 +119,23 @@ export function useOrderCart() {
     ])
   }, [])
 
+  /** Adiciona um pacote inteiro, explodindo nos serviços-componentes com o preço do pacote. */
+  const addPacote = useCallback((p: {
+    nome: string
+    itens: { servicoId: number; quantidade: number; preco: number; servico: { nome: string; categoria: string } }[]
+  }) => {
+    p.itens.forEach((it) =>
+      addItemDireto({
+        servicoId: it.servicoId,
+        nome: it.servico.nome,
+        categoria: it.servico.categoria,
+        preco: Number(it.preco),
+        quantidade: it.quantidade,
+      }),
+    )
+    toast.success(`Pacote "${p.nome}" adicionado (${p.itens.length} ${p.itens.length === 1 ? 'serviço' : 'serviços'})`)
+  }, [addItemDireto])
+
   function updateItem(
     key: string,
     field: 'quantidade' | 'preco' | 'desconto' | 'descontoTipo',
@@ -169,6 +186,6 @@ export function useOrderCart() {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
-    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
   }
 }

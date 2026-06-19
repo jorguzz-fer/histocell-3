@@ -79,6 +79,17 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
 
   const total = itens.reduce((s, it) => s + it.preco * it.quantidade, 0)
 
+  // Alerta de colisão: o código do pacote já é usado por um serviço (código ou código legado).
+  // Evita o caso "digito 943 no pedido e vem o serviço, não o pacote".
+  const servicoColidente = (() => {
+    const c = codigo.trim()
+    if (!c) return null
+    const cn = parseInt(c, 10)
+    return servicos.find(
+      (s) => s.codigo === c || (Number.isFinite(cn) && s.codigoLegado === cn),
+    ) ?? null
+  })()
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!codigo.trim()) { toast.error('Informe o código'); return }
@@ -124,6 +135,14 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
             <Input label="Nome do pacote" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Processamento + Inclusão + Corte HE" />
           </div>
         </div>
+
+        {servicoColidente && (
+          <div className="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-300">
+            ⚠️ O código <strong>{codigo.trim()}</strong> já é usado pelo serviço{' '}
+            <strong>{servicoColidente.nome}</strong> ({fmtBRL(Number(servicoColidente.precoRotina))}).
+            Buscar por esse código no pedido pode trazer o serviço também — considere um código exclusivo (ex.: <code>PCT-{codigo.trim()}</code>).
+          </div>
+        )}
 
         <Input label="Descrição (opcional)" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Quando usar este pacote…" />
 
