@@ -41,10 +41,13 @@ export function ScanBox({ departamentos, fixedDepartamento, onScanned }: Props) 
     }
     setSaving(true)
     try {
+      let scannedPor: string | undefined
+      try { scannedPor = JSON.parse(localStorage.getItem('user') || '{}')?.nome } catch {}
       const res = await api.post<ScanResponse>('/rastreio/scan', {
         codigo: code,
         departamento,
         tipo,
+        scannedPor,
       })
       toast.success(res.message)
       onScanned?.(res)

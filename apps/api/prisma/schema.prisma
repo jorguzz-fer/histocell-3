@@ -381,6 +381,7 @@ model Etiqueta {
   departamentoAtual String?   // departamento corrente (recepcao, macroscopia, …)
   rastreioStatus    String    @default("nao_iniciado") // nao_iniciado, em_andamento, aguardando, concluido
   ultimoEventoEm    DateTime?
+  ultimoResponsavel String?   // quem fez o último scan
 
   amostra Amostra @relation(fields: [amostraId], references: [id])
   eventos RastreioEvento[]

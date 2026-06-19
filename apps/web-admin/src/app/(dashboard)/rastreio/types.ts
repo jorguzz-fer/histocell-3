@@ -10,6 +10,7 @@ export type RastreioEtiqueta = {
   departamentoAtual?: string | null
   rastreioStatus: string
   ultimoEventoEm?: string | null
+  ultimoResponsavel?: string | null
   amostra: {
     id: number
     numeroInterno: string
