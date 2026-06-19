@@ -19,7 +19,7 @@ export type PedidoFila = {
     servico: { nome: string; codigo: string }
   }[]
   amostras: { id: number; status: string }[]
-  recipientes?: { id: number; tipo: string; quantidade: number }[]
+  recipientes?: { id: number; tipo: string; quantidade: number; codigo?: string | null }[]
   totalAmostras: number
   createdAt: string
 }
@@ -56,6 +56,7 @@ export type AmostraListResponse = {
 }
 
 export type AmostraItemForm = {
+  recipienteId?: number | null
   numeroCliente: string
   especie: string
   material: string

@@ -70,6 +70,8 @@ export function RecepcaoDrawer({ open, onClose, pedido, onSaved }: Props) {
         recipientes,
       })
       toast.success(res.message ?? 'Entrada registrada.')
+      // abre a folha de etiquetas dos recipientes para impressão
+      window.open(`/imprimir/recipientes/${pedido!.id}`, '_blank', 'noopener')
       onSaved()
       onClose()
     } catch (err: any) {
@@ -86,7 +88,8 @@ export function RecepcaoDrawer({ open, onClose, pedido, onSaved }: Props) {
     <Drawer open={open} onClose={onClose} title="Registrar entrada (Recepção)" subtitle={`${pedido.numero} · ${clienteLabel}`} width="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-5">
         <section className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 text-[12px] text-slate-500 dark:text-slate-400">
-          Registre <strong>o que chegou</strong> (recipientes), sem abrir nem contar amostras. A contagem é feita no Laboratório.
+          Registre <strong>o que chegou</strong> (recipientes), sem abrir nem contar amostras. Cada recipiente recebe
+          uma <strong>etiqueta</strong> (impressa ao registrar). A contagem das amostras é feita no Laboratório.
         </section>
 
         <Input label="Recebido por" value={recebidoPor} onChange={(e) => setRecebidoPor(e.target.value)} placeholder="Quem recebeu" />

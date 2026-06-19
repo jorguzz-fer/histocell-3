@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
+import { EtiquetasService } from '../etiquetas/etiquetas.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
@@ -25,6 +26,7 @@ export class RecebimentoService {
   constructor(
     private prisma: PrismaService,
     private financeiro: FinanceiroService,
+    private etiquetas: EtiquetasService,
   ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
@@ -81,10 +83,12 @@ export class RecebimentoService {
   }
 
   // ── Etapa 1 — registrar entrada (recipientes) → status 'recepcao' ──────────────
+  // Cada unidade vira um Recipiente (quantidade 1) com seu próprio código de barras,
+  // para que a recepção já imprima uma etiqueta por recipiente físico.
   async registrarEntrada(dto: EntradaRecepcaoDto) {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id: dto.pedidoId },
-      select: { id: true, status: true },
+      select: { id: true, numero: true, status: true },
     });
     if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
     if (!['enviado', 'rascunho'].includes(pedido.status)) {
@@ -92,20 +96,71 @@ export class RecebimentoService {
         `Pedido está em "${pedido.status}" e não pode registrar entrada agora.`,
       );
     }
-    await this.prisma.$transaction([
-      this.prisma.recipiente.createMany({
-        data: dto.recipientes.map((r) => ({
+
+    // continua a numeração de recipientes já existentes neste pedido
+    let seq = await this.prisma.recipiente.count({ where: { pedidoId: dto.pedidoId } });
+
+    const novos: {
+      pedidoId: number;
+      tipo: string;
+      quantidade: number;
+      codigo: string;
+      observacoes?: string;
+      recebidoPor?: string;
+    }[] = [];
+    for (const r of dto.recipientes) {
+      for (let i = 0; i < r.quantidade; i++) {
+        seq++;
+        novos.push({
           pedidoId: dto.pedidoId,
           tipo: r.tipo,
-          quantidade: r.quantidade,
+          quantidade: 1,
+          codigo: `REC-${pedido.numero}-${String(seq).padStart(2, '0')}`,
           observacoes: r.observacoes,
           recebidoPor: dto.recebidoPor,
-        })),
+        });
+      }
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.recipiente.createMany({ data: novos }),
+      this.prisma.pedido.update({
+        where: { id: dto.pedidoId },
+        data: { status: 'recepcao', dataRecepcao: new Date() },
       }),
-      this.prisma.pedido.update({ where: { id: dto.pedidoId }, data: { status: 'recepcao', dataRecepcao: new Date() } }),
     ]);
-    const total = dto.recipientes.reduce((s, r) => s + r.quantidade, 0);
-    return { message: `Entrada registrada (${total} recipiente(s)). Pedido enviado ao Laboratório.` };
+
+    return {
+      message: `Entrada registrada (${novos.length} recipiente(s)). Pedido enviado ao Laboratório.`,
+      total: novos.length,
+    };
+  }
+
+  /** Detalhe do pedido para impressão (etiquetas de recipiente + Ordem de Serviço). */
+  async detalhePedido(pedidoId: number) {
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      include: {
+        cliente: { select: { id: true, nome: true, nomeFantasia: true, idEtiqueta: true } },
+        itens: { include: { servico: { select: { nome: true, codigo: true } } } },
+        recipientes: { orderBy: { id: 'asc' } },
+        amostras: {
+          orderBy: { id: 'asc' },
+          select: {
+            id: true,
+            numeroInterno: true,
+            numeroCliente: true,
+            recipienteId: true,
+            observacoes: true,
+          },
+        },
+      },
+    });
+    if (!pedido) throw new NotFoundException(`Pedido #${pedidoId} não encontrado.`);
+    return {
+      ...pedido,
+      itens: pedido.itens.map((i) => ({ ...i, preco: Number(i.preco), desconto: Number(i.desconto) })),
+    };
   }
 
   // ── Lista de amostras (paginada) ──────────────────────────────────────────────
@@ -183,6 +238,7 @@ export class RecebimentoService {
       const amostra = await this.prisma.amostra.create({
         data: {
           pedidoId: dto.pedidoId,
+          recipienteId: item.recipienteId,
           numeroInterno,
           numeroCliente: item.numeroCliente,
           especie: item.especie ?? 'A definir',
@@ -196,6 +252,23 @@ export class RecebimentoService {
         include: INCLUDE_AMOSTRA,
       });
       amostrasCreated.push(amostra);
+    }
+
+    // ── Etiqueta de nível 2: 1 lâmina por amostra designada (Célio) ─────────────
+    // Best-effort: falha na emissão não bloqueia o recebimento.
+    let etiquetasGeradas = 0;
+    for (const amostra of amostrasCreated) {
+      try {
+        const res = await this.etiquetas.gerar({
+          amostraId: amostra.id,
+          tipo: 'lamina',
+          quantidade: 1,
+          identificacao: amostra.numeroCliente || undefined,
+        });
+        etiquetasGeradas += res.etiquetas.length;
+      } catch {
+        /* segue sem bloquear */
+      }
     }
 
     // ── Conferência: previsto x recebido ──────────────────────────────────────
@@ -262,6 +335,7 @@ export class RecebimentoService {
     return {
       message: `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
+      etiquetasGeradas,
       conferencia: { prevista, recebida, diferenca, excedente },
       credito, // { abatido, saldo } quando consumiu crédito; senão null
     };

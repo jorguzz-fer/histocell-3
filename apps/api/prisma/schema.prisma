@@ -252,11 +252,14 @@ model Recipiente {
   pedidoId    Int
   tipo        String   // Pote, Caixa, Saco, Outro, …
   quantidade  Int      @default(1)
+  codigo      String?  @unique // conteúdo do código de barras da etiqueta do recipiente (Recepção)
+  etiquetaImpressa Boolean @default(false)
   observacoes String?
   recebidoPor String?
   createdAt   DateTime @default(now())
 
-  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  amostras Amostra[] // amostras designadas dentro do recipiente (Laboratório)
 
   @@index([pedidoId])
 }
@@ -282,6 +285,7 @@ model ItemPedido {
 model Amostra {
   id              Int       @id @default(autoincrement())
   pedidoId        Int
+  recipienteId    Int?      // recipiente de origem (Pote/Caixa/Saco) designado no Laboratório
   itemPedidoId    Int?      @unique // item de origem (quando criada via emissão de etiquetas)
   numeroInterno   String    @unique // Numeração diária Histocell
   numeroCliente   String?   // Número do cliente (ex: Alquimipet)
@@ -296,11 +300,13 @@ model Amostra {
   updatedAt       DateTime  @updatedAt
 
   pedido          Pedido    @relation(fields: [pedidoId], references: [id])
+  recipiente      Recipiente? @relation(fields: [recipienteId], references: [id])
   itemPedido      ItemPedido? @relation(fields: [itemPedidoId], references: [id])
   ordemServico    OrdemServico?
   etiquetas       Etiqueta[]
 
   @@index([pedidoId])
+  @@index([recipienteId])
   @@index([numeroInterno])
   @@index([status])
 }
