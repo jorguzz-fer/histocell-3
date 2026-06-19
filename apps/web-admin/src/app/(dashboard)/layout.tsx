@@ -9,7 +9,6 @@ import {
   FileSpreadsheet,
   Boxes,
   PackageOpen,
-  Microscope,
   Tags,
   ScanLine,
   ShieldCheck,
@@ -34,7 +33,7 @@ const menuItems: MenuItem[] = [
   { href: '/pedidos-legado', label: 'Pedido', icon: FileSpreadsheet },
   { href: '/pacotes', label: 'Pacotes', icon: Boxes },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen },
-  { href: '/ordens', label: 'Ordens de Serviço', icon: Microscope },
+  // 'Ordens de Serviço' consolidada no Rastreio (rota /ordens mantida no código)
   { href: '/etiquetas', label: 'Etiquetas', icon: Tags },
   { href: '/rastreio', label: 'Rastreio', icon: ScanLine },
   { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck },

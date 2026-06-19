@@ -83,6 +83,7 @@ export class RastreioService {
           departamentoAtual: dto.departamento,
           rastreioStatus,
           ultimoEventoEm: new Date(),
+          ...(dto.scannedPor ? { ultimoResponsavel: dto.scannedPor } : {}),
         },
         include: INCLUDE_ETIQUETA,
       }),

@@ -222,6 +222,7 @@ model Pedido {
   qtdRecebida   Int?      // qtd de amostras efetivamente recebida
   excedente     Boolean   @default(false) // recebeu mais que o previsto → verificar cobrança
   dataEnvio     DateTime?
+  dataRecepcao  DateTime? // entrada registrada na recepção (etapa 1)
   dataRecebimento DateTime?
   observacoes   String?   @db.Text // observação interna (não visível ao cliente)
   createdAt     DateTime  @default(now())
@@ -380,6 +381,7 @@ model Etiqueta {
   departamentoAtual String?   // departamento corrente (recepcao, macroscopia, …)
   rastreioStatus    String    @default("nao_iniciado") // nao_iniciado, em_andamento, aguardando, concluido
   ultimoEventoEm    DateTime?
+  ultimoResponsavel String?   // quem fez o último scan
 
   amostra Amostra @relation(fields: [amostraId], references: [id])
   eventos RastreioEvento[]

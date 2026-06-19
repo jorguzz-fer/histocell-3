@@ -102,7 +102,7 @@ export class RecebimentoService {
           recebidoPor: dto.recebidoPor,
         })),
       }),
-      this.prisma.pedido.update({ where: { id: dto.pedidoId }, data: { status: 'recepcao' } }),
+      this.prisma.pedido.update({ where: { id: dto.pedidoId }, data: { status: 'recepcao', dataRecepcao: new Date() } }),
     ]);
     const total = dto.recipientes.reduce((s, r) => s + r.quantidade, 0);
     return { message: `Entrada registrada (${total} recipiente(s)). Pedido enviado ao Laboratório.` };

@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { api } from '@/lib/api'
 import { ScanBox } from './ScanBox'
+import { ProgressoDepartamentos } from './ProgressoDepartamentos'
 import {
   STATUS_LABEL,
   type Departamento,
+  type RastreioEtiqueta,
   type ResumoResponse,
   type TimelineResponse,
 } from './types'
@@ -40,6 +42,7 @@ export default function RastreioPage() {
   const [busca, setBusca] = useState('')
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
   const [loadingTl, setLoadingTl] = useState(false)
+  const [itens, setItens] = useState<RastreioEtiqueta[]>([])
 
   useEffect(() => {
     api.get<Departamento[]>('/rastreio/departamentos').then(setDepartamentos).catch(() => {})
@@ -47,6 +50,7 @@ export default function RastreioPage() {
 
   const fetchResumo = useCallback(() => {
     api.get<ResumoResponse>('/rastreio/resumo').then(setResumo).catch(() => {})
+    api.get<{ data: RastreioEtiqueta[] }>('/rastreio?limit=100').then((r) => setItens(r.data)).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -116,6 +120,57 @@ export default function RastreioPage() {
         </div>
       )}
 
+      {/* Itens no fluxo (com barra de progresso + responsável) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Itens no fluxo</h2>
+        </div>
+        {itens.length === 0 ? (
+          <p className="py-8 text-center text-[13px] text-slate-400">Nenhum item movimentado ainda.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-left">
+                <tr>
+                  <th className="px-4 py-2 font-semibold">Código</th>
+                  <th className="px-4 py-2 font-semibold">Identificação</th>
+                  <th className="px-4 py-2 font-semibold">Cliente</th>
+                  <th className="px-4 py-2 font-semibold w-44">Progresso</th>
+                  <th className="px-4 py-2 font-semibold">Departamento</th>
+                  <th className="px-4 py-2 font-semibold">Responsável</th>
+                  <th className="px-4 py-2 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {itens.map((e) => (
+                  <tr
+                    key={e.id}
+                    onClick={() => { setBusca(e.codigo); consultar(e.codigo) }}
+                    className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                  >
+                    <td className="px-4 py-2 font-mono text-slate-700 dark:text-slate-200">{e.codigo}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{e.identificacao ?? '—'}</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[140px] truncate">
+                      {e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
+                    </td>
+                    <td className="px-4 py-2">
+                      <ProgressoDepartamentos departamentos={departamentos} atual={e.departamentoAtual} status={e.rastreioStatus} />
+                    </td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{labelDep(e.departamentoAtual)}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{e.ultimoResponsavel ?? '—'}</td>
+                    <td className="px-4 py-2">
+                      <Badge variant={STATUS_LABEL[e.rastreioStatus]?.variant ?? 'slate'}>
+                        {STATUS_LABEL[e.rastreioStatus]?.label ?? e.rastreioStatus}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Estação de scan (departamento selecionável) */}
       <div>
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Registrar movimentação</h2>
@@ -172,7 +227,16 @@ export default function RastreioPage() {
                 {STATUS_LABEL[timeline.etiqueta.rastreioStatus]?.label ?? timeline.etiqueta.rastreioStatus}
                 {timeline.etiqueta.departamentoAtual ? ` · ${labelDep(timeline.etiqueta.departamentoAtual)}` : ''}
               </Badge>
+              {timeline.etiqueta.ultimoResponsavel && (
+                <span className="text-slate-400">Responsável: {timeline.etiqueta.ultimoResponsavel}</span>
+              )}
             </div>
+
+            <ProgressoDepartamentos
+              departamentos={departamentos}
+              atual={timeline.etiqueta.departamentoAtual}
+              status={timeline.etiqueta.rastreioStatus}
+            />
 
             {timeline.segmentos.length === 0 ? (
               <p className="text-[12px] text-slate-400">Ainda sem movimentações registradas.</p>
