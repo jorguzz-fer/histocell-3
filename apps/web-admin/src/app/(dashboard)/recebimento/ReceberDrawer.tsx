@@ -1,40 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Package, FlaskConical } from 'lucide-react'
+import { Plus, Trash2, FlaskConical, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { Drawer } from '@/components/ui/Drawer'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
 import type { PedidoFila, AmostraItemForm } from './types'
 
-// ─── opções fixas ─────────────────────────────────────────────────────────────
-
-const ESPECIES = [
-  { value: 'canino',  label: 'Canino' },
-  { value: 'felino',  label: 'Felino' },
-  { value: 'bovino',  label: 'Bovino' },
-  { value: 'equino',  label: 'Equino' },
-  { value: 'suino',   label: 'Suíno' },
-  { value: 'humano',  label: 'Humano' },
-  { value: 'outro',   label: 'Outro' },
-]
-
-const MATERIAIS = [
-  { value: 'biopsia_incisional',  label: 'Biópsia Incisional' },
-  { value: 'biopsia_excisional',  label: 'Biópsia Excisional' },
-  { value: 'peca_cirurgica',      label: 'Peça Cirúrgica' },
-  { value: 'citologia',           label: 'Citologia' },
-  { value: 'necropsia',           label: 'Necrópsia' },
-  { value: 'outro',               label: 'Outro' },
-]
-
 const EMPTY_AMOSTRA: AmostraItemForm = {
   numeroCliente: '',
-  especie: 'canino',
-  material: 'biopsia_incisional',
+  especie: '',
+  material: '',
   localizacao: '',
   observacoes: '',
 }
@@ -90,10 +68,6 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
   function validate(): string | null {
     if (!pedido) return 'Nenhum pedido selecionado.'
     if (amostras.length === 0) return 'Adicione pelo menos uma amostra.'
-    for (let i = 0; i < amostras.length; i++) {
-      if (!amostras[i].especie) return `Amostra ${i + 1}: informe a espécie.`
-      if (!amostras[i].material) return `Amostra ${i + 1}: informe o material.`
-    }
     return null
   }
 
@@ -113,9 +87,6 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
           observacaoConferencia: obsConferencia.trim() || undefined,
           amostras: amostras.map((a) => ({
             numeroCliente: a.numeroCliente.trim() || undefined,
-            especie: a.especie,
-            material: a.material,
-            localizacao: a.localizacao.trim() || undefined,
             observacoes: a.observacoes.trim() || undefined,
           })),
         },
@@ -277,37 +248,13 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
                   )}
                 </div>
 
-                {/* Espécie + Material */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Select
-                    label="Espécie *"
-                    value={a.especie}
-                    onChange={(e) => setAmostra(i, 'especie', e.target.value)}
-                    options={ESPECIES}
-                  />
-                  <Select
-                    label="Material *"
-                    value={a.material}
-                    onChange={(e) => setAmostra(i, 'material', e.target.value)}
-                    options={MATERIAIS}
-                  />
-                </div>
-
-                {/* Nº cliente + Localização */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Nº do cliente"
-                    value={a.numeroCliente}
-                    onChange={(e) => setAmostra(i, 'numeroCliente', e.target.value)}
-                    placeholder="Opcional"
-                  />
-                  <Input
-                    label="Localização / Região"
-                    value={a.localizacao}
-                    onChange={(e) => setAmostra(i, 'localizacao', e.target.value)}
-                    placeholder="Ex: abdômen, pele, tórax…"
-                  />
-                </div>
+                {/* Nº do cliente */}
+                <Input
+                  label="Nº do cliente"
+                  value={a.numeroCliente}
+                  onChange={(e) => setAmostra(i, 'numeroCliente', e.target.value)}
+                  placeholder="Ex: A26/123 (opcional)"
+                />
 
                 {/* Observações */}
                 <div>
