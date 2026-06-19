@@ -25,9 +25,11 @@ export class PacoteItemDto {
 }
 
 export class CreatePacoteDto {
+  // Opcional: quando vazio, o backend gera um código exclusivo PCT-NNN
+  // (namespace próprio — nunca colide com código de serviço).
   @IsString()
-  @IsNotEmpty()
-  codigo: string;
+  @IsOptional()
+  codigo?: string;
 
   @IsString()
   @IsNotEmpty()

@@ -92,14 +92,13 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!codigo.trim()) { toast.error('Informe o código'); return }
     if (!nome.trim()) { toast.error('Informe o nome'); return }
     if (itens.length === 0) { toast.error('Adicione ao menos um serviço'); return }
 
     setSaving(true)
     try {
       const payload = {
-        codigo: codigo.trim(),
+        codigo: codigo.trim() || undefined, // vazio → backend gera PCT-NNN exclusivo
         nome: nome.trim(),
         descricao: descricao.trim() || undefined,
         itens: itens.map((it) => ({ servicoId: it.servicoId, quantidade: it.quantidade, preco: it.preco })),
@@ -130,7 +129,7 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-3 gap-3">
-          <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ex: PCT-HE" />
+          <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={isEdit ? '' : 'auto (PCT-…)'} />
           <div className="col-span-2">
             <Input label="Nome do pacote" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Processamento + Inclusão + Corte HE" />
           </div>

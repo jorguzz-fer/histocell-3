@@ -62,7 +62,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
         toast.success('Serviço atualizado!')
       } else {
         saved = await api.post<Servico>('/pedidos/servicos/novo', {
-          codigo: codigo.trim() || `CUSTOM-${Date.now()}`,
+          codigo: codigo.trim() || undefined, // vazio → backend gera o próximo número livre
           categoria, nome: nome.trim(),
           precoBase: rot, precoRotina: rot, precoPesquisa: pes,
           observacoes: observacoes || undefined,
@@ -95,7 +95,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
           <Input label="Serviço Base (nome) *" value={nome} onChange={(e) => setNome(e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
             <Select label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} options={CATEGORIAS} />
-            <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={editing ? '' : 'auto se vazio'} />
+            <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={editing ? '' : 'auto (próximo nº)'} />
           </div>
           <div className="grid grid-cols-5 gap-2">
             <Input label="Var 1" value={v1} onChange={(e) => setV1(e.target.value)} />

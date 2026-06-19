@@ -41,7 +41,7 @@ export class PedidosController {
   @HttpCode(201)
   @Roles('gerencia', 'recepcao')
   criarServico(@Body() body: {
-    codigo: string
+    codigo?: string
     categoria: string
     nome: string
     precoBase: number

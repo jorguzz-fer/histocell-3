@@ -59,13 +59,28 @@ export class PacotesService {
     return this.toShape(pacote);
   }
 
+  // Próximo código no namespace exclusivo PCT-NNN (nunca colide com serviço).
+  private async gerarCodigo(): Promise<string> {
+    const pacotes = await this.prisma.pacote.findMany({ select: { codigo: true } });
+    let max = 0;
+    for (const p of pacotes) {
+      const m = /^PCT-(\d+)$/i.exec(p.codigo.trim());
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > max) max = n;
+      }
+    }
+    return `PCT-${String(max + 1).padStart(3, '0')}`;
+  }
+
   async create(dto: CreatePacoteDto) {
-    const dup = await this.prisma.pacote.findUnique({ where: { codigo: dto.codigo } });
+    const codigo = dto.codigo?.trim() || (await this.gerarCodigo());
+    const dup = await this.prisma.pacote.findUnique({ where: { codigo } });
     if (dup) throw new ConflictException('Já existe um pacote com esse código');
 
     const pacote = await this.prisma.pacote.create({
       data: {
-        codigo: dto.codigo,
+        codigo,
         nome: dto.nome,
         descricao: dto.descricao,
         itens: {
