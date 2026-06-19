@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../common/prisma.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
+import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
 
@@ -34,31 +35,77 @@ export class RecebimentoService {
     return String(Number(rows[0].nextval)).padStart(5, '0');
   }
 
-  // ── Fila: pedidos enviados aguardando recebimento ─────────────────────────────
-  async findFila() {
+  // ── Fila por status (com recipientes) ─────────────────────────────────────────
+  private async filaPorStatus(status: string) {
     const pedidos = await this.prisma.pedido.findMany({
-      where: { status: 'enviado' },
+      where: { status },
       include: {
         cliente: { select: { id: true, nome: true, nomeFantasia: true } },
-        itens: {
-          include: { servico: { select: { nome: true, codigo: true } } },
-        },
+        itens: { include: { servico: { select: { nome: true, codigo: true } } } },
         amostras: { select: { id: true, status: true } },
+        recipientes: true,
       },
       orderBy: { dataEnvio: 'asc' },
     });
 
     return pedidos.map((p) => ({
       ...p,
-      itens: p.itens.map((i) => ({
-        ...i,
-        preco: Number(i.preco),
-        desconto: Number(i.desconto),
-      })),
+      itens: p.itens.map((i) => ({ ...i, preco: Number(i.preco), desconto: Number(i.desconto) })),
       clienteNome: p.cliente?.nome ?? '',
       clienteNomeFantasia: p.cliente?.nomeFantasia ?? null,
       totalAmostras: p.amostras.length,
     }));
+  }
+
+  /** Etapa 1 — Recepção: pedidos enviados aguardando entrada */
+  async filaRecepcao() { return this.filaPorStatus('enviado'); }
+  /** Etapa 2 — Laboratório: pedidos com entrada feita, aguardando identificação */
+  async filaLaboratorio() { return this.filaPorStatus('recepcao'); }
+  /** back-compat */
+  async findFila() { return this.filaRecepcao(); }
+
+  // ── Tipos de recipiente ───────────────────────────────────────────────────────
+  async tiposRecipiente() {
+    return this.prisma.tipoRecipiente.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+    });
+  }
+  async criarTipoRecipiente(nome: string) {
+    const limpo = nome.trim();
+    return this.prisma.tipoRecipiente.upsert({
+      where: { nome: limpo },
+      update: { ativo: true },
+      create: { nome: limpo, ordem: 99 },
+    });
+  }
+
+  // ── Etapa 1 — registrar entrada (recipientes) → status 'recepcao' ──────────────
+  async registrarEntrada(dto: EntradaRecepcaoDto) {
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id: dto.pedidoId },
+      select: { id: true, status: true },
+    });
+    if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
+    if (!['enviado', 'rascunho'].includes(pedido.status)) {
+      throw new BadRequestException(
+        `Pedido está em "${pedido.status}" e não pode registrar entrada agora.`,
+      );
+    }
+    await this.prisma.$transaction([
+      this.prisma.recipiente.createMany({
+        data: dto.recipientes.map((r) => ({
+          pedidoId: dto.pedidoId,
+          tipo: r.tipo,
+          quantidade: r.quantidade,
+          observacoes: r.observacoes,
+          recebidoPor: dto.recebidoPor,
+        })),
+      }),
+      this.prisma.pedido.update({ where: { id: dto.pedidoId }, data: { status: 'recepcao' } }),
+    ]);
+    const total = dto.recipientes.reduce((s, r) => s + r.quantidade, 0);
+    return { message: `Entrada registrada (${total} recipiente(s)). Pedido enviado ao Laboratório.` };
   }
 
   // ── Lista de amostras (paginada) ──────────────────────────────────────────────
@@ -122,7 +169,7 @@ export class RecebimentoService {
       },
     });
     if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
-    if (!['enviado', 'rascunho'].includes(pedido.status)) {
+    if (!['enviado', 'rascunho', 'recepcao'].includes(pedido.status)) {
       throw new BadRequestException(
         `Pedido está com status "${pedido.status}" e não pode ser recebido agora.`,
       );
@@ -138,8 +185,8 @@ export class RecebimentoService {
           pedidoId: dto.pedidoId,
           numeroInterno,
           numeroCliente: item.numeroCliente,
-          especie: item.especie,
-          material: item.material,
+          especie: item.especie ?? 'A definir',
+          material: item.material ?? 'A definir',
           localizacao: item.localizacao,
           observacoes: item.observacoes,
           status: 'pendente',

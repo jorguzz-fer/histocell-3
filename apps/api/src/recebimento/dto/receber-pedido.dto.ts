@@ -12,11 +12,13 @@ export class AmostraItemDto {
   @IsString()
   numeroCliente?: string;
 
+  @IsOptional()
   @IsString()
-  especie: string; // canino, felino, bovino, equino, suíno, humano, outro
+  especie?: string; // canino, felino, … (opcional — cassete fechado)
 
+  @IsOptional()
   @IsString()
-  material: string; // biopsia, citologia, peca_cirurgica, necropsia, outro
+  material?: string; // biopsia, citologia, … (opcional)
 
   @IsOptional()
   @IsString()
