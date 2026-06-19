@@ -36,11 +36,6 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
   const [showInativos, setShowInativos] = useState(false)
   const [editing, setEditing]           = useState<Servico | null>(null)
   const [creating, setCreating]         = useState(false)
-  const [isGerencia, setIsGerencia]     = useState(false)
-
-  useEffect(() => {
-    try { setIsGerencia(JSON.parse(localStorage.getItem('user') || '{}')?.role === 'gerencia') } catch {}
-  }, [])
 
   const load = useCallback(() => {
     const params = new URLSearchParams()
@@ -96,23 +91,6 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
     } catch (err: any) { toast.error(err.message ?? 'Erro ao arquivar') }
   }
 
-  async function renumerar() {
-    try {
-      const dry = await api.post<{ total: number; mudancas: number }>(
-        '/pedidos/servicos/renumerar', { apply: false },
-      )
-      if (!confirm(
-        `Renumerar o catálogo para códigos 1 a ${dry.total} (ordem alfabética, ativos primeiro)?\n\n` +
-        `${dry.mudancas} serviço(s) terão o código alterado. Pedidos e itens já existentes não são afetados.`,
-      )) return
-      await api.post('/pedidos/servicos/renumerar', { apply: true })
-      toast.success('Catálogo renumerado.')
-      load()
-    } catch (err: any) {
-      toast.error(err.message ?? 'Erro ao renumerar')
-    }
-  }
-
   async function deletar(s: ServicoRow) {
     if (!confirm(`Deletar "${s.nome}"? Esta ação é permanente.`)) return
     try {
@@ -147,15 +125,6 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
         >
           <Plus className="h-3.5 w-3.5" /> Novo serviço
         </button>
-        {isGerencia && (
-          <button
-            onClick={renumerar}
-            title="Renumerar códigos do catálogo (1..N, ordem alfabética)"
-            className="rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[12px] font-medium px-3 py-2"
-          >
-            Renumerar
-          </button>
-        )}
       </div>
 
       {/* Pills de categoria */}
