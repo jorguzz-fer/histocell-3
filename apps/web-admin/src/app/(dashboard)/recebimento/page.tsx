@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
 import { ReceberDrawer } from './ReceberDrawer'
+import { RecepcaoDrawer } from './RecepcaoDrawer'
 import type { PedidoFila, Amostra, AmostraListResponse } from './types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ function labelMaterial(m: string) {
 
 // ─── card + coluna da fila ──────────────────────────────────────────────────
 
-function FilaCard({ p, onReceber }: { p: PedidoFila; onReceber: () => void }) {
+function FilaCard({ p, onReceber, acaoLabel = 'Receber' }: { p: PedidoFila; onReceber: () => void; acaoLabel?: string }) {
   const diasNaFila = Math.floor(
     (Date.now() - new Date(p.dataEnvio ?? p.createdAt).getTime()) / 86400000,
   )
@@ -94,6 +95,12 @@ function FilaCard({ p, onReceber }: { p: PedidoFila; onReceber: () => void }) {
         )}
       </ul>
 
+      {p.recipientes && p.recipientes.length > 0 && (
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50 dark:bg-blue-500/10 rounded px-2 py-1">
+          Recebido: {p.recipientes.map((r) => `${r.quantidade}× ${r.tipo}`).join(', ')}
+        </p>
+      )}
+
       {p.observacoes && (
         <p className="text-[11px] text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 rounded px-2 py-1">
           {p.observacoes}
@@ -102,19 +109,20 @@ function FilaCard({ p, onReceber }: { p: PedidoFila; onReceber: () => void }) {
 
       <div className="flex items-center justify-between pt-1">
         <span className="text-[11px] text-slate-400">Enviado {fmtDate(p.dataEnvio)}</span>
-        <Button size="sm" onClick={onReceber}>Receber</Button>
+        <Button size="sm" onClick={onReceber}>{acaoLabel}</Button>
       </div>
     </div>
   )
 }
 
 function FilaColuna({
-  titulo, icon: Icon, itens, onReceber,
+  titulo, icon: Icon, itens, onReceber, acaoLabel,
 }: {
   titulo: string
   icon: typeof Globe
   itens: PedidoFila[]
   onReceber: (p: PedidoFila) => void
+  acaoLabel?: string
 }) {
   return (
     <div className="space-y-3">
@@ -131,7 +139,7 @@ function FilaColuna({
         </p>
       ) : (
         <div className="space-y-3">
-          {itens.map((p) => <FilaCard key={p.id} p={p} onReceber={() => onReceber(p)} />)}
+          {itens.map((p) => <FilaCard key={p.id} p={p} onReceber={() => onReceber(p)} acaoLabel={acaoLabel} />)}
         </div>
       )}
     </div>
@@ -141,10 +149,12 @@ function FilaColuna({
 // ─── component ────────────────────────────────────────────────────────────────
 
 export default function RecebimentoPage() {
-  // Fila
-  const [fila, setFila]             = useState<PedidoFila[]>([])
-  const [loadingFila, setLoadingFila] = useState(true)
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  // Filas (2 etapas)
+  const [filaRecepcao, setFilaRecepcao] = useState<PedidoFila[]>([])
+  const [filaLab, setFilaLab]           = useState<PedidoFila[]>([])
+  const [loadingFila, setLoadingFila]   = useState(true)
+  const [recepcaoOpen, setRecepcaoOpen] = useState(false)
+  const [receberOpen, setReceberOpen]   = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFila | null>(null)
 
   // Amostras
@@ -163,10 +173,14 @@ export default function RecebimentoPage() {
   const fetchFila = useCallback(async () => {
     setLoadingFila(true)
     try {
-      const data = await api.get<PedidoFila[]>('/recebimento/fila')
-      setFila(data)
+      const [rec, lab] = await Promise.all([
+        api.get<PedidoFila[]>('/recebimento/recepcao'),
+        api.get<PedidoFila[]>('/recebimento/laboratorio'),
+      ])
+      setFilaRecepcao(rec)
+      setFilaLab(lab)
     } catch (err: any) {
-      toast.error(err.message ?? 'Erro ao carregar fila')
+      toast.error(err.message ?? 'Erro ao carregar filas')
     } finally {
       setLoadingFila(false)
     }
@@ -202,9 +216,13 @@ export default function RecebimentoPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [fetchAmostras])
 
+  function abrirRecepcao(p: PedidoFila) {
+    setPedidoSelecionado(p)
+    setRecepcaoOpen(true)
+  }
   function abrirReceber(p: PedidoFila) {
     setPedidoSelecionado(p)
-    setDrawerOpen(true)
+    setReceberOpen(true)
   }
 
   function onSaved() {
@@ -227,49 +245,41 @@ export default function RecebimentoPage() {
         }
       />
 
-      {/* ── Fila de recebimento ── */}
+      {/* ── Etapa 1 — Recepção ── */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Inbox className="h-4 w-4 text-slate-400" />
           <h2 className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
-            Aguardando recebimento
+            Etapa 1 — Recepção (entrada)
           </h2>
-          {fila.length > 0 && (
-            <span className="ml-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-semibold px-2 py-0.5">
-              {fila.length}
-            </span>
-          )}
+          <span className="text-[11px] text-slate-400">registre o que chegou (recipientes)</span>
         </div>
-
         {loadingFila ? (
-          <div className="flex justify-center py-8">
-            <svg className="h-5 w-5 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-          </div>
-        ) : fila.length === 0 ? (
-          <div className="rounded-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-10 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum pedido aguardando recebimento</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              Pedidos com status "Enviado" aparecerão aqui.
-            </p>
-          </div>
+          <p className="text-[12px] text-slate-400 py-6 text-center">Carregando…</p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2 items-start">
-            <FilaColuna
-              titulo="Pedidos do Portal (Web)"
-              icon={Globe}
-              itens={fila.filter((p) => p.origem === 'web')}
-              onReceber={abrirReceber}
-            />
-            <FilaColuna
-              titulo="Pedidos locais"
-              icon={Building2}
-              itens={fila.filter((p) => p.origem !== 'web')}
-              onReceber={abrirReceber}
-            />
+            <FilaColuna titulo="Pedidos do Portal (Web)" icon={Globe} acaoLabel="Registrar entrada"
+              itens={filaRecepcao.filter((p) => p.origem === 'web')} onReceber={abrirRecepcao} />
+            <FilaColuna titulo="Pedidos locais" icon={Building2} acaoLabel="Registrar entrada"
+              itens={filaRecepcao.filter((p) => p.origem !== 'web')} onReceber={abrirRecepcao} />
           </div>
+        )}
+      </section>
+
+      {/* ── Etapa 2 — Laboratório ── */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <FlaskConical className="h-4 w-4 text-slate-400" />
+          <h2 className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+            Etapa 2 — Laboratório (identificação)
+          </h2>
+          <span className="text-[11px] text-slate-400">conte/designe as amostras e confira</span>
+        </div>
+        {loadingFila ? (
+          <p className="text-[12px] text-slate-400 py-6 text-center">Carregando…</p>
+        ) : (
+          <FilaColuna titulo="Aguardando identificação" icon={Inbox} acaoLabel="Identificar"
+            itens={filaLab} onReceber={abrirReceber} />
         )}
       </section>
 
@@ -488,10 +498,16 @@ export default function RecebimentoPage() {
         </div>
       </section>
 
-      {/* Drawer */}
+      {/* Drawers */}
+      <RecepcaoDrawer
+        open={recepcaoOpen}
+        onClose={() => setRecepcaoOpen(false)}
+        pedido={pedidoSelecionado}
+        onSaved={onSaved}
+      />
       <ReceberDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        open={receberOpen}
+        onClose={() => setReceberOpen(false)}
         pedido={pedidoSelecionado}
         onSaved={onSaved}
       />

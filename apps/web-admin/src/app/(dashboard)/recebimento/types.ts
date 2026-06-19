@@ -19,6 +19,7 @@ export type PedidoFila = {
     servico: { nome: string; codigo: string }
   }[]
   amostras: { id: number; status: string }[]
+  recipientes?: { id: number; tipo: string; quantidade: number }[]
   totalAmostras: number
   createdAt: string
 }

@@ -13,6 +13,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { RecebimentoService } from './recebimento.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
+import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
+import { CriarTipoRecipienteDto } from './dto/tipo-recipiente.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
 
@@ -21,7 +23,41 @@ import { FilterAmostraDto } from './dto/filter-amostra.dto';
 export class RecebimentoController {
   constructor(private service: RecebimentoService) {}
 
-  /** Fila de pedidos enviados aguardando recebimento */
+  /** Etapa 1 — Recepção: pedidos enviados aguardando entrada */
+  @Get('recepcao')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  filaRecepcao() {
+    return this.service.filaRecepcao();
+  }
+
+  /** Etapa 2 — Laboratório: pedidos com entrada feita, aguardando identificação */
+  @Get('laboratorio')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  filaLaboratorio() {
+    return this.service.filaLaboratorio();
+  }
+
+  /** Tipos de recipiente (Pote, Caixa, Saco, Outro, …) */
+  @Get('tipos-recipiente')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  tiposRecipiente() {
+    return this.service.tiposRecipiente();
+  }
+
+  @Post('tipos-recipiente')
+  @Roles('gerencia', 'recepcao')
+  criarTipoRecipiente(@Body() dto: CriarTipoRecipienteDto) {
+    return this.service.criarTipoRecipiente(dto.nome);
+  }
+
+  /** Etapa 1 — registra a entrada (recipientes) e envia ao laboratório */
+  @Post('entrada')
+  @Roles('gerencia', 'recepcao')
+  registrarEntrada(@Body() dto: EntradaRecepcaoDto) {
+    return this.service.registrarEntrada(dto);
+  }
+
+  /** Fila (compat) — mesma da recepção */
   @Get('fila')
   @Roles('gerencia', 'recepcao', 'tecnico')
   findFila() {

@@ -231,10 +231,33 @@ model Pedido {
   itens    ItemPedido[]
   amostras Amostra[]
   creditos CreditoPrePago[]
+  recipientes Recipiente[]
 
   @@index([clienteId])
   @@index([numero])
   @@index([status])
+}
+
+// ── Recebimento etapa 1 (Recepção): recipientes que chegaram, sem contar amostras
+model TipoRecipiente {
+  id     Int     @id @default(autoincrement())
+  nome   String  @unique
+  ativo  Boolean @default(true)
+  ordem  Int     @default(0)
+}
+
+model Recipiente {
+  id          Int      @id @default(autoincrement())
+  pedidoId    Int
+  tipo        String   // Pote, Caixa, Saco, Outro, …
+  quantidade  Int      @default(1)
+  observacoes String?
+  recebidoPor String?
+  createdAt   DateTime @default(now())
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@index([pedidoId])
 }
 
 model ItemPedido {
