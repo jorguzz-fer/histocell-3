@@ -29,11 +29,6 @@ const STATUS_OPTS = [
   { value: 'rejeitada',        label: 'Rejeitada' },
 ]
 
-function fmtDate(iso: string | null | undefined) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('pt-BR')
-}
-
 function fmtDateTime(iso: string | null | undefined) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -108,7 +103,7 @@ function FilaCard({ p, onReceber, acaoLabel = 'Receber' }: { p: PedidoFila; onRe
       )}
 
       <div className="flex items-center justify-between pt-1">
-        <span className="text-[11px] text-slate-400">Enviado {fmtDate(p.dataEnvio)}</span>
+        <span className="text-[11px] text-slate-400">Enviado {fmtDateTime(p.dataEnvio ?? p.createdAt)}</span>
         <Button size="sm" onClick={onReceber}>{acaoLabel}</Button>
       </div>
     </div>
