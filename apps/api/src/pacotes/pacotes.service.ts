@@ -10,7 +10,12 @@ import { UpdatePacoteDto } from './dto/update-pacote.dto';
 const INCLUDE_ITENS = {
   itens: {
     include: {
-      servico: { select: { id: true, codigo: true, nome: true, categoria: true } },
+      servico: {
+        select: {
+          id: true, codigo: true, nome: true, categoria: true,
+          precoRotina: true, precoPesquisa: true,
+        },
+      },
     },
     orderBy: { id: 'asc' as const },
   },
@@ -21,11 +26,28 @@ export class PacotesService {
   constructor(private prisma: PrismaService) {}
 
   private toShape(pacote: any) {
-    const itens = (pacote.itens ?? []).map((it: any) => ({
-      ...it,
-      preco: Number(it.preco),
-      subtotal: Math.round(Number(it.preco) * it.quantidade * 100) / 100,
-    }));
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const desconto = pacote.tipoPreco === 'desconto';
+
+    const itens = (pacote.itens ?? []).map((it: any) => {
+      const precoTabela = Number(it.servico?.precoRotina ?? 0);
+      const descontoPct = Number(it.descontoPct ?? 0);
+      // No modo 'desconto', precoTotal é uma ESTIMATIVA pela tabela de rotina
+      // (o preço real é recalculado pelo cliente no pedido). No modo 'fixo',
+      // usa o preço fechado do componente.
+      const precoUnit = desconto
+        ? round(precoTabela * (1 - descontoPct / 100))
+        : Number(it.preco);
+      return {
+        ...it,
+        preco: Number(it.preco),
+        descontoPct,
+        precoTabela,
+        precoEfetivo: precoUnit,
+        subtotal: round(precoUnit * it.quantidade),
+      };
+    });
+
     const precoTotal = itens.reduce((sum: number, it: any) => sum + it.subtotal, 0);
     // categorias do pacote = união das categorias dos serviços componentes
     // (ex.: um pacote corte+coloração aparece nas duas categorias)
@@ -34,8 +56,10 @@ export class PacotesService {
     ).sort() as string[];
     return {
       ...pacote,
+      tipoPreco: pacote.tipoPreco ?? 'fixo',
       itens,
-      precoTotal: Math.round(precoTotal * 100) / 100,
+      precoTotal: round(precoTotal),
+      precoEstimado: desconto, // sinaliza ao front que o total é "a partir de"
       totalItens: itens.length,
       categorias,
     };
@@ -59,20 +83,37 @@ export class PacotesService {
     return this.toShape(pacote);
   }
 
+  // Próximo código no namespace exclusivo PCT-NNN (nunca colide com serviço).
+  private async gerarCodigo(): Promise<string> {
+    const pacotes = await this.prisma.pacote.findMany({ select: { codigo: true } });
+    let max = 0;
+    for (const p of pacotes) {
+      const m = /^PCT-(\d+)$/i.exec(p.codigo.trim());
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > max) max = n;
+      }
+    }
+    return `PCT-${String(max + 1).padStart(3, '0')}`;
+  }
+
   async create(dto: CreatePacoteDto) {
-    const dup = await this.prisma.pacote.findUnique({ where: { codigo: dto.codigo } });
+    const codigo = dto.codigo?.trim() || (await this.gerarCodigo());
+    const dup = await this.prisma.pacote.findUnique({ where: { codigo } });
     if (dup) throw new ConflictException('Já existe um pacote com esse código');
 
     const pacote = await this.prisma.pacote.create({
       data: {
-        codigo: dto.codigo,
+        codigo,
         nome: dto.nome,
         descricao: dto.descricao,
+        tipoPreco: dto.tipoPreco ?? 'fixo',
         itens: {
           create: dto.itens.map((it) => ({
             servicoId: it.servicoId,
             quantidade: it.quantidade,
-            preco: it.preco,
+            preco: it.preco ?? 0,
+            descontoPct: it.descontoPct ?? 0,
           })),
         },
       },
@@ -99,7 +140,8 @@ export class PacotesService {
         create: itens.map((it) => ({
           servicoId: it.servicoId,
           quantidade: it.quantidade,
-          preco: it.preco,
+          preco: it.preco ?? 0,
+          descontoPct: it.descontoPct ?? 0,
         })),
       };
     }

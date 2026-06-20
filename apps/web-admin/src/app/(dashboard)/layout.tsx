@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -10,6 +11,7 @@ import {
   Boxes,
   PackageOpen,
   Tags,
+  ClipboardList,
   ScanLine,
   ShieldCheck,
   Briefcase,
@@ -24,26 +26,43 @@ type MenuItem = {
   href: string
   label: string
   icon: LucideIcon
+  /** Quando informado, o item só aparece para esses perfis. */
+  roles?: string[]
 }
 
+// Ordem alinhada à sequência operacional definida na 3ª homologação (Célio):
+// Cliente → Recebimento → Orçamento → Etiquetas → Ordem de Serviço → Rastreio …
 const menuItems: MenuItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['gerencia'] },
   { href: '/cadastro', label: 'Clientes', icon: Users },
-  // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
-  { href: '/pedidos-legado', label: 'Pedido', icon: FileSpreadsheet },
-  { href: '/pacotes', label: 'Pacotes', icon: Boxes },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen },
-  // 'Ordens de Serviço' consolidada no Rastreio (rota /ordens mantida no código)
+  // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
+  { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet },
+  { href: '/pacotes', label: 'Pacotes', icon: Boxes },
   { href: '/etiquetas', label: 'Etiquetas', icon: Tags },
+  { href: '/ordens', label: 'Ordem de Serviço', icon: ClipboardList },
   { href: '/rastreio', label: 'Rastreio', icon: ScanLine },
-  { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck },
-  { href: '/comercial', label: 'Comercial', icon: Briefcase },
-  { href: '/financeiro', label: 'Financeiro', icon: Wallet },
   { href: '/relatorios', label: 'Relatórios', icon: LineChart },
+  { href: '/comercial', label: 'Comercial', icon: Briefcase },
+  // Qualidade: não usado hoje — fica no rodapé do menu (implementar depois).
+  { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck },
+  // Financeiro por último.
+  { href: '/financeiro', label: 'Financeiro', icon: Wallet },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      setRole(JSON.parse(localStorage.getItem('user') || '{}')?.role ?? null)
+    } catch {
+      setRole(null)
+    }
+  }, [])
+
+  const visibleItems = menuItems.filter((item) => !item.roles || (role != null && item.roles.includes(role)))
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -77,7 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {menuItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (

@@ -88,13 +88,15 @@ interface Props {
   addItemDireto: (args: {
     servicoId: number; nome: string; categoria: string; preco: number; quantidade?: number
   }) => void
+  /** Adiciona um pacote inteiro (ciente do modo fixo/desconto). */
+  addPacote: (p: Pacote) => void | Promise<void>
   /** Conteúdo da aba "Legado" (catálogo completo). Quando informado, adiciona a aba. */
   legadoSlot?: ReactNode
   defaultTab?: string
 }
 
 export function CatalogoTabs({
-  clienteId, isPesquisador, cliente, onAdd, addItemDireto, legadoSlot, defaultTab,
+  clienteId, isPesquisador, cliente, onAdd, addItemDireto, addPacote, legadoSlot, defaultTab,
 }: Props) {
   const [populares, setPopulares] = useState<(Servico & { totalUsos?: number })[]>([])
   const [favoritos, setFavoritos] = useState<(Servico & { favoritado?: boolean })[]>([])
@@ -180,16 +182,6 @@ export function CatalogoTabs({
     }
   }
 
-  function addPacote(p: Pacote) {
-    p.itens.forEach((it) => addItemDireto({
-      servicoId: it.servicoId,
-      nome: it.servico.nome,
-      categoria: it.servico.categoria,
-      preco: Number(it.preco),
-      quantidade: it.quantidade,
-    }))
-    toast.success(`Pacote "${p.nome}" adicionado (${p.totalItens} ${p.totalItens === 1 ? 'serviço' : 'serviços'})`)
-  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -378,8 +370,11 @@ export function CatalogoTabs({
                               )}
                             </div>
                             <div className="text-right shrink-0">
+                              {p.precoEstimado && <p className="text-[9px] text-slate-400 leading-none">a partir de</p>}
                               <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtBRL(p.precoTotal)}</p>
-                              <p className="text-[10px] text-slate-400">{p.totalItens} serviços</p>
+                              <p className="text-[10px] text-slate-400">
+                                {p.tipoPreco === 'desconto' ? 'desconto s/ tabela' : `${p.totalItens} serviços`}
+                              </p>
                             </div>
                           </div>
                           <button

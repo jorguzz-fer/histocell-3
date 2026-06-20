@@ -170,6 +170,10 @@ model Pacote {
   codigo      String   @unique
   nome        String
   descricao   String?  @db.Text
+  // Como o preço é calculado quando o pacote é usado num pedido:
+  //  'fixo'     → usa PacoteItem.preco (preço fechado do combo)
+  //  'desconto' → aplica PacoteItem.descontoPct sobre o preço atual do cliente
+  tipoPreco   String   @default("fixo")
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -181,11 +185,12 @@ model Pacote {
 }
 
 model PacoteItem {
-  id         Int     @id @default(autoincrement())
-  pacoteId   Int
-  servicoId  Int
-  quantidade Int     @default(1)
-  preco      Decimal @db.Decimal(10, 2) // preço do componente dentro do pacote
+  id          Int     @id @default(autoincrement())
+  pacoteId    Int
+  servicoId   Int
+  quantidade  Int     @default(1)
+  preco       Decimal @db.Decimal(10, 2) // preço fixo do componente (modo 'fixo')
+  descontoPct Decimal @default(0) @db.Decimal(5, 2) // % desconto sobre a tabela (modo 'desconto')
 
   pacote  Pacote  @relation(fields: [pacoteId], references: [id], onDelete: Cascade)
   servico Servico @relation(fields: [servicoId], references: [id])
@@ -252,11 +257,14 @@ model Recipiente {
   pedidoId    Int
   tipo        String   // Pote, Caixa, Saco, Outro, …
   quantidade  Int      @default(1)
+  codigo      String?  @unique // conteúdo do código de barras da etiqueta do recipiente (Recepção)
+  etiquetaImpressa Boolean @default(false)
   observacoes String?
   recebidoPor String?
   createdAt   DateTime @default(now())
 
-  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  amostras Amostra[] // amostras designadas dentro do recipiente (Laboratório)
 
   @@index([pedidoId])
 }
@@ -282,6 +290,7 @@ model ItemPedido {
 model Amostra {
   id              Int       @id @default(autoincrement())
   pedidoId        Int
+  recipienteId    Int?      // recipiente de origem (Pote/Caixa/Saco) designado no Laboratório
   itemPedidoId    Int?      @unique // item de origem (quando criada via emissão de etiquetas)
   numeroInterno   String    @unique // Numeração diária Histocell
   numeroCliente   String?   // Número do cliente (ex: Alquimipet)
@@ -296,11 +305,13 @@ model Amostra {
   updatedAt       DateTime  @updatedAt
 
   pedido          Pedido    @relation(fields: [pedidoId], references: [id])
+  recipiente      Recipiente? @relation(fields: [recipienteId], references: [id])
   itemPedido      ItemPedido? @relation(fields: [itemPedidoId], references: [id])
   ordemServico    OrdemServico?
   etiquetas       Etiqueta[]
 
   @@index([pedidoId])
+  @@index([recipienteId])
   @@index([numeroInterno])
   @@index([status])
 }

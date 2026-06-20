@@ -14,6 +14,17 @@ export type ClienteOpt = {
 
 export type DescontoTipo = 'pct' | 'valor'
 
+export type DraftPedido = {
+  id: number
+  numero: string
+  clienteNome: string
+  clienteNomeFantasia?: string | null
+  totalItens: number
+  valorTotal: number
+  urgente?: boolean
+  createdAt: string
+}
+
 export type OrderCartItem = {
   key: string
   servicoId: number
@@ -57,6 +68,16 @@ export function useOrderCart() {
   const [urgente, setUrgente]             = useState(false)
   const [pagamentoAdiantado, setPagamentoAdiantado] = useState(false)
   const [creditoSaldo, setCreditoSaldo]   = useState<number | null>(null)
+  const [rascunhos, setRascunhos]         = useState<DraftPedido[]>([])
+  const [editId, setEditId]               = useState<number | null>(null)
+
+  const carregarRascunhos = useCallback(() => {
+    api.get<{ data: DraftPedido[] }>('/pedidos?status=rascunho&limit=50')
+      .then((res) => setRascunhos(res.data))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => { carregarRascunhos() }, [carregarRascunhos])
 
   useEffect(() => {
     api.get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true')
@@ -119,6 +140,44 @@ export function useOrderCart() {
     ])
   }, [])
 
+  /** Adiciona um pacote inteiro, explodindo nos serviços-componentes.
+   *  - tipoPreco 'fixo'     → usa o preço fechado do componente.
+   *  - tipoPreco 'desconto' → usa o preço ATUAL do cliente e aplica o % do pacote. */
+  const addPacote = useCallback(async (p: {
+    nome: string
+    tipoPreco?: 'fixo' | 'desconto'
+    itens: {
+      servicoId: number; quantidade: number; preco: number; descontoPct?: number
+      servico: { nome: string; categoria: string; precoRotina?: number }
+    }[]
+  }) => {
+    const desconto = p.tipoPreco === 'desconto'
+    for (const it of p.itens) {
+      let preco = Number(it.preco)
+      if (desconto) {
+        // preço-base = tabela do cliente (cai na rotina do serviço se não houver cliente)
+        let base = Number(it.servico.precoRotina ?? 0)
+        if (clienteId) {
+          try {
+            const res = await api.get<{ preco: number }>(
+              `/pedidos/preco?clienteId=${clienteId}&servicoId=${it.servicoId}`,
+            )
+            base = res.preco
+          } catch {}
+        }
+        preco = Math.round(base * (1 - Number(it.descontoPct ?? 0) / 100) * 100) / 100
+      }
+      addItemDireto({
+        servicoId: it.servicoId,
+        nome: it.servico.nome,
+        categoria: it.servico.categoria,
+        preco,
+        quantidade: it.quantidade,
+      })
+    }
+    toast.success(`Pacote "${p.nome}" adicionado (${p.itens.length} ${p.itens.length === 1 ? 'serviço' : 'serviços'})`)
+  }, [addItemDireto, clienteId])
+
   function updateItem(
     key: string,
     field: 'quantidade' | 'preco' | 'desconto' | 'descontoTipo',
@@ -127,23 +186,66 @@ export function useOrderCart() {
     setItens((prev) => prev.map((i) => (i.key === key ? { ...i, [field]: value } : i)))
   }
 
+  const limpar = useCallback(() => {
+    setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false); setEditId(null)
+  }, [])
+
+  // Carrega um rascunho de volta no carrinho para continuar editando.
+  const continuarRascunho = useCallback(async (id: number) => {
+    try {
+      const p = await api.get<any>(`/pedidos/${id}`)
+      setEditId(p.id)
+      setClienteId(String(p.cliente?.id ?? p.clienteId ?? ''))
+      setObservacoes(p.observacoes ?? '')
+      setUrgente(Boolean(p.urgente))
+      setPagamentoAdiantado(Boolean(p.pagamentoAdiantado))
+      setItens(
+        (p.itens ?? []).map((it: any) => ({
+          key: `${it.servicoId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          servicoId: it.servicoId,
+          nome: it.servico?.nome ?? '',
+          categoria: it.servico?.categoria ?? '',
+          quantidade: it.quantidade,
+          preco: Number(it.preco),
+          desconto: Number(it.desconto ?? 0),
+          descontoTipo: 'pct' as DescontoTipo,
+        })),
+      )
+      toast.success(`Rascunho ${p.numero} carregado`)
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao carregar rascunho')
+    }
+  }, [])
+
+  const excluirRascunho = useCallback(async (id: number) => {
+    try {
+      await api.delete(`/pedidos/${id}`)
+      if (editId === id) limpar()
+      toast.success('Rascunho excluído')
+      carregarRascunhos()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao excluir rascunho')
+    }
+  }, [editId, limpar, carregarRascunhos])
+
   async function handleSalvar(finalStatus: 'rascunho' | 'enviado') {
     if (!clienteId) { toast.error('Selecione um cliente.'); return }
     if (itens.length === 0) { toast.error('Adicione pelo menos um serviço.'); return }
     setSaving(true)
     try {
-      const pedido = await api.post<{ id: number; numero: string }>('/pedidos', {
+      const body = {
         clienteId: parseInt(clienteId),
         observacoes: observacoes || undefined,
         urgente,
         pagamentoAdiantado,
         status: finalStatus,
         itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
-      })
-      toast.success(finalStatus === 'enviado' ? 'Pedido gerado!' : 'Rascunho salvo!')
-      const limpar = () => {
-        setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false)
       }
+      // Editando um rascunho existente → atualiza; senão cria novo.
+      const pedido = editId
+        ? await api.patch<{ id: number; numero: string }>(`/pedidos/${editId}`, body)
+        : await api.post<{ id: number; numero: string }>('/pedidos', body)
+      toast.success(finalStatus === 'enviado' ? 'Pedido gerado!' : 'Rascunho salvo!')
       if (finalStatus === 'enviado') {
         // limpa o carrinho e mostra o painel de "Pedido gerado" com ação de etiquetas
         setPedidoCriado({ id: pedido.id, numero: pedido.numero })
@@ -152,6 +254,7 @@ export function useOrderCart() {
         setSaved(true)
         setTimeout(() => { limpar(); setSaved(false) }, 2000)
       }
+      carregarRascunhos()
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao salvar pedido')
     } finally {
@@ -169,6 +272,7 @@ export function useOrderCart() {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
-    addServico, addItemDireto, removeItem, updateItem, handleSalvar,
+    addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
+    rascunhos, editId, continuarRascunho, excluirRascunho,
   }
 }

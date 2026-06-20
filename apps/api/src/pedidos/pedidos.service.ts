@@ -33,7 +33,7 @@ const INCLUDE_FULL = {
   itens: {
     include: {
       servico: {
-        select: { id: true, codigo: true, nome: true, precoBase: true },
+        select: { id: true, codigo: true, nome: true, categoria: true, precoBase: true },
       },
     },
   },
@@ -82,9 +82,23 @@ export class PedidosService {
     };
   }
 
+  // ── Próximo código numérico livre (não colide com codigo nem codigoLegado) ──
+  private async gerarCodigoServico(): Promise<string> {
+    const servicos = await this.prisma.servico.findMany({
+      select: { codigo: true, codigoLegado: true },
+    });
+    let max = 0;
+    for (const s of servicos) {
+      const n = parseInt(s.codigo, 10);
+      if (Number.isFinite(n) && n > max) max = n;
+      if (s.codigoLegado != null && s.codigoLegado > max) max = s.codigoLegado;
+    }
+    return String(max + 1);
+  }
+
   // ── Criar serviço customizado on-the-fly ────────────────────────────────────
   async criarServico(dto: {
-    codigo: string
+    codigo?: string
     categoria: string
     nome: string
     precoBase: number
@@ -98,9 +112,10 @@ export class PedidosService {
     variante5?: string
     observacoes?: string
   }) {
+    const codigo = dto.codigo?.trim() || (await this.gerarCodigoServico());
     const servico = await this.prisma.servico.create({
       data: {
-        codigo:       dto.codigo,
+        codigo,
         categoria:    dto.categoria,
         nome:         dto.nome,
         precoBase:    dto.precoBase,

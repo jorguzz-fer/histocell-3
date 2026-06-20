@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { PortalService } from './portal.service';
 import { PortalPedidoDto } from './dto/portal-pedido.dto';
 
@@ -29,9 +29,31 @@ export class PortalController {
     return this.service.listarPedidos(token);
   }
 
-  /** Cria o pedido do cliente (origem=web) */
+  /** Cria o pedido do cliente (origem=web). status: 'enviado' | 'rascunho' */
   @Post(':token/pedido')
   criarPedido(@Param('token') token: string, @Body() dto: PortalPedidoDto) {
     return this.service.criarPedido(token, dto);
+  }
+
+  /** Reabre um rascunho do cliente (itens para editar) */
+  @Get(':token/pedido/:numero')
+  carregarRascunho(@Param('token') token: string, @Param('numero') numero: string) {
+    return this.service.carregarRascunho(token, numero);
+  }
+
+  /** Atualiza um rascunho e, opcionalmente, envia (status='enviado') */
+  @Patch(':token/pedido/:numero')
+  atualizarRascunho(
+    @Param('token') token: string,
+    @Param('numero') numero: string,
+    @Body() dto: PortalPedidoDto,
+  ) {
+    return this.service.atualizarRascunho(token, numero, dto);
+  }
+
+  /** Exclui um rascunho do cliente */
+  @Delete(':token/pedido/:numero')
+  excluirRascunho(@Param('token') token: string, @Param('numero') numero: string) {
+    return this.service.excluirRascunho(token, numero);
   }
 }

@@ -64,6 +64,13 @@ export class RecebimentoController {
     return this.service.findFila();
   }
 
+  /** Detalhe do pedido p/ impressão: etiquetas de recipiente + Ordem de Serviço */
+  @Get('pedido/:id/detalhe')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  detalhePedido(@Param('id', ParseIntPipe) id: number) {
+    return this.service.detalhePedido(id);
+  }
+
   /** Lista paginada de amostras com filtros */
   @Get('amostras')
   @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')

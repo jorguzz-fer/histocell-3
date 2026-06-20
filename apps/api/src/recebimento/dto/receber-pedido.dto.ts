@@ -8,6 +8,11 @@ import {
 import { Type } from 'class-transformer';
 
 export class AmostraItemDto {
+  /** Recipiente (Pote/Caixa/Saco) ao qual esta amostra pertence. */
+  @IsOptional()
+  @IsInt()
+  recipienteId?: number;
+
   @IsOptional()
   @IsString()
   numeroCliente?: string;

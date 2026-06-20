@@ -57,6 +57,8 @@ export default function PortalPedidoPage() {
   const [obs, setObs] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState<{ numero: string; valorTotal: number } | null>(null)
+  const [editandoNumero, setEditandoNumero] = useState<string | null>(null)
+  const [rascunhoSalvo, setRascunhoSalvo] = useState<string | null>(null)
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
@@ -104,21 +106,69 @@ export default function PortalPedidoPage() {
   const itensCart = Object.values(cart)
   const total = itensCart.reduce((s, i) => s + subtotal(i), 0)
 
-  async function enviar() {
+  function limparCart() { setCart({}); setObs(''); setEditandoNumero(null) }
+
+  async function salvar(status: 'enviado' | 'rascunho') {
     if (itensCart.length === 0) return
     setEnviando(true)
+    setRascunhoSalvo(null)
     try {
-      const res = await portalApi.post<{ numero: string; valorTotal: number }>(`/portal/${token}/pedido`, {
+      const body = {
         itens: itensCart.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade })),
         observacoes: obs.trim() || undefined,
-      })
-      setEnviado(res)
-      setCart({}); setObs('')
+        status,
+      }
+      const res = editandoNumero
+        ? await portalApi.patch<{ numero: string; valorTotal: number }>(`/portal/${token}/pedido/${editandoNumero}`, body)
+        : await portalApi.post<{ numero: string; valorTotal: number }>(`/portal/${token}/pedido`, body)
+      if (status === 'enviado') setEnviado(res)
+      else setRascunhoSalvo(res.numero)
+      limparCart()
       fetchPedidos()
     } catch (e: any) {
-      setErro(e.message ?? 'Erro ao enviar pedido')
+      setErro(e.message ?? 'Erro ao salvar pedido')
     } finally {
       setEnviando(false)
+    }
+  }
+
+  // Reabre um rascunho no carrinho para continuar
+  async function continuarRascunho(numero: string) {
+    try {
+      const r = await portalApi.get<{ numero: string; observacoes?: string | null; itens: { servicoId: number; quantidade: number }[] }>(
+        `/portal/${token}/pedido/${numero}`,
+      )
+      const mapa: Record<number, CartItem> = {}
+      const catItens = [...(catalogo?.servicos ?? []), ...(catalogo?.populares ?? []), ...(catalogo?.historico ?? [])]
+      for (const it of r.itens) {
+        const s = catItens.find((c) => c.id === it.servicoId)
+        mapa[it.servicoId] = {
+          servicoId: it.servicoId,
+          codigo: s?.codigo,
+          nome: s?.nome ?? `Serviço ${it.servicoId}`,
+          preco: s?.preco ?? 0,
+          desconto: s?.desconto ?? 0,
+          quantidade: it.quantidade,
+        }
+      }
+      setCart(mapa)
+      setObs(r.observacoes ?? '')
+      setEditandoNumero(numero)
+      setEnviado(null); setRascunhoSalvo(null)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (e: any) {
+      setErro(e.message ?? 'Erro ao abrir rascunho')
+    }
+  }
+
+  async function excluirRascunho(numero: string) {
+    if (!confirm(`Excluir o rascunho ${numero}?`)) return
+    try {
+      await portalApi.delete(`/portal/${token}/pedido/${numero}`)
+      if (editandoNumero === numero) limparCart()
+      fetchPedidos()
+    } catch (e: any) {
+      setErro(e.message ?? 'Erro ao excluir rascunho')
     }
   }
 
@@ -305,10 +355,21 @@ export default function PortalPedidoPage() {
                   <span className="text-sm text-slate-500 dark:text-slate-400">Total</span>
                   <span className="text-xl font-bold text-slate-900 dark:text-white">{brl(total)}</span>
                 </div>
-                <button onClick={enviar} disabled={itensCart.length === 0 || enviando}
+                {editandoNumero && (
+                  <p className="text-[12px] text-amber-600 dark:text-amber-400 text-center">
+                    Editando rascunho <strong>{editandoNumero}</strong> ·{' '}
+                    <button onClick={limparCart} className="underline">cancelar</button>
+                  </p>
+                )}
+                <button onClick={() => salvar('enviado')} disabled={itensCart.length === 0 || enviando}
                   className="w-full rounded-lg bg-histocell-600 hover:bg-histocell-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5">
                   {enviando ? 'Enviando…' : 'Enviar pedido'}
                 </button>
+                <button onClick={() => salvar('rascunho')} disabled={itensCart.length === 0 || enviando}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-700 dark:text-slate-200 text-sm font-semibold py-2.5">
+                  {editandoNumero ? 'Salvar rascunho' : 'Salvar como rascunho'}
+                </button>
+                {rascunhoSalvo && <p className="text-[12px] text-emerald-600 text-center">Rascunho {rascunhoSalvo} salvo. Você pode concluí-lo depois.</p>}
                 {erro && info && <p className="text-[12px] text-rose-600 text-center">{erro}</p>}
               </div>
             </div>
@@ -332,19 +393,37 @@ export default function PortalPedidoPage() {
                     <th className="px-4 py-2 font-medium text-center">Itens</th>
                     <th className="px-4 py-2 font-medium text-right">Total</th>
                     <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {pedidos.map((p) => {
                     const st = STATUS[p.status] ?? { label: p.status, cls: 'bg-slate-100 text-slate-600' }
+                    const isRascunho = p.status === 'rascunho'
                     return (
-                      <tr key={p.numero} className="text-slate-700 dark:text-slate-200">
+                      <tr key={p.numero} className={`text-slate-700 dark:text-slate-200 ${isRascunho ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}`}>
                         <td className="px-4 py-2 font-mono">{p.numero}</td>
                         <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dataFmt(p.createdAt)}</td>
                         <td className="px-4 py-2 text-center tabular-nums">{p.totalItens}</td>
                         <td className="px-4 py-2 text-right tabular-nums">{brl(p.valorTotal)}</td>
                         <td className="px-4 py-2">
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                        </td>
+                        <td className="px-4 py-2">
+                          {isRascunho ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => continuarRascunho(p.numero)}
+                                className="text-[11px] font-medium px-2 py-1 rounded-md bg-histocell-600 hover:bg-histocell-700 text-white">
+                                Continuar
+                              </button>
+                              <button onClick={() => excluirRascunho(p.numero)}
+                                className="text-[11px] font-medium px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-500 hover:text-rose-600">
+                                Excluir
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="block text-right text-slate-300 dark:text-slate-600">—</span>
+                          )}
                         </td>
                       </tr>
                     )

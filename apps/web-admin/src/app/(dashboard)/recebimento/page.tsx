@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2 } from 'lucide-react'
+import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -91,9 +91,27 @@ function FilaCard({ p, onReceber, acaoLabel = 'Receber' }: { p: PedidoFila; onRe
       </ul>
 
       {p.recipientes && p.recipientes.length > 0 && (
-        <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50 dark:bg-blue-500/10 rounded px-2 py-1">
-          Recebido: {p.recipientes.map((r) => `${r.quantidade}× ${r.tipo}`).join(', ')}
-        </p>
+        <div className="space-y-1">
+          <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50 dark:bg-blue-500/10 rounded px-2 py-1">
+            Recebido: {p.recipientes.length} recipiente(s) ·{' '}
+            {Object.entries(
+              p.recipientes.reduce<Record<string, number>>((acc, r) => {
+                acc[r.tipo] = (acc[r.tipo] ?? 0) + 1
+                return acc
+              }, {}),
+            )
+              .map(([tipo, n]) => `${n}× ${tipo}`)
+              .join(', ')}
+          </p>
+          <a
+            href={`/imprimir/recipientes/${p.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+          >
+            <Printer className="h-3 w-3" /> Etiquetas dos recipientes
+          </a>
+        </div>
       )}
 
       {p.observacoes && (
