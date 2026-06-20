@@ -179,7 +179,7 @@ export default function PedidosLegadoPage() {
                 <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Rascunhos</h2>
                 <Badge variant="amber">{rascunhos.length}</Badge>
               </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
+              <div className="zebra-rows divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
                 {rascunhos.map((r) => (
                   <div
                     key={r.id}
