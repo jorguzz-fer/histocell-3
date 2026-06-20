@@ -119,22 +119,43 @@ export function useOrderCart() {
     ])
   }, [])
 
-  /** Adiciona um pacote inteiro, explodindo nos serviços-componentes com o preço do pacote. */
-  const addPacote = useCallback((p: {
+  /** Adiciona um pacote inteiro, explodindo nos serviços-componentes.
+   *  - tipoPreco 'fixo'     → usa o preço fechado do componente.
+   *  - tipoPreco 'desconto' → usa o preço ATUAL do cliente e aplica o % do pacote. */
+  const addPacote = useCallback(async (p: {
     nome: string
-    itens: { servicoId: number; quantidade: number; preco: number; servico: { nome: string; categoria: string } }[]
+    tipoPreco?: 'fixo' | 'desconto'
+    itens: {
+      servicoId: number; quantidade: number; preco: number; descontoPct?: number
+      servico: { nome: string; categoria: string; precoRotina?: number }
+    }[]
   }) => {
-    p.itens.forEach((it) =>
+    const desconto = p.tipoPreco === 'desconto'
+    for (const it of p.itens) {
+      let preco = Number(it.preco)
+      if (desconto) {
+        // preço-base = tabela do cliente (cai na rotina do serviço se não houver cliente)
+        let base = Number(it.servico.precoRotina ?? 0)
+        if (clienteId) {
+          try {
+            const res = await api.get<{ preco: number }>(
+              `/pedidos/preco?clienteId=${clienteId}&servicoId=${it.servicoId}`,
+            )
+            base = res.preco
+          } catch {}
+        }
+        preco = Math.round(base * (1 - Number(it.descontoPct ?? 0) / 100) * 100) / 100
+      }
       addItemDireto({
         servicoId: it.servicoId,
         nome: it.servico.nome,
         categoria: it.servico.categoria,
-        preco: Number(it.preco),
+        preco,
         quantidade: it.quantidade,
-      }),
-    )
+      })
+    }
     toast.success(`Pacote "${p.nome}" adicionado (${p.itens.length} ${p.itens.length === 1 ? 'serviço' : 'serviços'})`)
-  }, [addItemDireto])
+  }, [addItemDireto, clienteId])
 
   function updateItem(
     key: string,

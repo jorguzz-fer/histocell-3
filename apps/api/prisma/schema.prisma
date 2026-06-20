@@ -170,6 +170,10 @@ model Pacote {
   codigo      String   @unique
   nome        String
   descricao   String?  @db.Text
+  // Como o preço é calculado quando o pacote é usado num pedido:
+  //  'fixo'     → usa PacoteItem.preco (preço fechado do combo)
+  //  'desconto' → aplica PacoteItem.descontoPct sobre o preço atual do cliente
+  tipoPreco   String   @default("fixo")
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -181,11 +185,12 @@ model Pacote {
 }
 
 model PacoteItem {
-  id         Int     @id @default(autoincrement())
-  pacoteId   Int
-  servicoId  Int
-  quantidade Int     @default(1)
-  preco      Decimal @db.Decimal(10, 2) // preço do componente dentro do pacote
+  id          Int     @id @default(autoincrement())
+  pacoteId    Int
+  servicoId   Int
+  quantidade  Int     @default(1)
+  preco       Decimal @db.Decimal(10, 2) // preço fixo do componente (modo 'fixo')
+  descontoPct Decimal @default(0) @db.Decimal(5, 2) // % desconto sobre a tabela (modo 'desconto')
 
   pacote  Pacote  @relation(fields: [pacoteId], references: [id], onDelete: Cascade)
   servico Servico @relation(fields: [servicoId], references: [id])

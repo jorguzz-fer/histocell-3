@@ -1,11 +1,13 @@
 import {
   ArrayMinSize,
   IsArray,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -19,9 +21,18 @@ export class PacoteItemDto {
   @Min(1)
   quantidade: number;
 
+  // Preço fixo do componente (modo 'fixo'). Opcional no modo 'desconto'.
   @IsNumber()
   @Min(0)
-  preco: number;
+  @IsOptional()
+  preco?: number;
+
+  // % de desconto sobre a tabela do cliente (modo 'desconto').
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  descontoPct?: number;
 }
 
 export class CreatePacoteDto {
@@ -38,6 +49,11 @@ export class CreatePacoteDto {
   @IsString()
   @IsOptional()
   descricao?: string;
+
+  // 'fixo' (preço fechado do combo) | 'desconto' (% sobre a tabela do cliente)
+  @IsIn(['fixo', 'desconto'])
+  @IsOptional()
+  tipoPreco?: string;
 
   @IsArray()
   @ArrayMinSize(1)

@@ -64,6 +64,7 @@ export default function PedidosLegadoPage() {
             cliente={cliente}
             onAdd={addServico}
             addItemDireto={addItemDireto}
+            addPacote={addPacote}
             legadoSlot={<ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} onAddPacote={addPacote} />}
           />
         </div>

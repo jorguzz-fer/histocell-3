@@ -110,15 +110,19 @@ export class PortalService {
       orderBy: { nome: 'asc' },
     });
     const pacotes = pacotesRaw.map((p) => {
+      const modoDesc = p.tipoPreco === 'desconto';
       const itens = p.itens.map((it) => {
         const pr = this.efetivo(it.servico, isPesquisador, descontoPadrao, tabela);
+        // 'fixo' → preço fechado do componente; 'desconto' → tabela do cliente menos o % do pacote
+        const preco = modoDesc ? pr.preco : Number(it.preco);
+        const desconto = modoDesc ? Number(it.descontoPct) : 0;
         return {
           servicoId: it.servicoId,
           quantidade: it.quantidade,
           nome: it.servico.nome,
           categoria: it.servico.categoria,
-          preco: pr.preco,
-          desconto: pr.desconto,
+          preco,
+          desconto,
         };
       });
       const precoTotal =
@@ -126,7 +130,10 @@ export class PortalService {
           itens.reduce((s, it) => s + it.preco * it.quantidade * (1 - it.desconto / 100), 0) * 100,
         ) / 100;
       const categorias = Array.from(new Set(itens.map((i) => i.categoria).filter(Boolean))).sort();
-      return { id: p.id, codigo: p.codigo, nome: p.nome, itens, precoTotal, totalItens: itens.length, categorias };
+      return {
+        id: p.id, codigo: p.codigo, nome: p.nome, tipoPreco: p.tipoPreco,
+        precoEstimado: modoDesc, itens, precoTotal, totalItens: itens.length, categorias,
+      };
     });
 
     // populares (top serviços) e histórico do cliente — reprecificados
