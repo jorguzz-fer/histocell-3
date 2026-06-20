@@ -63,53 +63,6 @@ export default function PedidosLegadoPage() {
             )}
           </div>
 
-          {rascunhos.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                <FileEdit className="h-4 w-4 text-amber-500" />
-                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Rascunhos</h2>
-                <Badge variant="amber">{rascunhos.length}</Badge>
-              </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
-                {rascunhos.map((r) => (
-                  <div
-                    key={r.id}
-                    className={`px-5 py-3 flex items-center gap-3 ${editId === r.id ? 'bg-amber-50/60 dark:bg-amber-500/5' : ''}`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[12px] text-slate-500">{r.numero}</span>
-                        {r.urgente && <Badge variant="rose">Urgente</Badge>}
-                        {editId === r.id && <Badge variant="amber">editando</Badge>}
-                      </div>
-                      <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">
-                        {r.clienteNomeFantasia || r.clienteNome || '—'}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        {r.totalItens} item{r.totalItens !== 1 ? 's' : ''} · {fmtBRL(r.valorTotal)} · {fmtDraftData(r.createdAt)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => continuarRascunho(r.id)}
-                      className="shrink-0 flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-1.5"
-                    >
-                      <Pencil className="h-3.5 w-3.5" /> Continuar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { if (confirm(`Excluir o rascunho ${r.numero}?`)) excluirRascunho(r.id) }}
-                      title="Excluir rascunho"
-                      className="shrink-0 p-1.5 text-slate-300 hover:text-rose-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <CatalogoTabs
             clienteId={clienteId}
             isPesquisador={isPesquisador}
@@ -218,6 +171,53 @@ export default function PedidosLegadoPage() {
               </div>
             )}
           </div>
+
+          {rascunhos.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                <FileEdit className="h-4 w-4 text-amber-500" />
+                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Rascunhos</h2>
+                <Badge variant="amber">{rascunhos.length}</Badge>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
+                {rascunhos.map((r) => (
+                  <div
+                    key={r.id}
+                    className={`px-5 py-3 flex items-center gap-3 ${editId === r.id ? 'bg-amber-50/60 dark:bg-amber-500/5' : ''}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[12px] text-slate-500">{r.numero}</span>
+                        {r.urgente && <Badge variant="rose">Urgente</Badge>}
+                        {editId === r.id && <Badge variant="amber">editando</Badge>}
+                      </div>
+                      <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">
+                        {r.clienteNomeFantasia || r.clienteNome || '—'}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {r.totalItens} item{r.totalItens !== 1 ? 's' : ''} · {fmtBRL(r.valorTotal)} · {fmtDraftData(r.createdAt)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => continuarRascunho(r.id)}
+                      className="shrink-0 flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-1.5"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Continuar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (confirm(`Excluir o rascunho ${r.numero}?`)) excluirRascunho(r.id) }}
+                      title="Excluir rascunho"
+                      className="shrink-0 p-1.5 text-slate-300 hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
