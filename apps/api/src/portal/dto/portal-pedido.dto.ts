@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -29,4 +30,9 @@ export class PortalPedidoDto {
   @IsOptional()
   @IsString()
   observacoes?: string;
+
+  // 'enviado' (envia ao laboratório) | 'rascunho' (salva para concluir depois)
+  @IsOptional()
+  @IsIn(['enviado', 'rascunho'])
+  status?: 'enviado' | 'rascunho';
 }

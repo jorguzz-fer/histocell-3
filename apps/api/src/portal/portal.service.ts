@@ -186,24 +186,80 @@ export class PortalService {
     }));
   }
 
+  private async precificar(clienteId: number, itensDto: { servicoId: number; quantidade: number }[]) {
+    const itens: { servicoId: number; quantidade: number; preco: number; desconto: number }[] = [];
+    for (const it of itensDto) {
+      const { preco, desconto } = await this.pedidos.getPreco(clienteId, it.servicoId);
+      itens.push({ servicoId: it.servicoId, quantidade: it.quantidade, preco, desconto });
+    }
+    return itens;
+  }
+
   // ── Criar pedido (origem=web; preços recalculados no servidor) ─────────────
   async criarPedido(token: string, dto: PortalPedidoDto) {
     const cliente = await this.resolverCliente(token);
-
-    const itens: { servicoId: number; quantidade: number; preco: number; desconto: number }[] = [];
-    for (const it of dto.itens) {
-      const { preco, desconto } = await this.pedidos.getPreco(cliente.id, it.servicoId);
-      itens.push({ servicoId: it.servicoId, quantidade: it.quantidade, preco, desconto });
-    }
+    const itens = await this.precificar(cliente.id, dto.itens);
 
     const pedido = await this.pedidos.create({
       clienteId: cliente.id,
-      status: 'enviado',
+      status: dto.status ?? 'enviado',
       origem: 'web',
       observacoes: dto.observacoes,
       itens,
     } as any);
 
     return { numero: pedido.numero, valorTotal: pedido.valorTotal, totalItens: pedido.totalItens };
+  }
+
+  // ── Rascunho do cliente: localiza um pedido próprio em status 'rascunho' ────
+  private async acharRascunho(clienteId: number, numero: string) {
+    const pedido = await this.prisma.pedido.findFirst({
+      where: { numero, clienteId },
+      select: { id: true, status: true },
+    });
+    if (!pedido) throw new NotFoundException(`Pedido ${numero} não encontrado.`);
+    if (pedido.status !== 'rascunho') {
+      throw new NotFoundException(`Pedido ${numero} não é um rascunho editável.`);
+    }
+    return pedido;
+  }
+
+  /** Itens de um rascunho do cliente, para reabrir no portal. */
+  async carregarRascunho(token: string, numero: string) {
+    const cliente = await this.resolverCliente(token);
+    const pedido = await this.prisma.pedido.findFirst({
+      where: { numero, clienteId: cliente.id, status: 'rascunho' },
+      select: {
+        numero: true,
+        observacoes: true,
+        itens: { select: { servicoId: true, quantidade: true } },
+      },
+    });
+    if (!pedido) throw new NotFoundException(`Rascunho ${numero} não encontrado.`);
+    return pedido;
+  }
+
+  /** Atualiza um rascunho (itens/obs) e opcionalmente o envia. */
+  async atualizarRascunho(token: string, numero: string, dto: PortalPedidoDto) {
+    const cliente = await this.resolverCliente(token);
+    const rasc = await this.acharRascunho(cliente.id, numero);
+    const itens = await this.precificar(cliente.id, dto.itens);
+
+    const pedido = await this.pedidos.update(rasc.id, {
+      status: dto.status ?? 'rascunho',
+      observacoes: dto.observacoes,
+      itens,
+    } as any);
+
+    return { numero: pedido.numero, valorTotal: pedido.valorTotal, totalItens: pedido.totalItens };
+  }
+
+  /** Exclui um rascunho do cliente. */
+  async excluirRascunho(token: string, numero: string) {
+    const cliente = await this.resolverCliente(token);
+    const rasc = await this.acharRascunho(cliente.id, numero);
+    // remove() já apaga os itens antes (ItemPedido não tem cascade) e valida rascunho
+    await this.pedidos.remove(rasc.id);
+    return { numero, deleted: true };
   }
 }

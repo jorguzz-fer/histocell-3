@@ -33,7 +33,7 @@ const INCLUDE_FULL = {
   itens: {
     include: {
       servico: {
-        select: { id: true, codigo: true, nome: true, precoBase: true },
+        select: { id: true, codigo: true, nome: true, categoria: true, precoBase: true },
       },
     },
   },
