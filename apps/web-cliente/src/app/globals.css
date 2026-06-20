@@ -5,3 +5,12 @@
 body {
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* Zebra striping global — fundo bem leve alternando as linhas das tabelas.
+ * :where() = especificidade 0, então linhas com cor própria sempre vencem. */
+:where(table tbody tr:nth-child(even)) {
+  background-color: rgb(241 245 249 / 0.9); /* slate-100 */
+}
+:where(html.dark table tbody tr:nth-child(even)) {
+  background-color: rgb(255 255 255 / 0.04);
+}

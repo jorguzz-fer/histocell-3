@@ -7,3 +7,24 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/*
+ * Zebra striping global — diferencia as linhas com um fundo bem leve.
+ * Tudo dentro de :where() (especificidade 0) para que QUALQUER linha com
+ * cor própria (selecionada, status, hover) sobreponha a zebra sem conflito.
+ */
+:where(table tbody tr:nth-child(even)) {
+  background-color: rgb(241 245 249 / 0.9); /* slate-100 */
+}
+:where(html.dark table tbody tr:nth-child(even)) {
+  background-color: rgb(255 255 255 / 0.04); /* clareia a linha no escuro */
+}
+
+/* Mesma zebra para listas em divs: marque o container com a classe `zebra-rows`. */
+:where(.zebra-rows > :nth-child(even)) {
+  background-color: rgb(241 245 249 / 0.9);
+}
+:where(html.dark .zebra-rows > :nth-child(even)) {
+  background-color: rgb(255 255 255 / 0.04);
+}
+
