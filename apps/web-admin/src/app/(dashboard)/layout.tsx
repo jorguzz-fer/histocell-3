@@ -37,17 +37,18 @@ const menuItems: MenuItem[] = [
   { href: '/cadastro', label: 'Clientes', icon: Users },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
-  { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet },
-  { href: '/pacotes', label: 'Pacotes', icon: Boxes },
+  // Telas com valores: ocultas para o perfil técnico (sem valores).
+  { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet, roles: ['gerencia', 'recepcao', 'financeiro'] },
+  { href: '/pacotes', label: 'Pacotes', icon: Boxes, roles: ['gerencia', 'recepcao', 'financeiro'] },
   { href: '/etiquetas', label: 'Etiquetas', icon: Tags },
   { href: '/ordens', label: 'Ordem de Serviço', icon: ClipboardList },
   { href: '/rastreio', label: 'Rastreio', icon: ScanLine },
-  { href: '/relatorios', label: 'Relatórios', icon: LineChart },
-  { href: '/comercial', label: 'Comercial', icon: Briefcase },
+  { href: '/relatorios', label: 'Relatórios', icon: LineChart, roles: ['gerencia', 'financeiro'] },
+  { href: '/comercial', label: 'Comercial', icon: Briefcase, roles: ['gerencia', 'financeiro'] },
   // Qualidade: não usado hoje — fica no rodapé do menu (implementar depois).
   { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck },
   // Financeiro por último.
-  { href: '/financeiro', label: 'Financeiro', icon: Wallet },
+  { href: '/financeiro', label: 'Financeiro', icon: Wallet, roles: ['gerencia', 'financeiro'] },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [])
 
   const visibleItems = menuItems.filter((item) => !item.roles || (role != null && item.roles.includes(role)))
+
+  // Guarda de rota: técnico (ou perfil sem permissão) que tenta abrir uma tela
+  // com valores via URL é redirecionado para uma tela permitida.
+  useEffect(() => {
+    if (role == null) return
+    const restrito = menuItems.find(
+      (item) => item.roles && pathname.startsWith(item.href) && !item.roles.includes(role),
+    )
+    if (restrito) {
+      const destino = menuItems.find((item) => !item.roles || item.roles.includes(role))
+      window.location.href = destino?.href ?? '/recebimento'
+    }
+  }, [role, pathname])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
