@@ -13,6 +13,8 @@ type ClienteOpt = { id: number; nome: string; nomeFantasia?: string | null }
 type SaldoCliente = { clienteId: number; nome: string; nomeFantasia?: string | null; saldo: number }
 type Movimento = { id: number; tipo: string; valor: number; descricao: string; saldo: number; createdAt: string }
 type Extrato = { cliente: ClienteOpt; saldoAtual: number; movimentos: Movimento[] }
+type FechLinha = { clienteId: number; nome: string; nomeFantasia?: string | null; qtdPedidos: number; totalBruto: number; adiantado: number; aFaturar: number; creditoSaldo: number }
+type Fechamento = { ano: number; mes: number; linhas: FechLinha[]; totais: { clientes: number; pedidos: number; totalBruto: number; aFaturar: number } }
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -37,6 +39,19 @@ export default function FinanceiroPage() {
   const [fValor, setFValor] = useState('')
   const [fDescricao, setFDescricao] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // fechamento mensal
+  const [mesRef, setMesRef] = useState(() => new Date().toISOString().slice(0, 7)) // YYYY-MM
+  const [fechamento, setFechamento] = useState<Fechamento | null>(null)
+
+  const fetchFechamento = useCallback(() => {
+    const [ano, mes] = mesRef.split('-')
+    api.get<Fechamento>(`/financeiro/fechamento?ano=${ano}&mes=${mes}`)
+      .then(setFechamento)
+      .catch(() => {})
+  }, [mesRef])
+
+  useEffect(() => { fetchFechamento() }, [fetchFechamento])
 
   const fetchResumo = useCallback(async () => {
     setLoading(true)
@@ -142,6 +157,59 @@ export default function FinanceiroPage() {
           </div>
         </form>
       )}
+
+      {/* Fechamento mensal */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fechamento mensal</h2>
+          <input
+            type="month"
+            value={mesRef}
+            onChange={(e) => setMesRef(e.target.value)}
+            className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[13px] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {fechamento && (
+            <span className="ml-auto text-[12px] text-slate-400">
+              {fechamento.totais.clientes} cliente(s) · {fechamento.totais.pedidos} pedido(s) ·
+              a faturar: <strong className="text-slate-700 dark:text-slate-200">{fmtBRL(fechamento.totais.aFaturar)}</strong>
+            </span>
+          )}
+        </div>
+        {!fechamento || fechamento.linhas.length === 0 ? (
+          <p className="py-10 text-center text-[13px] text-slate-400">Nenhum pedido recebido neste mês.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-left">
+                <tr>
+                  <th className="px-4 py-2 font-semibold">Cliente</th>
+                  <th className="px-4 py-2 font-semibold text-center">Pedidos</th>
+                  <th className="px-4 py-2 font-semibold text-right">Bruto</th>
+                  <th className="px-4 py-2 font-semibold text-right">Adiantado</th>
+                  <th className="px-4 py-2 font-semibold text-right">A faturar</th>
+                  <th className="px-4 py-2 font-semibold text-right">Crédito atual</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {fechamento.linhas.map((l) => (
+                  <tr key={l.clienteId} className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                    onClick={() => abrirExtrato(l.clienteId)}>
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200">{l.nomeFantasia ?? l.nome}</td>
+                    <td className="px-4 py-2 text-center tabular-nums">{l.qtdPedidos}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{fmtBRL(l.totalBruto)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-slate-400">{l.adiantado ? fmtBRL(l.adiantado) : '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100">{fmtBRL(l.aFaturar)}</td>
+                    <td className={`px-4 py-2 text-right tabular-nums ${l.creditoSaldo > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{fmtBRL(l.creditoSaldo)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400">
+          💡 Base da fatura do mês. A emissão de <strong>boleto + nota fiscal</strong> (integração Cora) é o próximo passo — depende de credenciais/API do banco.
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
         {/* Saldos por cliente */}

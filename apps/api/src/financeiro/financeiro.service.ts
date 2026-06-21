@@ -139,4 +139,81 @@ export class FinanceiroService {
       }))
       .sort((a, b) => (a.nomeFantasia ?? a.nome).localeCompare(b.nomeFantasia ?? b.nome, 'pt'));
   }
+
+  // ── Fechamento mensal: o que cada cliente consumiu no mês (base da fatura) ────
+  // Considera pedidos recebidos (dataRecebimento dentro do mês). A emissão de
+  // boleto/NFe (Cora) é um passo posterior, fora deste cálculo.
+  async fechamentoMensal(ano: number, mes: number) {
+    const inicio = new Date(ano, mes - 1, 1);
+    const fim = new Date(ano, mes, 1); // exclusivo
+
+    const pedidos = await this.prisma.pedido.findMany({
+      where: {
+        status: { notIn: ['rascunho', 'cancelado'] },
+        dataRecebimento: { gte: inicio, lt: fim },
+      },
+      select: {
+        clienteId: true,
+        numero: true,
+        pagamentoAdiantado: true,
+        cliente: { select: { nome: true, nomeFantasia: true } },
+        itens: { select: { preco: true, quantidade: true, desconto: true } },
+      },
+    });
+
+    // saldo de crédito atual por cliente
+    const saldos = await this.resumoCreditos();
+    const saldoMap = new Map(saldos.map((s) => [s.clienteId, s.saldo]));
+
+    const porCliente = new Map<
+      number,
+      { clienteId: number; nome: string; nomeFantasia: string | null; qtdPedidos: number; totalBruto: number; adiantado: number }
+    >();
+
+    for (const p of pedidos) {
+      const valor = p.itens.reduce(
+        (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
+        0,
+      );
+      const cur =
+        porCliente.get(p.clienteId) ?? {
+          clienteId: p.clienteId,
+          nome: p.cliente.nome,
+          nomeFantasia: p.cliente.nomeFantasia,
+          qtdPedidos: 0,
+          totalBruto: 0,
+          adiantado: 0,
+        };
+      cur.qtdPedidos += 1;
+      cur.totalBruto += valor;
+      if (p.pagamentoAdiantado) cur.adiantado += valor;
+      porCliente.set(p.clienteId, cur);
+    }
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const linhas = Array.from(porCliente.values())
+      .map((c) => ({
+        clienteId: c.clienteId,
+        nome: c.nome,
+        nomeFantasia: c.nomeFantasia,
+        qtdPedidos: c.qtdPedidos,
+        totalBruto: round(c.totalBruto),
+        adiantado: round(c.adiantado),
+        aFaturar: round(c.totalBruto - c.adiantado),
+        creditoSaldo: saldoMap.get(c.clienteId) ?? 0,
+      }))
+      .sort((a, b) => (a.nomeFantasia ?? a.nome).localeCompare(b.nomeFantasia ?? b.nome, 'pt'));
+
+    return {
+      ano,
+      mes,
+      linhas,
+      totais: {
+        clientes: linhas.length,
+        pedidos: linhas.reduce((s, l) => s + l.qtdPedidos, 0),
+        totalBruto: round(linhas.reduce((s, l) => s + l.totalBruto, 0)),
+        aFaturar: round(linhas.reduce((s, l) => s + l.aFaturar, 0)),
+      },
+    };
+  }
 }
