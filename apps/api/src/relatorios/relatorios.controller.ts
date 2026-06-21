@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { RelatoriosService } from './relatorios.service';
@@ -8,5 +8,10 @@ import { RelatoriosService } from './relatorios.service';
 export class RelatoriosController {
   constructor(private service: RelatoriosService) {}
 
-  // TODO: Implementar endpoints
+  /** Tempos do processo por pedido (criado → recepção → laboratório → processado → despachado) */
+  @Get('tempos')
+  @Roles('gerencia', 'financeiro')
+  tempos(@Query('inicio') inicio?: string, @Query('fim') fim?: string) {
+    return this.service.tempos(inicio, fim);
+  }
 }
