@@ -95,7 +95,19 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
           <Input label="Serviço Base (nome) *" value={nome} onChange={(e) => setNome(e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
             <Select label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} options={CATEGORIAS} />
-            <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={editing ? '' : 'auto (próximo nº)'} />
+            {editing ? (
+              <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+            ) : (
+              <Input
+                label="Código"
+                value=""
+                disabled
+                readOnly
+                placeholder="Gerado automaticamente"
+                hint="Próximo número livre, atribuído pelo sistema"
+                className="cursor-not-allowed bg-slate-50 dark:bg-slate-900 text-slate-400"
+              />
+            )}
           </div>
           <div className="grid grid-cols-5 gap-2">
             <Input label="Var 1" value={v1} onChange={(e) => setV1(e.target.value)} />

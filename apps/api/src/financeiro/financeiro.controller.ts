@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -29,6 +30,17 @@ export class FinanceiroController {
   @Roles('gerencia', 'financeiro')
   resumoCreditos() {
     return this.service.resumoCreditos();
+  }
+
+  /** Fechamento mensal: o que cada cliente consumiu no mês (base da fatura) */
+  @Get('fechamento')
+  @Roles('gerencia', 'financeiro')
+  fechamento(@Query('ano') ano: string, @Query('mes') mes: string) {
+    const hoje = new Date();
+    return this.service.fechamentoMensal(
+      parseInt(ano, 10) || hoje.getFullYear(),
+      parseInt(mes, 10) || hoje.getMonth() + 1,
+    );
   }
 
   /** Saldo de um cliente (leve — recepção pode ver para informar no pedido) */

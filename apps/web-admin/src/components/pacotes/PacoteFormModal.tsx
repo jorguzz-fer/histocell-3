@@ -150,7 +150,19 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-3 gap-3">
-          <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={isEdit ? '' : 'auto (PCT-…)'} />
+          {isEdit ? (
+            <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+          ) : (
+            <Input
+              label="Código"
+              value=""
+              disabled
+              readOnly
+              placeholder="Gerado automaticamente"
+              hint="PCT-NNN, atribuído pelo sistema"
+              className="cursor-not-allowed bg-slate-50 dark:bg-slate-900 text-slate-400"
+            />
+          )}
           <div className="col-span-2">
             <Input label="Nome do pacote" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Processamento + Inclusão + Corte HE" />
           </div>

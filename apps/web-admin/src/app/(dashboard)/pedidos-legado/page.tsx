@@ -28,7 +28,7 @@ export default function PedidosLegadoPage() {
     <div className="min-h-screen space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pedido</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Orçamento</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Catálogo no formato da planilha — busque pelo código, edite, arquive ou crie serviços
           </p>
@@ -81,7 +81,7 @@ export default function PedidosLegadoPage() {
               <div className="px-5 py-4 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 <div>
-                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pedido gerado!</p>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Orçamento gerado!</p>
                   <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70">{pedidoCriado.numero}</p>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function PedidosLegadoPage() {
                   <Tags className="h-4 w-4 mr-2" /> Gerar Etiquetas
                 </Button>
                 <Button variant="secondary" className="w-full" onClick={limparPedidoCriado}>
-                  <Plus className="h-4 w-4 mr-2" /> Novo pedido
+                  <Plus className="h-4 w-4 mr-2" /> Novo orçamento
                 </Button>
               </div>
             </div>
@@ -104,7 +104,7 @@ export default function PedidosLegadoPage() {
 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Itens do Pedido</h2>
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Itens do Orçamento</h2>
               {itens.length > 0 && <Badge variant="blue">{itens.length} item{itens.length !== 1 ? 's' : ''}</Badge>}
             </div>
 
@@ -161,7 +161,7 @@ export default function PedidosLegadoPage() {
                 ) : (
                   <div className="space-y-2">
                     <Button className="w-full" onClick={() => handleSalvar('enviado')} loading={saving}>
-                      <Send className="h-4 w-4 mr-2" /> Enviar Pedido
+                      <Send className="h-4 w-4 mr-2" /> Enviar Orçamento
                     </Button>
                     <Button variant="secondary" className="w-full" onClick={() => handleSalvar('rascunho')} loading={saving}>
                       {editId ? 'Atualizar rascunho' : 'Salvar como Rascunho'}
