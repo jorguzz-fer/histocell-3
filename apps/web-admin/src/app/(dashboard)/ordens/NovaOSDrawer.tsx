@@ -10,6 +10,8 @@ import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
 import type { AmostraPendente } from './types'
 
+type UserOpt = { id: number; nome: string; email: string; role: string }
+
 const PRIORIDADE_OPTS = [
   { value: 'normal',  label: 'Normal' },
   { value: 'urgente', label: 'Urgente' },
@@ -41,16 +43,25 @@ export function NovaOSDrawer({ open, onClose, onSaved }: NovaOSDrawerProps) {
   const [responsavel, setResponsavel] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [saving, setSaving]           = useState(false)
+  const [users, setUsers] = useState<UserOpt[]>([])
+  const [responsavelUserId, setResponsavelUserId] = useState<string>('')
 
   useEffect(() => {
     if (open) {
       setAmostraId('')
       setPrioridade('normal')
       setResponsavel('')
+      setResponsavelUserId('')
       setObservacoes('')
       loadPendentes()
     }
   }, [open])
+
+  useEffect(() => {
+    api.get<UserOpt[]>('/users?roles=gerencia,recepcao,tecnico')
+      .then(setUsers)
+      .catch(() => {})
+  }, [])
 
   async function loadPendentes() {
     setLoading(true)
@@ -74,6 +85,7 @@ export function NovaOSDrawer({ open, onClose, onSaved }: NovaOSDrawerProps) {
         amostraId: parseInt(amostraId),
         prioridade,
         responsavel: responsavel.trim() || undefined,
+        responsavelUserId: responsavelUserId ? parseInt(responsavelUserId) : undefined,
         observacoes: observacoes.trim() || undefined,
       })
       toast.success('OS criada com sucesso!')
@@ -174,11 +186,18 @@ export function NovaOSDrawer({ open, onClose, onSaved }: NovaOSDrawerProps) {
               onChange={(e) => setPrioridade(e.target.value)}
               options={PRIORIDADE_OPTS}
             />
-            <Input
+            <Select
               label="Responsável"
-              value={responsavel}
-              onChange={(e) => setResponsavel(e.target.value)}
-              placeholder="Técnico responsável"
+              value={responsavelUserId}
+              onChange={(e) => {
+                setResponsavelUserId(e.target.value)
+                const u = users.find((x) => String(x.id) === e.target.value)
+                setResponsavel(u?.nome ?? '')
+              }}
+              options={[
+                { value: '', label: '— Sem responsável —' },
+                ...users.map((u) => ({ value: String(u.id), label: `${u.nome} (${u.role})` })),
+              ]}
             />
           </div>
           <div>

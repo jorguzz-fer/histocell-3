@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { api } from '@/lib/api'
 import { PedidoDrawer } from './PedidoDrawer'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Pedido, PedidoListResponse } from './types'
 
 // ─── status config ────────────────────────────────────────────────────────────
@@ -15,6 +16,7 @@ import type { Pedido, PedidoListResponse } from './types'
 const statusConfig: Record<string, { label: string; variant: 'slate' | 'blue' | 'green' | 'rose' | 'amber' }> = {
   rascunho:  { label: 'Rascunho',  variant: 'slate' },
   enviado:   { label: 'Enviado',   variant: 'blue'  },
+  recebido_pendente_aprovacao: { label: 'Aguardando aprovação', variant: 'amber' },
   recebido:  { label: 'Recebido',  variant: 'green' },
   cancelado: { label: 'Cancelado', variant: 'rose'  },
 }
@@ -44,6 +46,17 @@ export default function PedidosPage() {
   const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const user = useCurrentUser()
+
+  const aprovarDivergencia = async (id: number) => {
+    try {
+      await api.patch(`/pedidos/${id}/aprovar-divergencia`, {})
+      toast.success('Divergência aprovada')
+      fetchPedidos()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao aprovar')
+    }
+  }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -282,6 +295,14 @@ export default function PedidosPage() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-end gap-1">
+                              {p.status === 'recebido_pendente_aprovacao' && user?.role === 'gerencia' && (
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); aprovarDivergencia(p.id) }}
+                                >
+                                  Aprovar
+                                </Button>
+                              )}
                               <button
                                 onClick={() => abrirEditar(p)}
                                 title="Editar"

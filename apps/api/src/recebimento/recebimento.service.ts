@@ -6,6 +6,8 @@ import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
+import { OrdensService } from '../ordens/ordens.service';
+import { AuditService } from '../common/audit.service';
 
 // ─── include padrão de amostra ────────────────────────────────────────────────
 
@@ -25,6 +27,8 @@ const INCLUDE_AMOSTRA = {
 export class RecebimentoService {
   constructor(
     private prisma: PrismaService,
+    private ordens: OrdensService,
+    private audit: AuditService,
     private financeiro: FinanceiroService,
     private etiquetas: EtiquetasService,
   ) {}
@@ -210,7 +214,7 @@ export class RecebimentoService {
   }
 
   // ── Receber pedido: registra amostras + avança status ─────────────────────────
-  async receberPedido(dto: ReceberPedidoDto) {
+  async receberPedido(dto: ReceberPedidoDto, userId: number) {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id: dto.pedidoId },
       select: {
@@ -252,6 +256,14 @@ export class RecebimentoService {
         include: INCLUDE_AMOSTRA,
       });
       amostrasCreated.push(amostra);
+
+      // Auto-cria OS para a amostra, na etapa macroscopia
+      await this.ordens.criarAuto(amostra.id, 'macroscopia');
+      // Amostra entra em em_processamento (OS assumiu)
+      await this.prisma.amostra.update({
+        where: { id: amostra.id },
+        data: { status: 'em_processamento' },
+      });
     }
 
     // ── Etiqueta de nível 2: 1 lâmina por amostra designada (Célio) ─────────────
@@ -278,6 +290,9 @@ export class RecebimentoService {
       dto.qtdPrevista != null && dto.qtdPrevista >= 0 ? dto.qtdPrevista : somaItens;
     const diferenca = recebida - prevista;
     const excedente = diferenca > 0;
+    // Gate da Spec 1A: qualquer divergência (mais OU menos) cai em aprovação da gerência.
+    const divergente = diferenca !== 0;
+    const novoStatus = divergente ? 'recebido_pendente_aprovacao' : 'recebido';
 
     // Notas de conferência (automática + manual)
     const dataStr = agora.toLocaleDateString('pt-BR');
@@ -301,18 +316,35 @@ export class RecebimentoService {
     await this.prisma.pedido.update({
       where: { id: dto.pedidoId },
       data: {
-        status: 'recebido',
+        status: novoStatus,
         dataRecebimento: agora,
         qtdPrevista: prevista,
         qtdRecebida: recebida,
         excedente,
+        contagemDivergente: divergente,
         observacoes: observacoes || undefined,
       },
     });
 
+    await this.audit.log(
+      userId,
+      divergente ? 'RECEBIDO_PENDENTE_APROVACAO' : 'RECEBIDO',
+      'Pedido',
+      dto.pedidoId,
+      {
+        prevista,
+        recebida,
+        diferenca,
+        excedente,
+        divergente,
+        amostrasIds: amostrasCreated.map((a) => a.id),
+      },
+    );
+
     // ── Abatimento automático do crédito pré-pago (se houver e não pago adiantado) ──
+    // Só abate se o pedido ficou em status final 'recebido' (sem pendência de aprovação).
     let credito: { abatido: number; saldo: number } | null = null;
-    if (!pedido.pagamentoAdiantado) {
+    if (!divergente && !pedido.pagamentoAdiantado) {
       const valorPedido =
         Math.round(
           pedido.itens.reduce(
@@ -333,11 +365,14 @@ export class RecebimentoService {
     }
 
     return {
-      message: `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
+      message: divergente
+        ? `${recebida} amostra(s) registrada(s). Contagem prevista (${prevista}) diverge — pedido aguarda aprovação da gerência.`
+        : `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
       etiquetasGeradas,
-      conferencia: { prevista, recebida, diferenca, excedente },
+      conferencia: { prevista, recebida, diferenca, excedente, divergente },
       credito, // { abatido, saldo } quando consumiu crédito; senão null
+      divergente,
     };
   }
 

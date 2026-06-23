@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Boxes,
   PackageOpen,
+  Inbox,
   Tags,
   ClipboardList,
   ScanLine,
@@ -36,6 +37,7 @@ const menuItems: MenuItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['gerencia'] },
   { href: '/cadastro', label: 'Clientes', icon: Users },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen },
+  { href: '/fila', label: 'Fila', icon: Inbox },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
   // Telas com valores: ocultas para o perfil técnico (sem valores).
   { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet, roles: ['gerencia', 'recepcao', 'financeiro'] },
