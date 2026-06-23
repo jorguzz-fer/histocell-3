@@ -23,6 +23,7 @@ export type Pedido = {
   dataEnvio?: string | null
   dataRecebimento?: string | null
   observacoes?: string | null
+  contagemDivergente?: boolean
   itens: ItemPedido[]
   totalItens: number
   valorTotal: number
@@ -50,6 +51,7 @@ export type Servico = {
   precoRotina: number
   precoPesquisa: number
   observacoes?: string | null
+  geraEtiqueta?: boolean
   tipo?:      string | null
   variante1?: string | null
   variante2?: string | null

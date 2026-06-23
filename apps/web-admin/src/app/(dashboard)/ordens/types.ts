@@ -16,6 +16,7 @@ export type OrdemServico = {
   etapaAtual: string
   prioridade: string
   responsavel?: string | null
+  responsavelUserId?: number | null
   observacoes?: string | null
   iniciadoEm?: string | null
   concluidoEm?: string | null
