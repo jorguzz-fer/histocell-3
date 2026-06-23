@@ -65,6 +65,7 @@ model Cliente {
   celular           String?
   segmento          String    @default("recorrente") // recorrente, esporadico, pesquisador
   descontoPadrao    Decimal   @default(0) @db.Decimal(5, 2) // desconto fixo recorrente (%) aplicado a todo pedido deste cliente
+  portalToken       String?   @unique // token do link público do portal do cliente (sem login)
   observacoes       String?   @db.Text
   ativo             Boolean   @default(true)
   createdAt         DateTime  @default(now())
@@ -77,6 +78,7 @@ model Cliente {
   orcamentos    Orcamento[]
   faturas       Fatura[]
   users         User[]
+  creditos      CreditoPrePago[]
 
   @@index([documento])
   @@index([nome])
@@ -171,6 +173,10 @@ model Pacote {
   codigo      String   @unique
   nome        String
   descricao   String?  @db.Text
+  // Como o preço é calculado quando o pacote é usado num pedido:
+  //  'fixo'     → usa PacoteItem.preco (preço fechado do combo)
+  //  'desconto' → aplica PacoteItem.descontoPct sobre o preço atual do cliente
+  tipoPreco   String   @default("fixo")
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -182,11 +188,12 @@ model Pacote {
 }
 
 model PacoteItem {
-  id         Int     @id @default(autoincrement())
-  pacoteId   Int
-  servicoId  Int
-  quantidade Int     @default(1)
-  preco      Decimal @db.Decimal(10, 2) // preço do componente dentro do pacote
+  id          Int     @id @default(autoincrement())
+  pacoteId    Int
+  servicoId   Int
+  quantidade  Int     @default(1)
+  preco       Decimal @db.Decimal(10, 2) // preço fixo do componente (modo 'fixo')
+  descontoPct Decimal @default(0) @db.Decimal(5, 2) // % desconto sobre a tabela (modo 'desconto')
 
   pacote  Pacote  @relation(fields: [pacoteId], references: [id], onDelete: Cascade)
   servico Servico @relation(fields: [servicoId], references: [id])
@@ -216,20 +223,54 @@ model Pedido {
   clienteId     Int
   numero        String    @unique // PED-20260410-001
   status        String    @default("rascunho")
+  origem        String    @default("local") // local (interno) | web (portal do cliente)
+  urgente            Boolean  @default(false) // prioridade do pedido
+  pagamentoAdiantado Boolean  @default(false) // já pago/adiantado (não cobrar no fechamento)
+  qtdPrevista   Int?      // qtd de amostras prevista (conferência no recebimento)
+  qtdRecebida   Int?      // qtd de amostras efetivamente recebida
+  excedente     Boolean   @default(false) // recebeu mais que o previsto → verificar cobrança
   dataEnvio     DateTime?
+  dataRecepcao  DateTime? // entrada registrada na recepção (etapa 1)
   dataRecebimento DateTime?
-  observacoes   String?   @db.Text
-  contagemDivergente Boolean @default(false)
+  observacoes   String?   @db.Text // observação interna (não visível ao cliente)
+  contagemDivergente Boolean @default(false) // gate de aprovação quando recebido ≠ orçado
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   cliente  Cliente      @relation(fields: [clienteId], references: [id])
   itens    ItemPedido[]
   amostras Amostra[]
+  creditos CreditoPrePago[]
+  recipientes Recipiente[]
 
   @@index([clienteId])
   @@index([numero])
   @@index([status])
+}
+
+// ── Recebimento etapa 1 (Recepção): recipientes que chegaram, sem contar amostras
+model TipoRecipiente {
+  id     Int     @id @default(autoincrement())
+  nome   String  @unique
+  ativo  Boolean @default(true)
+  ordem  Int     @default(0)
+}
+
+model Recipiente {
+  id          Int      @id @default(autoincrement())
+  pedidoId    Int
+  tipo        String   // Pote, Caixa, Saco, Outro, …
+  quantidade  Int      @default(1)
+  codigo      String?  @unique // conteúdo do código de barras da etiqueta do recipiente (Recepção)
+  etiquetaImpressa Boolean @default(false)
+  observacoes String?
+  recebidoPor String?
+  createdAt   DateTime @default(now())
+
+  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  amostras Amostra[] // amostras designadas dentro do recipiente (Laboratório)
+
+  @@index([pedidoId])
 }
 
 model ItemPedido {
@@ -242,6 +283,7 @@ model ItemPedido {
 
   pedido  Pedido  @relation(fields: [pedidoId], references: [id])
   servico Servico @relation(fields: [servicoId], references: [id])
+  amostra Amostra? // amostra gerada a partir deste item (emissão de etiquetas)
 
   @@index([pedidoId])
 }
@@ -252,6 +294,8 @@ model ItemPedido {
 model Amostra {
   id              Int       @id @default(autoincrement())
   pedidoId        Int
+  recipienteId    Int?      // recipiente de origem (Pote/Caixa/Saco) designado no Laboratório
+  itemPedidoId    Int?      @unique // item de origem (quando criada via emissão de etiquetas)
   numeroInterno   String    @unique // Numeração diária Histocell
   numeroCliente   String?   // Número do cliente (ex: Alquimipet)
   especie         String    // canino, felino, bovino, humano, etc
@@ -265,10 +309,13 @@ model Amostra {
   updatedAt       DateTime  @updatedAt
 
   pedido          Pedido    @relation(fields: [pedidoId], references: [id])
+  recipiente      Recipiente? @relation(fields: [recipienteId], references: [id])
+  itemPedido      ItemPedido? @relation(fields: [itemPedidoId], references: [id])
   ordemServico    OrdemServico?
   etiquetas       Etiqueta[]
 
   @@index([pedidoId])
+  @@index([recipienteId])
   @@index([numeroInterno])
   @@index([status])
 }
@@ -350,13 +397,37 @@ model Etiqueta {
   impresso      Boolean   @default(false)
   impressoEm    DateTime?
   createdAt     DateTime  @default(now())
+  // ── Rastreio por departamento (scan de código de barras) ──
+  departamentoAtual String?   // departamento corrente (recepcao, macroscopia, …)
+  rastreioStatus    String    @default("nao_iniciado") // nao_iniciado, em_andamento, aguardando, concluido
+  ultimoEventoEm    DateTime?
+  ultimoResponsavel String?   // quem fez o último scan
 
   amostra Amostra @relation(fields: [amostraId], references: [id])
+  eventos RastreioEvento[]
 
   @@index([codigo])
   @@index([numero])
   @@index([amostraId])
   @@index([impresso])
+  @@index([departamentoAtual])
+}
+
+// ── Eventos de rastreio: entrada/saída de cada etiqueta nos departamentos ──
+model RastreioEvento {
+  id           Int      @id @default(autoincrement())
+  etiquetaId   Int
+  departamento String   // recepcao, macroscopia, processamento, microtomia, coloracao, laudo, expedicao
+  tipo         String   // entrada, saida
+  scannedPor   String?  // operador/estação que escaneou
+  observacoes  String?
+  createdAt    DateTime @default(now())
+
+  etiqueta Etiqueta @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@index([etiquetaId])
+  @@index([departamento])
+  @@index([createdAt])
 }
 
 // ==========================================
@@ -464,13 +535,18 @@ model ItemFatura {
 model CreditoPrePago {
   id        Int      @id @default(autoincrement())
   clienteId Int
+  pedidoId  Int?     // pedido que originou o débito (consumo automático)
   valor     Decimal  @db.Decimal(10, 2)
   tipo      String   // credito, debito
   descricao String
-  saldo     Decimal  @db.Decimal(10, 2)
+  saldo     Decimal  @db.Decimal(10, 2) // saldo acumulado após o lançamento
   createdAt DateTime @default(now())
 
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+  pedido    Pedido?  @relation(fields: [pedidoId], references: [id])
+
   @@index([clienteId])
+  @@index([pedidoId])
 }
 
 // ==========================================

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Copy, RefreshCw, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Drawer } from '@/components/ui/Drawer'
 import { Button } from '@/components/ui/Button'
@@ -134,14 +135,51 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
   const [form, setForm] = useState<FormState>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [saving, setSaving] = useState(false)
+  const [portalToken, setPortalToken] = useState<string | null>(null)
+  const [portalBase, setPortalBase] = useState('')
+
+  // base do portal do cliente: env explícito OU deduzido do domínio do admin
+  useEffect(() => {
+    const env = process.env.NEXT_PUBLIC_CLIENTE_URL
+    if (env) { setPortalBase(env.replace(/\/$/, '')); return }
+    if (typeof window !== 'undefined') {
+      setPortalBase(window.location.origin.replace('-admin', '-cliente'))
+    }
+  }, [])
 
   // Popula o form quando o drawer abre
   useEffect(() => {
     if (open) {
       setForm(cliente ? clienteToForm(cliente) : EMPTY)
+      setPortalToken(cliente?.portalToken ?? null)
       setErrors({})
     }
   }, [open, cliente])
+
+  const portalUrl = portalToken ? `${portalBase}/p/${portalToken}` : ''
+
+  async function copiarLink() {
+    if (!portalUrl) return
+    try {
+      await navigator.clipboard.writeText(portalUrl)
+      toast.success('Link do portal copiado!')
+    } catch {
+      toast.error('Não foi possível copiar — copie manualmente.')
+    }
+  }
+
+  async function regenerarToken() {
+    if (!cliente) return
+    if (!confirm('Gerar um novo link? O link anterior deixará de funcionar.')) return
+    try {
+      const res = await api.post<{ portalToken: string }>(`/clientes/${cliente.id}/portal-token`, {})
+      setPortalToken(res.portalToken)
+      toast.success('Novo link gerado.')
+      onSaved()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao gerar link')
+    }
+  }
 
   function set(field: keyof FormState, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -236,6 +274,35 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
       width="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* ── Link do portal (somente edição) ── */}
+        {isEdit && (
+          <section className="rounded-lg border border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5 p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <h3 className="text-[12px] font-semibold text-blue-700 dark:text-blue-300">Link do portal do cliente</h3>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Envie este link para o cliente fazer pedidos sem login.
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={portalUrl || '(token não gerado)'}
+                onFocusCapture={(e) => e.currentTarget.select()}
+                className="flex-1 min-w-0 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[12px] font-mono px-2 py-1.5 truncate"
+              />
+              <button type="button" onClick={copiarLink} title="Copiar link"
+                className="shrink-0 p-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800">
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onClick={regenerarToken} title="Gerar novo link"
+                className="shrink-0 p-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* ── Tipo PJ/PF ── */}
         <div>

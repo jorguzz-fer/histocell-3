@@ -238,7 +238,16 @@ export default function PedidosPage() {
 
                         {/* Status */}
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <Badge variant={st.variant}>{st.label}</Badge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge variant={st.variant}>{st.label}</Badge>
+                            {p.urgente && <Badge variant="rose">Urgente</Badge>}
+                            {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
+                            {p.excedente && (
+                              <Badge variant="amber">
+                                Excedente{p.qtdPrevista != null && p.qtdRecebida != null ? ` ${p.qtdPrevista}→${p.qtdRecebida}` : ''}
+                              </Badge>
+                            )}
+                          </div>
                         </td>
 
                         {/* Serviços */}

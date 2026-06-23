@@ -92,4 +92,27 @@ export class ClientesController {
   reativar(@Param('id', ParseIntPipe) id: number) {
     return this.service.reativar(id);
   }
+
+  /**
+   * POST /clientes/:id/portal-token
+   * (Re)gera o token do link público do portal do cliente.
+   */
+  @Post(':id/portal-token')
+  @HttpCode(HttpStatus.OK)
+  @Roles('gerencia', 'recepcao')
+  regenerarToken(@Param('id', ParseIntPipe) id: number) {
+    return this.service.regenerarToken(id);
+  }
+
+  /**
+   * DELETE /clientes/:id/definitivo
+   * Exclusão permanente — só permitida se o cliente não tiver histórico.
+   * Roles: gerencia apenas
+   */
+  @Delete(':id/definitivo')
+  @Roles('gerencia')
+  @HttpCode(HttpStatus.OK)
+  removerDefinitivo(@Param('id', ParseIntPipe) id: number) {
+    return this.service.removerDefinitivo(id);
+  }
 }

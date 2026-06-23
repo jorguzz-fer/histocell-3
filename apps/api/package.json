@@ -10,7 +10,8 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "npx tsx prisma/seed.ts"
+    "prisma:seed": "npx tsx prisma/seed.ts",
+    "db:reset-piloto": "npx tsx prisma/reset-piloto.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.0",

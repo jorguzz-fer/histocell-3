@@ -64,7 +64,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
         toast.success('Serviço atualizado!')
       } else {
         saved = await api.post<Servico>('/pedidos/servicos/novo', {
-          codigo: codigo.trim() || `CUSTOM-${Date.now()}`,
+          codigo: codigo.trim() || undefined, // vazio → backend gera o próximo número livre
           categoria, nome: nome.trim(),
           precoBase: rot, precoRotina: rot, precoPesquisa: pes,
           observacoes: observacoes || undefined,
@@ -98,7 +98,19 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
           <Input label="Serviço Base (nome) *" value={nome} onChange={(e) => setNome(e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
             <Select label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} options={CATEGORIAS} />
-            <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={editing ? '' : 'auto se vazio'} />
+            {editing ? (
+              <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+            ) : (
+              <Input
+                label="Código"
+                value=""
+                disabled
+                readOnly
+                placeholder="Gerado automaticamente"
+                hint="Próximo número livre, atribuído pelo sistema"
+                className="cursor-not-allowed bg-slate-50 dark:bg-slate-900 text-slate-400"
+              />
+            )}
           </div>
           <label className="flex items-center gap-2 text-[12px] text-slate-700 dark:text-slate-300">
             <input

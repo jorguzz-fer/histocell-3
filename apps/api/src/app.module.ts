@@ -11,6 +11,8 @@ import { RecebimentoModule } from './recebimento/recebimento.module';
 import { OrdensModule } from './ordens/ordens.module';
 import { FilaModule } from './fila/fila.module';
 import { EtiquetasModule } from './etiquetas/etiquetas.module';
+import { RastreioModule } from './rastreio/rastreio.module';
+import { PortalModule } from './portal/portal.module';
 import { QualidadeModule } from './qualidade/qualidade.module';
 import { ComercialModule } from './comercial/comercial.module';
 import { FinanceiroModule } from './financeiro/financeiro.module';
@@ -31,6 +33,8 @@ import { HealthController } from './health.controller';
     OrdensModule,
     FilaModule,
     EtiquetasModule,
+    RastreioModule,
+    PortalModule,
     QualidadeModule,
     ComercialModule,
     FinanceiroModule,

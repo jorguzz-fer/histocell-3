@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../common/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
@@ -25,6 +26,7 @@ const SELECT_SAFE = {
   celular: true,
   segmento: true,
   descontoPadrao: true,
+  portalToken: true,
   observacoes: true,
   ativo: true,
   createdAt: true,
@@ -157,6 +159,7 @@ export class ClientesService {
         celular: dto.celular,
         segmento: dto.segmento ?? 'recorrente',
         descontoPadrao: dto.descontoPadrao ?? 0,
+        portalToken: randomBytes(16).toString('hex'),
         observacoes: dto.observacoes,
         // Cria endereço principal inline, se fornecido
         enderecos: dto.endereco
@@ -251,5 +254,45 @@ export class ClientesService {
       data: { ativo: true },
     });
     return { message: `Cliente #${id} reativado com sucesso.` };
+  }
+
+  // -------------------------------------------------------------------------
+  // PORTAL: (re)gera o token do link público do cliente
+  // -------------------------------------------------------------------------
+
+  async regenerarToken(id: number) {
+    await this.findOne(id); // garante que existe
+    const portalToken = randomBytes(16).toString('hex');
+    await this.prisma.cliente.update({ where: { id }, data: { portalToken } });
+    return { id, portalToken };
+  }
+
+  // -------------------------------------------------------------------------
+  // EXCLUSÃO DEFINITIVA (só sem histórico) — para limpar cadastros de teste
+  // -------------------------------------------------------------------------
+
+  async removerDefinitivo(id: number) {
+    const cliente = await this.prisma.cliente.findUnique({ where: { id } });
+    if (!cliente) throw new NotFoundException(`Cliente #${id} não encontrado.`);
+
+    const [pedidos, orcamentos, faturas] = await Promise.all([
+      this.prisma.pedido.count({ where: { clienteId: id } }),
+      this.prisma.orcamento.count({ where: { clienteId: id } }),
+      this.prisma.fatura.count({ where: { clienteId: id } }),
+    ]);
+    if (pedidos + orcamentos + faturas > 0) {
+      throw new ConflictException(
+        'Cliente possui histórico (pedidos/orçamentos/faturas) — desative em vez de excluir.',
+      );
+    }
+
+    // remove dependências leves e o cliente, em transação
+    await this.prisma.$transaction([
+      this.prisma.endereco.deleteMany({ where: { clienteId: id } }),
+      this.prisma.contato.deleteMany({ where: { clienteId: id } }),
+      this.prisma.tabelaPreco.deleteMany({ where: { clienteId: id } }),
+      this.prisma.cliente.delete({ where: { id } }),
+    ]);
+    return { message: `Cliente #${id} excluído definitivamente.`, deleted: true };
   }
 }

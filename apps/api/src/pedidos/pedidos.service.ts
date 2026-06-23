@@ -34,7 +34,7 @@ const INCLUDE_FULL = {
   itens: {
     include: {
       servico: {
-        select: { id: true, codigo: true, nome: true, precoBase: true },
+        select: { id: true, codigo: true, nome: true, categoria: true, precoBase: true },
       },
     },
   },
@@ -47,13 +47,18 @@ export class PedidosService {
   constructor(private prisma: PrismaService, private audit: AuditService) {}
 
   // ── numero sequencial diário ────────────────────────────────────────────────
+  // Usa o MAIOR sufixo do dia + 1 (à prova de buracos deixados por exclusões;
+  // count+1 colidia com números existentes após deletar pedidos).
   private async gerarNumero(): Promise<string> {
     const hoje = toDateStr(new Date());
     const prefix = `PED-${hoje}-`;
-    const count = await this.prisma.pedido.count({
+    const ultimo = await this.prisma.pedido.findFirst({
       where: { numero: { startsWith: prefix } },
+      orderBy: { numero: 'desc' },
+      select: { numero: true },
     });
-    return `${prefix}${String(count + 1).padStart(3, '0')}`;
+    const seq = ultimo ? parseInt(ultimo.numero.slice(prefix.length), 10) || 0 : 0;
+    return `${prefix}${String(seq + 1).padStart(3, '0')}`;
   }
 
   // ── shape de resposta com totais ────────────────────────────────────────────
@@ -78,9 +83,23 @@ export class PedidosService {
     };
   }
 
+  // ── Próximo código numérico livre (não colide com codigo nem codigoLegado) ──
+  private async gerarCodigoServico(): Promise<string> {
+    const servicos = await this.prisma.servico.findMany({
+      select: { codigo: true, codigoLegado: true },
+    });
+    let max = 0;
+    for (const s of servicos) {
+      const n = parseInt(s.codigo, 10);
+      if (Number.isFinite(n) && n > max) max = n;
+      if (s.codigoLegado != null && s.codigoLegado > max) max = s.codigoLegado;
+    }
+    return String(max + 1);
+  }
+
   // ── Criar serviço customizado on-the-fly ────────────────────────────────────
   async criarServico(dto: {
-    codigo: string
+    codigo?: string
     categoria: string
     nome: string
     precoBase: number
@@ -95,9 +114,10 @@ export class PedidosService {
     observacoes?: string
     geraEtiqueta?: boolean
   }) {
+    const codigo = dto.codigo?.trim() || (await this.gerarCodigoServico());
     const servico = await this.prisma.servico.create({
       data: {
-        codigo:       dto.codigo,
+        codigo,
         categoria:    dto.categoria,
         nome:         dto.nome,
         precoBase:    dto.precoBase,
@@ -274,6 +294,48 @@ export class PedidosService {
       ultimoPreco:    Number(i.preco),
       ultimoPedidoEm: i.pedido.createdAt,
     }));
+  }
+
+  // ── Renumeração sequencial do catálogo (códigos 1..N, ordem alfabética) ─────
+  // dryRun por padrão: retorna o plano sem aplicar. Ativos recebem os números
+  // mais baixos; aplica em duas fases para não colidir com o unique de "codigo".
+  async renumerarServicos(apply: boolean) {
+    const servicos = await this.prisma.servico.findMany({
+      select: { id: true, codigo: true, codigoLegado: true, nome: true, ativo: true },
+    });
+
+    const ordenados = [...servicos].sort((a, b) => {
+      if (a.ativo !== b.ativo) return a.ativo ? -1 : 1; // ativos primeiro
+      return a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' });
+    });
+
+    const plano = ordenados.map((s, i) => ({
+      id: s.id,
+      nome: s.nome,
+      ativo: s.ativo,
+      categoria: undefined as string | undefined,
+      codigoAntigo: s.codigo,
+      codigoNovo: String(i + 1),
+      codigoLegado: s.codigoLegado,
+    }));
+
+    const mudancas = plano.filter((p) => p.codigoAntigo !== p.codigoNovo).length;
+
+    if (!apply) {
+      return { apply: false, total: plano.length, mudancas, plano };
+    }
+
+    // Fase 1: códigos temporários (evita violar o unique). Fase 2: códigos finais.
+    await this.prisma.$transaction([
+      ...plano.map((p) =>
+        this.prisma.servico.update({ where: { id: p.id }, data: { codigo: `__tmp_${p.id}` } }),
+      ),
+      ...plano.map((p) =>
+        this.prisma.servico.update({ where: { id: p.id }, data: { codigo: p.codigoNovo } }),
+      ),
+    ]);
+
+    return { apply: true, total: plano.length, mudancas };
   }
 
   // ── Servicos disponíveis (para o picker do form / catálogo legado) ──────────
@@ -456,7 +518,10 @@ export class PedidosService {
         clienteId: dto.clienteId,
         numero,
         status,
+        origem: dto.origem ?? 'local',
         observacoes: dto.observacoes,
+        urgente: dto.urgente ?? false,
+        pagamentoAdiantado: dto.pagamentoAdiantado ?? false,
         dataEnvio: status === 'enviado' ? new Date() : undefined,
         itens: {
           create: dto.itens.map((item) => ({

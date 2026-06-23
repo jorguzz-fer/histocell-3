@@ -8,15 +8,22 @@ import {
 import { Type } from 'class-transformer';
 
 export class AmostraItemDto {
+  /** Recipiente (Pote/Caixa/Saco) ao qual esta amostra pertence. */
+  @IsOptional()
+  @IsInt()
+  recipienteId?: number;
+
   @IsOptional()
   @IsString()
   numeroCliente?: string;
 
+  @IsOptional()
   @IsString()
-  especie: string; // canino, felino, bovino, equino, suíno, humano, outro
+  especie?: string; // canino, felino, … (opcional — cassete fechado)
 
+  @IsOptional()
   @IsString()
-  material: string; // biopsia, citologia, peca_cirurgica, necropsia, outro
+  material?: string; // biopsia, citologia, … (opcional)
 
   @IsOptional()
   @IsString()
@@ -35,6 +42,16 @@ export class ReceberPedidoDto {
   @IsOptional()
   @IsString()
   recebidoPor?: string;
+
+  /** Quantidade prevista (conferência). Default: soma das qtds do pedido. */
+  @IsOptional()
+  @IsInt()
+  qtdPrevista?: number;
+
+  /** Observação manual da conferência (anexada às observações do pedido). */
+  @IsOptional()
+  @IsString()
+  observacaoConferencia?: string;
 
   @ValidateNested({ each: true })
   @Type(() => AmostraItemDto)

@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Search, Plus, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
+import { Search, Plus, Pencil, Archive, ArchiveRestore, Trash2, Boxes } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
+import type { Pacote } from '@/app/(dashboard)/pacotes/types'
 import { fmtBRL } from '@/hooks/useOrderCart'
 import { ServicoFormModal } from './ServicoFormModal'
 
@@ -14,6 +15,12 @@ function norm(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+/** valor num\u00e9rico do c\u00f3digo para ordena\u00e7\u00e3o (menor \u2192 maior) */
+function codeNum(s: Servico) {
+  const n = parseInt(s.codigo, 10)
+  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER
+}
+
 function variantes(s: Servico) {
   return [s.variante1, s.variante2, s.variante3, s.variante4, s.variante5].filter(Boolean).join(' · ')
 }
@@ -21,10 +28,13 @@ function variantes(s: Servico) {
 interface Props {
   isPesquisador: boolean
   onAdd: (s: Servico) => void | Promise<void>
+  /** Quando informado, a busca também surfaca pacotes com código/nome batendo. */
+  onAddPacote?: (p: Pacote) => void
 }
 
-export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
+export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props) {
   const [servicos, setServicos]         = useState<ServicoRow[]>([])
+  const [pacotes, setPacotes]           = useState<Pacote[]>([])
   const [query, setQuery]               = useState('')
   const [categoria, setCategoria]       = useState('')
   const [showInativos, setShowInativos] = useState(false)
@@ -42,19 +52,53 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
 
   useEffect(() => { load() }, [load])
 
+  useEffect(() => {
+    if (onAddPacote) api.get<Pacote[]>('/pacotes').then(setPacotes).catch(() => {})
+  }, [onAddPacote])
+
+  // Pacotes que batem com a busca (código exato/parcial ou nome) — surfaca o "943" do Célio
+  const pacotesMatch = useMemo(() => {
+    const raw = query.trim()
+    if (!raw || !onAddPacote) return []
+    const q = norm(raw)
+    return pacotes.filter(
+      (p) => norm(p.codigo).includes(q) || norm(p.nome).includes(q),
+    )
+  }, [pacotes, query, onAddPacote])
+
   const categorias = useMemo(
     () => Array.from(new Set(servicos.map((s) => s.categoria))).sort(),
     [servicos],
   )
 
   const rows = useMemo(() => {
-    const q = norm(query.trim())
-    return servicos.filter((s) => {
-      if (categoria && s.categoria !== categoria) return false
-      if (!q) return true
-      return norm(s.nome).includes(q) || s.codigo.toLowerCase().includes(q) ||
-        (s.codigoLegado != null && String(s.codigoLegado).includes(q))
-    })
+    const raw = query.trim()
+    const q = norm(raw)
+    let list = servicos.filter((s) => !categoria || s.categoria === categoria)
+
+    if (q) {
+      if (/^\d+$/.test(raw)) {
+        // Busca numérica: casamento EXATO de código tem prioridade — digitou 42, traz só o 42.
+        const qn = parseInt(raw, 10)
+        const exato = list.filter(
+          (s) => s.codigo === raw || codeNum(s) === qn || s.codigoLegado === qn,
+        )
+        list = exato.length
+          ? exato
+          : // sem exato: mostra os que começam com o dígito (não "contém"), p/ digitação parcial
+            list.filter(
+              (s) =>
+                s.codigo.startsWith(raw) ||
+                (s.codigoLegado != null && String(s.codigoLegado).startsWith(raw)),
+            )
+      } else {
+        // Busca textual: nome ou código
+        list = list.filter((s) => norm(s.nome).includes(q) || norm(s.codigo).includes(q))
+      }
+    }
+
+    // sempre do menor para o maior código
+    return [...list].sort((a, b) => codeNum(a) - codeNum(b) || a.codigo.localeCompare(b.codigo))
   }, [servicos, query, categoria])
 
   async function arquivar(s: ServicoRow) {
@@ -100,6 +144,40 @@ export function ServicoLegadoTable({ isPesquisador, onAdd }: Props) {
           <Plus className="h-3.5 w-3.5" /> Novo serviço
         </button>
       </div>
+
+      {/* Pacotes que batem com a busca (evita confundir com serviço de mesmo código) */}
+      {pacotesMatch.length > 0 && onAddPacote && (
+        <div className="space-y-1.5">
+          {pacotesMatch.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-3 rounded-lg border border-violet-200 dark:border-violet-500/40 bg-violet-50 dark:bg-violet-500/10 px-3 py-2"
+            >
+              <Boxes className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">Pacote</span>
+                  <span className="font-mono text-[11px] text-slate-500">{p.codigo}</span>
+                </div>
+                <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">{p.nome}</p>
+                <p className="text-[11px] text-slate-500">
+                  {p.totalItens} serviço(s) · {p.itens.map((it) => it.servico.nome).join(', ')}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-[14px] font-bold text-slate-900 dark:text-white">{fmtBRL(p.precoTotal)}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onAddPacote(p)}
+                className="shrink-0 flex items-center gap-1 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-medium px-3 py-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" /> Pacote
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Pills de categoria */}
       <div className="flex flex-wrap gap-1.5">

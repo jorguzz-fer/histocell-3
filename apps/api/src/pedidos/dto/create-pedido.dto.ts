@@ -4,6 +4,7 @@ import {
   IsString,
   IsIn,
   IsNumber,
+  IsBoolean,
   Min,
   Max,
   ValidateNested,
@@ -40,10 +41,25 @@ export class CreatePedidoDto {
   @IsString()
   observacoes?: string;
 
+  /** Pedido urgente (prioridade) */
+  @IsOptional()
+  @IsBoolean()
+  urgente?: boolean;
+
+  /** Pagamento já adiantado (não cobrar no fechamento) */
+  @IsOptional()
+  @IsBoolean()
+  pagamentoAdiantado?: boolean;
+
   /** Status inicial do pedido (rascunho ao salvar, enviado ao enviar) */
   @IsOptional()
   @IsIn(['rascunho', 'enviado'])
   status?: 'rascunho' | 'enviado';
+
+  /** Origem do pedido: local (interno) ou web (portal do cliente) */
+  @IsOptional()
+  @IsIn(['local', 'web'])
+  origem?: 'local' | 'web';
 
   @ValidateNested({ each: true })
   @Type(() => CreateItemPedidoDto)
