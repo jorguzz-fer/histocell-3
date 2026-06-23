@@ -8,6 +8,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
@@ -42,8 +43,9 @@ export class OrdensController {
 
   @Post()
   @Roles('gerencia', 'recepcao', 'tecnico')
-  create(@Body() dto: CreateOrdemDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateOrdemDto, @Request() req: any) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.create(dto, userId);
   }
 
   @Patch(':id')
@@ -58,14 +60,16 @@ export class OrdensController {
   /** Avança a etapa atual (triagem → macroscopia → processamento → laudo → concluída) */
   @Patch(':id/avancar')
   @Roles('gerencia', 'tecnico')
-  avancar(@Param('id', ParseIntPipe) id: number) {
-    return this.service.avancar(id);
+  avancar(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.avancar(id, userId);
   }
 
   /** Cancela a OS e reverte a amostra para pendente */
   @Patch(':id/cancelar')
   @Roles('gerencia')
-  cancelar(@Param('id', ParseIntPipe) id: number) {
-    return this.service.cancelar(id);
+  cancelar(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.cancelar(id, userId);
   }
 }

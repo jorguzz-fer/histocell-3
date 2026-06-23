@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { AuditService } from '../common/audit.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
@@ -49,7 +50,7 @@ const INCLUDE_OS = {
 
 @Injectable()
 export class OrdensService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private audit: AuditService) {}
 
   // ── número sequencial diário ─────────────────────────────────────────────────
   private async gerarNumero(): Promise<string> {
@@ -153,7 +154,7 @@ export class OrdensService {
   }
 
   // ── CREATE ───────────────────────────────────────────────────────────────────
-  async create(dto: CreateOrdemDto) {
+  async create(dto: CreateOrdemDto, userId: number) {
     const amostra = await this.prisma.amostra.findUnique({
       where: { id: dto.amostraId },
       include: { ordemServico: true },
@@ -189,6 +190,8 @@ export class OrdensService {
       data: { status: 'em_processamento' },
     });
 
+    await this.audit.log(userId, 'CREATE', 'OrdemServico', os.id, { amostraId: dto.amostraId });
+
     return os;
   }
 
@@ -203,7 +206,7 @@ export class OrdensService {
   }
 
   // ── AVANÇAR ETAPA ────────────────────────────────────────────────────────────
-  async avancar(id: number) {
+  async avancar(id: number, userId: number) {
     const os = await this.prisma.ordemServico.findUnique({
       where: { id },
       include: { etapas: true },
@@ -240,6 +243,7 @@ export class OrdensService {
         where: { id: os.amostraId },
         data: { status: 'concluida' },
       });
+      await this.audit.log(userId, 'AVANCO_ETAPA', 'OrdemServico', id, { de: etapaAtual, para: proxima });
       return updated;
     }
 
@@ -259,15 +263,19 @@ export class OrdensService {
       });
     }
 
-    return this.prisma.ordemServico.update({
+    const updated = await this.prisma.ordemServico.update({
       where: { id },
       data: dataFields,
       include: INCLUDE_OS,
     });
+
+    await this.audit.log(userId, 'AVANCO_ETAPA', 'OrdemServico', id, { de: etapaAtual, para: proxima });
+
+    return updated;
   }
 
   // ── CANCELAR ─────────────────────────────────────────────────────────────────
-  async cancelar(id: number) {
+  async cancelar(id: number, userId: number) {
     const os = await this.prisma.ordemServico.findUnique({ where: { id } });
     if (!os) throw new NotFoundException(`OS #${id} não encontrada.`);
     if (os.status === 'concluida') throw new BadRequestException('OS concluída não pode ser cancelada.');
@@ -283,6 +291,8 @@ export class OrdensService {
       where: { id: os.amostraId },
       data: { status: 'pendente' },
     });
+
+    await this.audit.log(userId, 'CANCEL', 'OrdemServico', id, { amostraId: os.amostraId });
 
     return updated;
   }
