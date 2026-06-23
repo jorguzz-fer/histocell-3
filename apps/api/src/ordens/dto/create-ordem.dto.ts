@@ -13,6 +13,8 @@ export class CreateOrdemDto {
   @IsString()
   responsavel?: string;
 
+  @IsOptional() @IsInt() responsavelUserId?: number;
+
   @IsOptional()
   @IsString()
   observacoes?: string;

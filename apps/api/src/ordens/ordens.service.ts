@@ -176,6 +176,7 @@ export class OrdensService {
         etapaAtual: 'triagem',
         prioridade: dto.prioridade ?? 'normal',
         responsavel: dto.responsavel,
+        responsavelUserId: dto.responsavelUserId ?? null,
         observacoes: dto.observacoes,
         etapas: {
           create: ETAPAS_ORDEM.map((etapa) => ({ etapa, status: 'pendente' })),
