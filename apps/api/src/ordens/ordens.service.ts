@@ -61,6 +61,28 @@ export class OrdensService {
     return `${prefix}${String(count + 1).padStart(3, '0')}`;
   }
 
+  /** Cria OS automaticamente para uma amostra (usado pelo Recebimento). */
+  async criarAuto(amostraId: number, etapaInicial: string = 'macroscopia') {
+    const numero = await this.gerarNumero();
+    return this.prisma.ordemServico.create({
+      data: {
+        amostraId,
+        numero,
+        etapaAtual: etapaInicial,
+        status: 'em_andamento',
+        prioridade: 'normal',
+        iniciadoEm: new Date(),
+        etapas: {
+          create: {
+            etapa: etapaInicial,
+            status: 'em_andamento',
+            iniciadoEm: new Date(),
+          },
+        },
+      },
+    });
+  }
+
   // ── Amostras pendentes sem OS ────────────────────────────────────────────────
   async findPendentes() {
     return this.prisma.amostra.findMany({
