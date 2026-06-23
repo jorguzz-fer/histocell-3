@@ -9,6 +9,7 @@ import { PedidosModule } from './pedidos/pedidos.module';
 import { PacotesModule } from './pacotes/pacotes.module';
 import { RecebimentoModule } from './recebimento/recebimento.module';
 import { OrdensModule } from './ordens/ordens.module';
+import { FilaModule } from './fila/fila.module';
 import { EtiquetasModule } from './etiquetas/etiquetas.module';
 import { QualidadeModule } from './qualidade/qualidade.module';
 import { ComercialModule } from './comercial/comercial.module';
@@ -28,6 +29,7 @@ import { HealthController } from './health.controller';
     PacotesModule,
     RecebimentoModule,
     OrdensModule,
+    FilaModule,
     EtiquetasModule,
     QualidadeModule,
     ComercialModule,
