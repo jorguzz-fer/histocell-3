@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  ParseIntPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { RecebimentoService } from './recebimento.service';
@@ -45,8 +35,9 @@ export class RecebimentoController {
   /** Recebe um pedido: registra amostras e avança status para "recebido" */
   @Post('receber')
   @Roles('gerencia', 'recepcao')
-  receberPedido(@Body() dto: ReceberPedidoDto) {
-    return this.service.receberPedido(dto);
+  receberPedido(@Body() dto: ReceberPedidoDto, @Request() req: any) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.receberPedido(dto, userId);
   }
 
   /** Atualiza dados ou status de uma amostra */

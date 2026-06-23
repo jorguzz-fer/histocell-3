@@ -3,6 +3,8 @@ import { PrismaService } from '../common/prisma.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
+import { OrdensService } from '../ordens/ordens.service';
+import { AuditService } from '../common/audit.service';
 
 // ─── include padrão de amostra ────────────────────────────────────────────────
 
@@ -20,7 +22,11 @@ const INCLUDE_AMOSTRA = {
 
 @Injectable()
 export class RecebimentoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ordens: OrdensService,
+    private audit: AuditService,
+  ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
   private async gerarNumeroInterno(): Promise<string> {
@@ -104,10 +110,14 @@ export class RecebimentoService {
   }
 
   // ── Receber pedido: registra amostras + avança status ─────────────────────────
-  async receberPedido(dto: ReceberPedidoDto) {
+  async receberPedido(dto: ReceberPedidoDto, userId: number) {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id: dto.pedidoId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        itens: { select: { quantidade: true } },
+      },
     });
     if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
     if (!['enviado', 'rascunho'].includes(pedido.status)) {
@@ -137,17 +147,47 @@ export class RecebimentoService {
         include: INCLUDE_AMOSTRA,
       });
       amostrasCreated.push(amostra);
+
+      // Auto-cria OS para a amostra, na etapa macroscopia
+      await this.ordens.criarAuto(amostra.id, 'macroscopia');
+      // Amostra entra em em_processamento (OS assumiu)
+      await this.prisma.amostra.update({
+        where: { id: amostra.id },
+        data: { status: 'em_processamento' },
+      });
     }
 
-    // Avança pedido para "recebido"
+    // Computa divergência
+    const totalOrcado = pedido.itens.reduce((s, it) => s + it.quantidade, 0);
+    const totalRecebido = amostrasCreated.length;
+    const divergente = totalRecebido !== totalOrcado;
+    const novoStatus = divergente ? 'recebido_pendente_aprovacao' : 'recebido';
+
     await this.prisma.pedido.update({
       where: { id: dto.pedidoId },
-      data: { status: 'recebido', dataRecebimento: agora },
+      data: {
+        status: novoStatus,
+        contagemDivergente: divergente,
+        dataRecebimento: agora,
+      },
     });
 
+    await this.audit.log(
+      userId,
+      divergente ? 'RECEBIDO_PENDENTE_APROVACAO' : 'RECEBIDO',
+      'Pedido',
+      dto.pedidoId,
+      { totalOrcado, totalRecebido, divergente, amostrasIds: amostrasCreated.map((a) => a.id) },
+    );
+
     return {
-      message: `${amostrasCreated.length} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
+      message: divergente
+        ? `${totalRecebido} amostra(s) registrada(s). Contagem orçada (${totalOrcado}) diverge — pedido aguarda aprovação da gerência.`
+        : `${totalRecebido} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
+      divergente,
+      totalOrcado,
+      totalRecebido,
     };
   }
 
