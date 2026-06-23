@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Package, FlaskConical } from 'lucide-react'
+import { Plus, Trash2, Package, FlaskConical, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Drawer } from '@/components/ui/Drawer'
 import { Button } from '@/components/ui/Button'
@@ -52,6 +52,9 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
   const [amostras, setAmostras] = useState<AmostraItemForm[]>([{ ...EMPTY_AMOSTRA }])
   const [recebidoPor, setRecebidoPor] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const totalOrcado = pedido ? pedido.itens.reduce((s, it) => s + it.quantidade, 0) : 0
+  const divergente = pedido != null && amostras.length !== totalOrcado
 
   useEffect(() => {
     if (open && pedido) {
@@ -188,6 +191,16 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
               Adicionar amostra
             </button>
           </div>
+
+          {divergente && (
+            <div className="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                Orçado <strong>{totalOrcado}</strong> · Recebendo <strong>{amostras.length}</strong>.
+                Esse pedido entrará em <strong>aprovação da gerência</strong> antes de virar cobrança.
+              </span>
+            </div>
+          )}
 
           <div className="space-y-4">
             {amostras.map((a, i) => (
