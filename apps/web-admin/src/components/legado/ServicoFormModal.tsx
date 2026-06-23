@@ -34,6 +34,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
   const [precoRotina, setPrecoRotina]     = useState(String(servico?.precoRotina ?? ''))
   const [precoPesquisa, setPrecoPesquisa] = useState(String(servico?.precoPesquisa ?? ''))
   const [observacoes, setObservacoes]     = useState(servico?.observacoes ?? '')
+  const [geraEtiqueta, setGeraEtiqueta]   = useState(servico?.geraEtiqueta ?? false)
   const [v1, setV1] = useState(servico?.variante1 ?? '')
   const [v2, setV2] = useState(servico?.variante2 ?? '')
   const [v3, setV3] = useState(servico?.variante3 ?? '')
@@ -56,6 +57,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
         saved = await api.patch<Servico>(`/pedidos/servicos/${servico!.id}`, {
           nome: nome.trim(), categoria, codigo: codigo.trim() || undefined,
           precoRotina: rot, precoPesquisa: pes, observacoes: observacoes || undefined,
+          geraEtiqueta,
           variante1: v1 || undefined, variante2: v2 || undefined, variante3: v3 || undefined,
           variante4: v4 || undefined, variante5: v5 || undefined,
         })
@@ -66,6 +68,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
           categoria, nome: nome.trim(),
           precoBase: rot, precoRotina: rot, precoPesquisa: pes,
           observacoes: observacoes || undefined,
+          geraEtiqueta,
           variante1: v1 || undefined, variante2: v2 || undefined, variante3: v3 || undefined,
           variante4: v4 || undefined, variante5: v5 || undefined,
         })
@@ -97,6 +100,15 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
             <Select label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} options={CATEGORIAS} />
             <Input label="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={editing ? '' : 'auto se vazio'} />
           </div>
+          <label className="flex items-center gap-2 text-[12px] text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={geraEtiqueta}
+              onChange={(e) => setGeraEtiqueta(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            Gera etiqueta de lâmina/bloco?
+          </label>
           <div className="grid grid-cols-5 gap-2">
             <Input label="Var 1" value={v1} onChange={(e) => setV1(e.target.value)} />
             <Input label="Var 2" value={v2} onChange={(e) => setV2(e.target.value)} />
