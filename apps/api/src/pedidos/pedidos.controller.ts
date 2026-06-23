@@ -48,6 +48,7 @@ export class PedidosController {
     precoRotina: number
     precoPesquisa: number
     observacoes?: string
+    geraEtiqueta?: boolean
     variante1?: string
     variante2?: string
     variante3?: string
@@ -178,6 +179,17 @@ export class PedidosController {
     @Body('status') status: string,
   ) {
     return this.service.updateStatus(id, status);
+  }
+
+  /** Aprovar divergência de contagem (libera o pedido pra cobrança) */
+  @Patch(':id/aprovar-divergencia')
+  @Roles('gerencia')
+  aprovarDivergencia(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.aprovarDivergencia(id, userId);
   }
 
   /** Exclui pedido (somente se status = rascunho) */
