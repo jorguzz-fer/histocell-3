@@ -16,7 +16,19 @@ type Pacote = { id: number; codigo: string; nome: string; itens: PacoteItem[]; p
 type Catalogo = { servicos: Servico[]; pacotes: Pacote[]; populares: Servico[]; historico: Servico[] }
 type Pedido = { numero: string; status: string; origem: string; createdAt: string; totalItens: number; valorTotal: number }
 type CartItem = { servicoId: number; codigo?: string; nome: string; preco: number; desconto: number; quantidade: number }
-type Tab = 'catalogo' | 'pacotes' | 'historico' | 'populares'
+type Tab = 'catalogo' | 'pacotes' | 'historico' | 'populares' | 'extrato'
+
+type Movimento = {
+  id: number
+  pedidoId: number | null
+  tipo: 'credito' | 'debito'
+  valor: number
+  descricao: string | null
+  saldo: number
+  createdAt: string
+}
+
+type Extrato = { saldo: number; movimentos: Movimento[] }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   rascunho: { label: 'Rascunho', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' },
@@ -59,6 +71,19 @@ export default function PortalPedidoPage() {
   const [enviado, setEnviado] = useState<{ numero: string; valorTotal: number } | null>(null)
   const [editandoNumero, setEditandoNumero] = useState<string | null>(null)
   const [rascunhoSalvo, setRascunhoSalvo] = useState<string | null>(null)
+
+  const [extrato, setExtrato] = useState<Extrato | null>(null)
+  const [extratoLoading, setExtratoLoading] = useState(false)
+
+  // Carrega o extrato ao abrir a aba (refaz a cada vez para refletir saldo em tempo real)
+  useEffect(() => {
+    if (tab !== 'extrato' || !token) return
+    setExtratoLoading(true)
+    portalApi.get<Extrato>(`/portal/${token}/extrato`)
+      .then(setExtrato)
+      .catch(() => setExtrato({ saldo: 0, movimentos: [] }))
+      .finally(() => setExtratoLoading(false))
+  }, [tab, token])
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
@@ -253,7 +278,7 @@ export default function PortalPedidoPage() {
             {/* Catálogo / abas */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
-                {([['catalogo', 'Catálogo'], ['pacotes', 'Pacotes'], ['historico', 'Histórico'], ['populares', 'Mais usados']] as [Tab, string][]).map(([k, label]) => (
+                {([['catalogo', 'Catálogo'], ['pacotes', 'Pacotes'], ['historico', 'Histórico'], ['populares', 'Mais usados'], ['extrato', 'Extrato']] as [Tab, string][]).map(([k, label]) => (
                   <button
                     key={k}
                     onClick={() => setTab(k)}
@@ -317,6 +342,7 @@ export default function PortalPedidoPage() {
 
                 {tab === 'historico' && <ListaServicos lista={catalogo?.historico ?? []} onAdd={add} vazio="Você ainda não tem histórico de serviços." />}
                 {tab === 'populares' && <ListaServicos lista={catalogo?.populares ?? []} onAdd={add} vazio="Sem serviços em destaque." />}
+                {tab === 'extrato' && <ExtratoView data={extrato} loading={extratoLoading} />}
               </div>
             </div>
 
@@ -488,6 +514,63 @@ function ListaServicos({ lista, onAdd, vazio }: { lista: Servico[]; onAdd: (s: S
   return (
     <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[55vh] overflow-y-auto">
       {lista.map((s) => <ServicoRow key={s.id} s={s} onAdd={() => onAdd(s)} />)}
+    </div>
+  )
+}
+
+function ExtratoView({ data, loading }: { data: Extrato | null; loading: boolean }) {
+  if (loading) return <p className="py-8 text-center text-[13px] text-slate-400">Carregando extrato…</p>
+  if (!data) return <p className="py-8 text-center text-[13px] text-slate-400">Não foi possível carregar o extrato.</p>
+
+  const { saldo, movimentos } = data
+
+  return (
+    <div className="space-y-3">
+      {/* Saldo destacado */}
+      <div className="rounded-lg border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-500/10 px-4 py-3 flex items-center justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400 font-semibold">Saldo atual</p>
+          <p className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 mt-0.5">Crédito pré-pago disponível</p>
+        </div>
+        <p className={`text-xl font-bold tabular-nums ${saldo > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500'}`}>
+          {brl(saldo)}
+        </p>
+      </div>
+
+      {/* Movimentos */}
+      {movimentos.length === 0 ? (
+        <p className="py-8 text-center text-[13px] text-slate-400">Nenhum movimento registrado ainda.</p>
+      ) : (
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <table className="w-full text-[12px]">
+            <thead className="bg-slate-50 dark:bg-slate-800">
+              <tr className="text-left text-slate-500 dark:text-slate-400">
+                <th className="px-3 py-2 font-medium">Data</th>
+                <th className="px-3 py-2 font-medium">Descrição</th>
+                <th className="px-3 py-2 font-medium text-right">Valor</th>
+                <th className="px-3 py-2 font-medium text-right">Saldo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[55vh]">
+              {movimentos.map((m) => {
+                const isCredito = m.tipo === 'credito'
+                return (
+                  <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-3 py-2 text-slate-500 dark:text-slate-400 whitespace-nowrap">{dataFmt(m.createdAt)}</td>
+                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
+                      {m.descricao ?? (isCredito ? 'Crédito' : 'Débito')}
+                    </td>
+                    <td className={`px-3 py-2 text-right tabular-nums font-medium whitespace-nowrap ${isCredito ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {isCredito ? '+' : '−'} {brl(Math.abs(m.valor))}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{brl(m.saldo)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

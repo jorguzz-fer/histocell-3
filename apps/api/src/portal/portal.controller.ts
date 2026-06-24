@@ -29,6 +29,12 @@ export class PortalController {
     return this.service.listarPedidos(token);
   }
 
+  /** Extrato de crédito pré-pago do cliente (saldo + movimentos) */
+  @Get(':token/extrato')
+  extrato(@Param('token') token: string) {
+    return this.service.extrato(token);
+  }
+
   /** Cria o pedido do cliente (origem=web). status: 'enviado' | 'rascunho' */
   @Post(':token/pedido')
   criarPedido(@Param('token') token: string, @Body() dto: PortalPedidoDto) {
