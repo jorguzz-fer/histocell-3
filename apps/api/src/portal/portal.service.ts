@@ -62,6 +62,17 @@ export class PortalService {
     };
   }
 
+  // ── Extrato de crédito do cliente (saldo + movimentos) ─────────────────────
+  async extrato(token: string) {
+    const cliente = await this.resolverCliente(token);
+    const dados = await this.financeiro.extrato(cliente.id);
+    // Não expomos o objeto "cliente" do extrato (já vem em /portal/:token info)
+    return {
+      saldo: dados.saldoAtual,
+      movimentos: dados.movimentos,
+    };
+  }
+
   // ── Catálogo com preços do cliente ──────────────────────────────────────────
   async catalogo(token: string) {
     const cliente = await this.resolverCliente(token);
