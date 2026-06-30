@@ -7,7 +7,6 @@ import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
-import { OrdensService } from '../ordens/ordens.service';
 import { AuditService } from '../common/audit.service';
 
 // ─── include padrão de amostra ────────────────────────────────────────────────
@@ -32,7 +31,6 @@ export class RecebimentoService {
     private audit: AuditService,
     private financeiro: FinanceiroService,
     private etiquetas: EtiquetasService,
-    private ordens: OrdensService,
   ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
@@ -291,11 +289,14 @@ export class RecebimentoService {
     let ordensGeradas = 0;
     for (const amostra of amostrasCreated) {
       try {
-        await this.ordens.create({
-          amostraId: amostra.id,
-          prioridade: pedido.urgente ? 'urgente' : 'normal',
-          responsavel: dto.recebidoPor,
-        });
+        await this.ordens.create(
+          {
+            amostraId: amostra.id,
+            prioridade: pedido.urgente ? 'urgente' : 'normal',
+            responsavel: dto.recebidoPor,
+          },
+          userId,
+        );
         ordensGeradas += 1;
       } catch {
         /* segue sem bloquear */
