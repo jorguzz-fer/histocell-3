@@ -10,8 +10,9 @@ import { UpdatePedidoDto } from './dto/update-pedido.dto';
 import { FilterPedidoDto } from './dto/filter-pedido.dto';
 import { UpdateServicoDto } from './dto/update-servico.dto';
 import { FilterServicoDto } from './dto/filter-servico.dto';
+import { AuditService } from '../common/audit.service';
 
-const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'cancelado'];
+const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'recebido_pendente_aprovacao', 'cancelado'];
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ const INCLUDE_FULL = {
 
 @Injectable()
 export class PedidosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private audit: AuditService) {}
 
   // ── numero sequencial diário ────────────────────────────────────────────────
   // Usa o MAIOR sufixo do dia + 1 (à prova de buracos deixados por exclusões;
@@ -595,6 +596,24 @@ export class PedidosService {
     });
 
     return this.toShape(pedido);
+  }
+
+  // ── APROVAR DIVERGÊNCIA ─────────────────────────────────────────────────────
+  async aprovarDivergencia(id: number, userId: number) {
+    const pedido = await this.prisma.pedido.findUnique({ where: { id } });
+    if (!pedido) throw new NotFoundException(`Pedido #${id} não encontrado.`);
+    if (pedido.status !== 'recebido_pendente_aprovacao') {
+      throw new BadRequestException(
+        `Pedido #${id} não está aguardando aprovação (status atual: ${pedido.status}).`,
+      );
+    }
+    const updated = await this.prisma.pedido.update({
+      where: { id },
+      data: { status: 'recebido' }, // contagemDivergente fica true como rastro histórico
+      include: INCLUDE_FULL,
+    });
+    await this.audit.log(userId, 'DIVERGENCIA_APROVADA', 'Pedido', id, { aprovadoPor: userId });
+    return this.toShape(updated);
   }
 
   // ── REMOVE (apenas rascunho) ─────────────────────────────────────────────────

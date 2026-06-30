@@ -1,4 +1,5 @@
 import { IsOptional, IsString, IsNumber, IsBoolean, Min } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, IsBoolean } from 'class-validator';
 
 export class UpdateServicoDto {
   @IsOptional() @IsBoolean() geraEtiqueta?: boolean;
@@ -8,6 +9,7 @@ export class UpdateServicoDto {
   @IsOptional() @IsNumber() @Min(0) precoRotina?: number;
   @IsOptional() @IsNumber() @Min(0) precoPesquisa?: number;
   @IsOptional() @IsString() observacoes?: string;
+  @IsOptional() @IsBoolean() geraEtiqueta?: boolean;
   @IsOptional() @IsString() variante1?: string;
   @IsOptional() @IsString() variante2?: string;
   @IsOptional() @IsString() variante3?: string;
