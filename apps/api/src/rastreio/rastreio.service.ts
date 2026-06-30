@@ -12,6 +12,8 @@ const INCLUDE_ETIQUETA = {
       pedido: {
         select: {
           numero: true,
+          qtdPrevista: true,
+          qtdRecebida: true,
           cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         },
       },
