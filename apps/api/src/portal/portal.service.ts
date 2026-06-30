@@ -166,6 +166,22 @@ export class PortalService {
     return { servicos, pacotes, populares, historico };
   }
 
+  // ── Faturas/boletos do cliente (2ª via no portal) ───────────────────────────
+  async listarFaturas(token: string) {
+    const cliente = await this.resolverCliente(token);
+    const faturas = await this.prisma.fatura.findMany({
+      where: { clienteId: cliente.id, status: { in: ['emitida', 'paga'] } },
+      select: {
+        numero: true, periodo: true, status: true,
+        valorTotal: true, dataVencimento: true, dataPagamento: true,
+        linhaDigitavel: true, pixQrCode: true, pdfUrl: true,
+      },
+      orderBy: { dataVencimento: 'desc' },
+      take: 24,
+    });
+    return faturas.map((f) => ({ ...f, valorTotal: Number(f.valorTotal) }));
+  }
+
   // ── Laudos liberados do cliente (portal) ────────────────────────────────────
   async listarLaudos(token: string) {
     const cliente = await this.resolverCliente(token);

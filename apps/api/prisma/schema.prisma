@@ -519,11 +519,21 @@ model Fatura {
   numero       String    @unique // FAT-202604-001
   periodo      String    // 2026-04
   valorTotal   Decimal   @db.Decimal(10, 2)
-  status       String    @default("pendente")
+  status       String    @default("pendente") // pendente | emitida | paga | cancelada | erro
   dataEmissao  DateTime  @default(now())
   dataVencimento DateTime
   dataPagamento DateTime?
   observacoes  String?   @db.Text
+  // ── Integração de cobrança (Banco Cora) ──────────────────────────────────
+  coraInvoiceId  String?  @unique // id do boleto na Cora
+  coraStatus     String?  // status do boleto retornado pela Cora
+  linhaDigitavel String?
+  codigoBarras   String?
+  pixQrCode      String?  @db.Text
+  pdfUrl         String?
+  nfseStatus     String?  // pendente | emitida | erro
+  nfseUrl        String?
+  erroCobranca   String?  @db.Text // última mensagem de erro da emissão
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

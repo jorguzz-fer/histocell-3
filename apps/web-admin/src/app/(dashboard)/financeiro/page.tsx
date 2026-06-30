@@ -43,6 +43,8 @@ export default function FinanceiroPage() {
   // fechamento mensal
   const [mesRef, setMesRef] = useState(() => new Date().toISOString().slice(0, 7)) // YYYY-MM
   const [fechamento, setFechamento] = useState<Fechamento | null>(null)
+  const [coraOk, setCoraOk] = useState<boolean | null>(null)
+  const [gerandoId, setGerandoId] = useState<number | null>(null)
 
   const fetchFechamento = useCallback(() => {
     const [ano, mes] = mesRef.split('-')
@@ -52,6 +54,21 @@ export default function FinanceiroPage() {
   }, [mesRef])
 
   useEffect(() => { fetchFechamento() }, [fetchFechamento])
+  useEffect(() => {
+    api.get<{ configurada: boolean }>('/cobranca/status').then((r) => setCoraOk(r.configurada)).catch(() => setCoraOk(null))
+  }, [])
+
+  async function gerarCobranca(clienteId: number) {
+    setGerandoId(clienteId)
+    try {
+      await api.post('/cobranca/gerar', { clienteId, periodo: mesRef })
+      toast.success('Cobrança gerada (boleto emitido na Cora).')
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao gerar cobrança')
+    } finally {
+      setGerandoId(null)
+    }
+  }
 
   const fetchResumo = useCallback(async () => {
     setLoading(true)
@@ -188,18 +205,28 @@ export default function FinanceiroPage() {
                   <th className="px-4 py-2 font-semibold text-right">Adiantado</th>
                   <th className="px-4 py-2 font-semibold text-right">A faturar</th>
                   <th className="px-4 py-2 font-semibold text-right">Crédito atual</th>
+                  <th className="px-4 py-2 font-semibold text-right">Cobrança</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {fechamento.linhas.map((l) => (
-                  <tr key={l.clienteId} className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                    onClick={() => abrirExtrato(l.clienteId)}>
-                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200">{l.nomeFantasia ?? l.nome}</td>
+                  <tr key={l.clienteId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200 cursor-pointer" onClick={() => abrirExtrato(l.clienteId)}>{l.nomeFantasia ?? l.nome}</td>
                     <td className="px-4 py-2 text-center tabular-nums">{l.qtdPedidos}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{fmtBRL(l.totalBruto)}</td>
                     <td className="px-4 py-2 text-right tabular-nums text-slate-400">{l.adiantado ? fmtBRL(l.adiantado) : '—'}</td>
                     <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100">{fmtBRL(l.aFaturar)}</td>
                     <td className={`px-4 py-2 text-right tabular-nums ${l.creditoSaldo > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{fmtBRL(l.creditoSaldo)}</td>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        onClick={() => gerarCobranca(l.clienteId)}
+                        disabled={gerandoId === l.clienteId || l.aFaturar <= 0}
+                        title={coraOk === false ? 'Cora ainda não configurada — a fatura é criada, o boleto sai quando configurar' : 'Gerar boleto na Cora'}
+                        className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white"
+                      >
+                        {gerandoId === l.clienteId ? '…' : 'Gerar cobrança'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -207,7 +234,9 @@ export default function FinanceiroPage() {
           </div>
         )}
         <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400">
-          💡 Base da fatura do mês. A emissão de <strong>boleto + nota fiscal</strong> (integração Cora) é o próximo passo — depende de credenciais/API do banco.
+          {coraOk === false
+            ? <>⚠️ <strong>Cora ainda não configurada</strong> — "Gerar cobrança" cria a fatura, mas o boleto só é emitido após cadastrar as credenciais (CORA_CLIENT_ID/CERT/KEY).</>
+            : <>💡 "Gerar cobrança" cria a fatura do mês e emite o <strong>boleto (Cora)</strong>; a NFS-e depende da configuração fiscal no painel do banco.</>}
         </div>
       </div>
 

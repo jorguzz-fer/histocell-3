@@ -59,6 +59,30 @@ Análise da API do Cora para emissão de **boleto** + **Pix** e **NFS-e** (nota 
 
 > Observação técnica: o sandbox de desenvolvimento **bloqueia o domínio do Cora** (rede restrita), então a integração real será testada **em stage com as credenciais**, validando ponta a ponta antes de produção.
 
+## ✅ Status: módulo implementado (aguardando credenciais)
+
+O código já está pronto e roda sem credenciais (até lá, "Gerar cobrança" cria a fatura e o boleto fica pendente):
+- **`src/cobranca`** — `CoraClient` (mTLS + token via `https` nativo), `CobrancaService` (criar fatura do mês, emitir boleto, sincronizar, webhook), `CobrancaController`.
+- **Webhook público**: `POST /cobranca/webhook/cora` (sem JWT) — registrar essa URL na Cora.
+- **Financeiro → Fechamento mensal**: botão **"Gerar cobrança"** por cliente + indicador de Cora configurada.
+- **Portal do cliente**: seção **"Minhas faturas"** (2ª via: baixar boleto, copiar linha digitável/Pix).
+- Migração `20260625140000_fatura_cobranca_cora` (campos do boleto na Fatura).
+
+### Variáveis de ambiente (secrets no Coolify)
+```
+CORA_ENV=stage              # stage | production
+CORA_CLIENT_ID=...          # client id da Integração Direta
+CORA_CERT=<PEM ou base64>   # certificado
+CORA_KEY=<PEM ou base64>    # chave privada
+# opcionais:
+CORA_BASE_URL=...           # sobrescreve a URL base
+CORA_MULTA_PCT=2            # multa (%) por atraso
+CORA_JUROS_MES_PCT=1        # juros (% a.m.)
+```
+Webhook a registrar na Cora: `https://<api-publica>/cobranca/webhook/cora`
+
+> ⚠️ Confirmar contra o stage: os **nomes exatos** dos campos do corpo do boleto v2 e do retorno (linha digitável/PDF/Pix). O código já tem fallbacks, mas ajusto fino quando rodar em stage.
+
 ## Ordem sugerida
 1. Você habilita a API + me manda as **credenciais de stage**.
 2. Eu construo o módulo e testo emissão de boleto + webhook em **stage**.

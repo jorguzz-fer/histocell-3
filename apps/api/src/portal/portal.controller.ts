@@ -35,6 +35,12 @@ export class PortalController {
     return this.service.extrato(token);
   }
 
+  /** Faturas/boletos do cliente (2ª via) */
+  @Get(':token/faturas')
+  faturas(@Param('token') token: string) {
+    return this.service.listarFaturas(token);
+  }
+
   /** Laudos liberados do cliente */
   @Get(':token/laudos')
   laudos(@Param('token') token: string) {

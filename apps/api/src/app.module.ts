@@ -18,6 +18,7 @@ import { ComercialModule } from './comercial/comercial.module';
 import { FinanceiroModule } from './financeiro/financeiro.module';
 import { RelatoriosModule } from './relatorios/relatorios.module';
 import { LaudosModule } from './laudos/laudos.module';
+import { CobrancaModule } from './cobranca/cobranca.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -41,6 +42,7 @@ import { HealthController } from './health.controller';
     FinanceiroModule,
     RelatoriosModule,
     LaudosModule,
+    CobrancaModule,
   ],
   controllers: [HealthController],
 })
