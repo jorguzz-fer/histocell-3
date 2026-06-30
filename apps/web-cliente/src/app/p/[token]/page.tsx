@@ -15,6 +15,7 @@ type PacoteItem = { servicoId: number; quantidade: number; nome: string; categor
 type Pacote = { id: number; codigo: string; nome: string; itens: PacoteItem[]; precoTotal: number; totalItens: number; categorias: string[] }
 type Catalogo = { servicos: Servico[]; pacotes: Pacote[]; populares: Servico[]; historico: Servico[] }
 type Pedido = { numero: string; status: string; origem: string; createdAt: string; totalItens: number; valorTotal: number }
+type LaudoCliente = { id: number; arquivoNome?: string | null; liberadoEm?: string | null; pedidoNumero?: string | null }
 type CartItem = { servicoId: number; codigo?: string; nome: string; preco: number; desconto: number; quantidade: number }
 type Tab = 'catalogo' | 'pacotes' | 'historico' | 'populares' | 'extrato'
 
@@ -57,6 +58,7 @@ export default function PortalPedidoPage() {
   const [info, setInfo] = useState<Info | null>(null)
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [laudos, setLaudos] = useState<LaudoCliente[]>([])
   const [erro, setErro] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [dark, setDark] = useState(false)
@@ -98,7 +100,18 @@ export default function PortalPedidoPage() {
 
   const fetchPedidos = useCallback(() => {
     portalApi.get<Pedido[]>(`/portal/${token}/pedidos`).then(setPedidos).catch(() => {})
+    portalApi.get<LaudoCliente[]>(`/portal/${token}/laudos`).then(setLaudos).catch(() => {})
   }, [token])
+
+  async function baixarLaudo(l: LaudoCliente) {
+    try {
+      const r = await portalApi.get<{ arquivoBase64: string; arquivoNome: string }>(`/portal/${token}/laudo/${l.id}/arquivo`)
+      const link = document.createElement('a')
+      link.href = `data:application/pdf;base64,${r.arquivoBase64}`
+      link.download = r.arquivoNome || 'laudo.pdf'
+      link.click()
+    } catch {}
+  }
 
   useEffect(() => {
     let ok = true
@@ -459,6 +472,35 @@ export default function PortalPedidoPage() {
             </div>
           )}
         </section>
+
+        {/* Meus laudos */}
+        {laudos.length > 0 && (
+          <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Meus laudos</h2>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {laudos.map((l) => (
+                <div key={l.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
+                      Pedido {l.pedidoNumero ?? '—'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Liberado em {l.liberadoEm ? dataFmt(l.liberadoEm) : '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => baixarLaudo(l)}
+                    className="shrink-0 rounded-lg bg-histocell-600 hover:bg-histocell-700 text-white text-[12px] font-medium px-3 py-1.5"
+                  >
+                    Ver resultado
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Contato */}
         <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">

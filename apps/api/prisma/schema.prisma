@@ -243,6 +243,7 @@ model Pedido {
   amostras Amostra[]
   creditos CreditoPrePago[]
   recipientes Recipiente[]
+  laudos Laudo[]
 
   @@index([clienteId])
   @@index([numero])
@@ -368,11 +369,21 @@ model EtapaOS {
 
 model Laudo {
   id              Int       @id @default(autoincrement())
-  ordemServicoId  Int       @unique
-  conteudo        String    @db.Text
+  ordemServicoId  Int?      @unique
+  pedidoId        Int?      // laudo ligado ao pedido (caso/cliente)
+  conteudo        String?   @db.Text
   macroscopia     String?   @db.Text
   microscopia     String?   @db.Text
   diagnostico     String?   @db.Text
+  // Fluxo "por e-mail": patologista externo recebe o pedido por e-mail e
+  // devolve o laudo em PDF, que é anexado e liberado ao cliente.
+  patologistaNome  String?
+  patologistaEmail String?
+  arquivoBase64    String?  @db.Text // PDF do laudo (base64)
+  arquivoNome      String?
+  status           String   @default("solicitado") // solicitado | liberado
+  solicitadoPor    String?
+  solicitadoEm     DateTime?
   assinadoPor     String?
   assinadoEm      DateTime?
   liberado        Boolean   @default(false)
@@ -380,7 +391,10 @@ model Laudo {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id])
+  ordemServico OrdemServico? @relation(fields: [ordemServicoId], references: [id])
+  pedido       Pedido?       @relation(fields: [pedidoId], references: [id])
+
+  @@index([pedidoId])
 }
 
 // ==========================================

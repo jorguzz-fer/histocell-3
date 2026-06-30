@@ -17,6 +17,7 @@ import { QualidadeModule } from './qualidade/qualidade.module';
 import { ComercialModule } from './comercial/comercial.module';
 import { FinanceiroModule } from './financeiro/financeiro.module';
 import { RelatoriosModule } from './relatorios/relatorios.module';
+import { LaudosModule } from './laudos/laudos.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -39,6 +40,7 @@ import { HealthController } from './health.controller';
     ComercialModule,
     FinanceiroModule,
     RelatoriosModule,
+    LaudosModule,
   ],
   controllers: [HealthController],
 })

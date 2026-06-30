@@ -35,6 +35,18 @@ export class PortalController {
     return this.service.extrato(token);
   }
 
+  /** Laudos liberados do cliente */
+  @Get(':token/laudos')
+  laudos(@Param('token') token: string) {
+    return this.service.listarLaudos(token);
+  }
+
+  /** PDF de um laudo liberado do cliente */
+  @Get(':token/laudo/:id/arquivo')
+  laudoArquivo(@Param('token') token: string, @Param('id') id: string) {
+    return this.service.laudoArquivo(token, parseInt(id, 10));
+  }
+
   /** Cria o pedido do cliente (origem=web). status: 'enviado' | 'rascunho' */
   @Post(':token/pedido')
   criarPedido(@Param('token') token: string, @Body() dto: PortalPedidoDto) {

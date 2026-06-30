@@ -166,6 +166,38 @@ export class PortalService {
     return { servicos, pacotes, populares, historico };
   }
 
+  // ── Laudos liberados do cliente (portal) ────────────────────────────────────
+  async listarLaudos(token: string) {
+    const cliente = await this.resolverCliente(token);
+    const laudos = await this.prisma.laudo.findMany({
+      where: { liberado: true, pedido: { clienteId: cliente.id } },
+      select: {
+        id: true,
+        arquivoNome: true,
+        liberadoEm: true,
+        pedido: { select: { numero: true } },
+      },
+      orderBy: { liberadoEm: 'desc' },
+    });
+    return laudos.map((l) => ({
+      id: l.id,
+      arquivoNome: l.arquivoNome,
+      liberadoEm: l.liberadoEm,
+      pedidoNumero: l.pedido?.numero ?? null,
+    }));
+  }
+
+  /** PDF de um laudo liberado do próprio cliente. */
+  async laudoArquivo(token: string, id: number) {
+    const cliente = await this.resolverCliente(token);
+    const laudo = await this.prisma.laudo.findFirst({
+      where: { id, liberado: true, pedido: { clienteId: cliente.id } },
+      select: { arquivoBase64: true, arquivoNome: true },
+    });
+    if (!laudo || !laudo.arquivoBase64) throw new NotFoundException('Laudo não encontrado.');
+    return laudo;
+  }
+
   // ── Últimos pedidos do cliente ──────────────────────────────────────────────
   async listarPedidos(token: string) {
     const cliente = await this.resolverCliente(token);
