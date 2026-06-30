@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../common/prisma.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
 import { EtiquetasService } from '../etiquetas/etiquetas.service';
+import { OrdensService } from '../ordens/ordens.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
@@ -27,6 +28,7 @@ export class RecebimentoService {
     private prisma: PrismaService,
     private financeiro: FinanceiroService,
     private etiquetas: EtiquetasService,
+    private ordens: OrdensService,
   ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
@@ -220,6 +222,7 @@ export class RecebimentoService {
         status: true,
         observacoes: true,
         pagamentoAdiantado: true,
+        urgente: true,
         itens: { select: { quantidade: true, preco: true, desconto: true } },
       },
     });
@@ -266,6 +269,22 @@ export class RecebimentoService {
           identificacao: amostra.numeroCliente || undefined,
         });
         etiquetasGeradas += res.etiquetas.length;
+      } catch {
+        /* segue sem bloquear */
+      }
+    }
+
+    // ── OS automática: 1 ordem de serviço por amostra designada (Célio) ─────────
+    // Best-effort: falha na criação da OS não bloqueia o recebimento.
+    let ordensGeradas = 0;
+    for (const amostra of amostrasCreated) {
+      try {
+        await this.ordens.create({
+          amostraId: amostra.id,
+          prioridade: pedido.urgente ? 'urgente' : 'normal',
+          responsavel: dto.recebidoPor,
+        });
+        ordensGeradas += 1;
       } catch {
         /* segue sem bloquear */
       }
@@ -336,6 +355,7 @@ export class RecebimentoService {
       message: `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
       etiquetasGeradas,
+      ordensGeradas, // OS criadas automaticamente (1 por amostra)
       conferencia: { prevista, recebida, diferenca, excedente },
       credito, // { abatido, saldo } quando consumiu crédito; senão null
     };
