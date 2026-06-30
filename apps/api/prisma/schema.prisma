@@ -142,6 +142,7 @@ model Servico {
   precoPesquisa Decimal @default(0)    @db.Decimal(10, 2)
   observacoes   String? @db.Text
   ativo         Boolean @default(true)
+  geraEtiqueta  Boolean @default(true) // se o serviço gera etiqueta (ex.: "caixa corta-lâmina" = false)
   // Campos para seleção guiada (cascata)
   tipo          String? // Eppendorf, Histológico, Microdissecção, etc.
   variante1     String? // Lâmina Silanizada, Material Ósseo, Em Resina, etc.

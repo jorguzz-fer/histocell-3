@@ -41,6 +41,7 @@ export type LinhaConferencia = {
   servicoCodigo: string
   quantidadeItem: number
   jaGeradas: number
+  geraEtiqueta?: boolean
   tipo: TipoEtiqueta
   quantidade: number
   coloracao: string

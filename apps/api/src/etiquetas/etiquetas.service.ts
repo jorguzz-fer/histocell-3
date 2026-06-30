@@ -153,7 +153,7 @@ export class EtiquetasService {
         },
         itens: {
           include: {
-            servico: { select: { nome: true, codigo: true } },
+            servico: { select: { nome: true, codigo: true, geraEtiqueta: true } },
             amostra: { select: { id: true, numeroInterno: true } },
           },
           orderBy: { id: 'asc' },
@@ -191,6 +191,7 @@ export class EtiquetasService {
         where: { amostraId: amostra.id },
       });
 
+      const geraEtiqueta = item.servico.geraEtiqueta !== false
       linhas.push({
         amostraId: amostra.id,
         numeroInterno: amostra.numeroInterno,
@@ -199,9 +200,11 @@ export class EtiquetasService {
         servicoCodigo: item.servico.codigo,
         quantidadeItem: item.quantidade,
         jaGeradas,
+        geraEtiqueta,
         // sugestões editáveis na tela de conferência
         tipo: 'lamina',
-        quantidade: Math.max(0, item.quantidade - jaGeradas),
+        // serviço que não etiqueta entra com 0 sugerido (mas continua editável)
+        quantidade: geraEtiqueta ? Math.max(0, item.quantidade - jaGeradas) : 0,
         coloracao: this.sugerirColoracao(item.servico.nome),
         identificacao: clienteLabel,
       });

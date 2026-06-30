@@ -1,6 +1,7 @@
-import { IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsBoolean, Min } from 'class-validator';
 
 export class UpdateServicoDto {
+  @IsOptional() @IsBoolean() geraEtiqueta?: boolean;
   @IsOptional() @IsString() nome?: string;
   @IsOptional() @IsString() categoria?: string;
   @IsOptional() @IsString() codigo?: string;

@@ -111,6 +111,7 @@ export class PedidosService {
     variante4?: string
     variante5?: string
     observacoes?: string
+    geraEtiqueta?: boolean
   }) {
     const codigo = dto.codigo?.trim() || (await this.gerarCodigoServico());
     const servico = await this.prisma.servico.create({
@@ -128,6 +129,7 @@ export class PedidosService {
         variante4:    dto.variante4 ?? null,
         variante5:    dto.variante5 ?? null,
         observacoes:  dto.observacoes ?? null,
+        geraEtiqueta: dto.geraEtiqueta ?? true,
       },
     });
     return {
