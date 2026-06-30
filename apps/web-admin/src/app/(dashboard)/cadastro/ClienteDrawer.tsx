@@ -55,6 +55,7 @@ type FormState = {
   telefone: string
   celular: string
   segmento: string
+  projeto: string
   descontoPadrao: string
   observacoes: string
   // endereço inline
@@ -81,6 +82,7 @@ const EMPTY: FormState = {
   telefone: '',
   celular: '',
   segmento: 'recorrente',
+  projeto: '',
   descontoPadrao: '',
   observacoes: '',
   endTipo: 'sede',
@@ -108,6 +110,7 @@ function clienteToForm(c: Cliente): FormState {
     telefone: c.telefone ?? '',
     celular: c.celular ?? '',
     segmento: c.segmento,
+    projeto: c.projeto ?? '',
     descontoPadrao: c.descontoPadrao ? String(c.descontoPadrao) : '',
     observacoes: c.observacoes ?? '',
     endTipo: end?.tipo ?? 'sede',
@@ -228,6 +231,7 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
         telefone: form.telefone.replace(/\D/g, '') || undefined,
         celular: form.celular.replace(/\D/g, '') || undefined,
         segmento: form.segmento,
+        projeto: form.segmento === 'pesquisador' ? (form.projeto.trim() || undefined) : undefined,
         descontoPadrao: form.descontoPadrao.trim() ? Number(form.descontoPadrao) : 0,
         observacoes: form.observacoes.trim() || undefined,
         ...(hasEndereco
@@ -399,6 +403,16 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
               hint="Aplicado automaticamente em cada pedido deste cliente"
             />
           </div>
+
+          {form.segmento === 'pesquisador' && (
+            <Input
+              label="Projeto (FAPESP/CNPq)"
+              value={form.projeto}
+              onChange={(e) => set('projeto', e.target.value)}
+              placeholder="Nº/código do projeto de financiamento"
+              hint="Sai na nota fiscal dos pedidos deste pesquisador"
+            />
+          )}
         </section>
 
         {/* ── Contato ── */}

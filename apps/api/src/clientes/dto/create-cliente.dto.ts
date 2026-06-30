@@ -99,6 +99,11 @@ export class CreateClienteDto {
   @IsOptional()
   segmento?: 'recorrente' | 'esporadico' | 'pesquisador';
 
+  /** Nº/código do projeto de financiamento (FAPESP/CNPq) — sai na NF (pesquisador) */
+  @IsString()
+  @IsOptional()
+  projeto?: string;
+
   /** Desconto fixo recorrente (%) aplicado automaticamente a cada pedido deste cliente */
   @IsNumber()
   @Min(0)

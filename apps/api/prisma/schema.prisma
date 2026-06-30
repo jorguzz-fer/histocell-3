@@ -64,6 +64,7 @@ model Cliente {
   telefone          String?
   celular           String?
   segmento          String    @default("recorrente") // recorrente, esporadico, pesquisador
+  projeto           String?   // nº/código do projeto de financiamento (FAPESP/CNPq) — sai na NF (pesquisador)
   descontoPadrao    Decimal   @default(0) @db.Decimal(5, 2) // desconto fixo recorrente (%) aplicado a todo pedido deste cliente
   portalToken       String?   @unique // token do link público do portal do cliente (sem login)
   observacoes       String?   @db.Text

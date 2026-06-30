@@ -36,10 +36,10 @@ export class PedidosController {
     return this.service.listarServicos(filter);
   }
 
-  /** Cria um serviço customizado on-the-fly (quando o serviço não existe na lista) */
+  /** Cria um serviço customizado (define preço) — só gerência (Célio) */
   @Post('servicos/novo')
   @HttpCode(201)
-  @Roles('gerencia', 'recepcao')
+  @Roles('gerencia')
   criarServico(@Body() body: {
     codigo?: string
     categoria: string

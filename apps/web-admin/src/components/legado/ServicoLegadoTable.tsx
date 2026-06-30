@@ -40,6 +40,12 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
   const [showInativos, setShowInativos] = useState(false)
   const [editing, setEditing]           = useState<Servico | null>(null)
   const [creating, setCreating]         = useState(false)
+  // Só a gerência cria serviço (define preço) — recepção/financeiro não.
+  const [podeCriar, setPodeCriar]       = useState(false)
+
+  useEffect(() => {
+    try { setPodeCriar(JSON.parse(localStorage.getItem('user') || '{}')?.role === 'gerencia') } catch {}
+  }, [])
 
   const load = useCallback(() => {
     const params = new URLSearchParams()
@@ -137,12 +143,14 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
           <input type="checkbox" checked={showInativos} onChange={(e) => setShowInativos(e.target.checked)} />
           Mostrar arquivados
         </label>
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-2"
-        >
-          <Plus className="h-3.5 w-3.5" /> Novo serviço
-        </button>
+        {podeCriar && (
+          <button
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-2"
+          >
+            <Plus className="h-3.5 w-3.5" /> Novo serviço
+          </button>
+        )}
       </div>
 
       {/* Pacotes que batem com a busca (evita confundir com serviço de mesmo código) */}
@@ -253,7 +261,7 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
                 <tr>
                   <td colSpan={7} className="px-3 py-8 text-center text-slate-400">
                     Nenhum serviço encontrado.
-                    {query && (
+                    {query && podeCriar && (
                       <button onClick={() => setCreating(true)} className="ml-2 text-blue-600 font-medium hover:underline">
                         Criar &quot;{query}&quot;?
                       </button>
