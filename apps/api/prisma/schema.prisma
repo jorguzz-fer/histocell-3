@@ -65,6 +65,10 @@ model Cliente {
   celular           String?
   segmento          String    @default("recorrente") // recorrente, esporadico, pesquisador
   projeto           String?   // nº/código do projeto de financiamento (FAPESP/CNPq) — sai na NF (pesquisador)
+  // Cobrança programada (Cora): quando ligada, o sistema gera a cobrança do mês
+  // fechado automaticamente no dia escolhido. Default desligada (emissão manual).
+  cobrancaAutomatica Boolean  @default(false)
+  diaCobranca        Int?     // dia do mês (1–28) para gerar a cobrança automática
   descontoPadrao    Decimal   @default(0) @db.Decimal(5, 2) // desconto fixo recorrente (%) aplicado a todo pedido deste cliente
   portalToken       String?   @unique // token do link público do portal do cliente (sem login)
   observacoes       String?   @db.Text

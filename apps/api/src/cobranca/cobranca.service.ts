@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { CoraClient } from './cora.client';
@@ -12,14 +19,66 @@ const INCLUDE = {
 } as const;
 
 @Injectable()
-export class CobrancaService {
+export class CobrancaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger('CobrancaService');
+  private timer?: NodeJS.Timeout;
+  private ultimoDiaRodado?: string; // 'YYYY-MM-DD' já processado (evita repetir no mesmo dia)
 
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
     private cora: CoraClient,
   ) {}
+
+  // ── Agendador leve (sem dependência): verifica de hora em hora ───────────────
+  onModuleInit() {
+    this.timer = setInterval(() => {
+      this.rodarAgendadas().catch((e) => this.logger.error(`Agendador de cobrança: ${e?.message}`));
+    }, 60 * 60 * 1000); // a cada 1h
+  }
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /**
+   * Gera as cobranças programadas: para cada cliente com cobrancaAutomatica e
+   * diaCobranca == hoje, fatura o MÊS ANTERIOR (fechado) — uma vez por dia.
+   * Só age com a Cora configurada. Idempotente (pula faturas já existentes).
+   */
+  async rodarAgendadas(force = false) {
+    const hoje = new Date();
+    const chaveDia = hoje.toISOString().slice(0, 10);
+    if (!force && this.ultimoDiaRodado === chaveDia) return { ok: true, ja_rodou_hoje: true };
+    if (!this.cora.isConfigured()) return { ok: false, motivo: 'Cora não configurada' };
+
+    const dia = hoje.getDate();
+    // mês anterior (fecha o mês passado)
+    const ref = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const periodo = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
+
+    const clientes = await this.prisma.cliente.findMany({
+      where: { ativo: true, cobrancaAutomatica: true, diaCobranca: dia },
+      select: { id: true, nome: true },
+    });
+
+    const resultados: { clienteId: number; ok: boolean; msg?: string }[] = [];
+    for (const c of clientes) {
+      const existente = await this.prisma.fatura.findFirst({
+        where: { clienteId: c.id, periodo },
+        select: { id: true },
+      });
+      if (existente) { resultados.push({ clienteId: c.id, ok: true, msg: 'já faturado' }); continue; }
+      try {
+        await this.gerarCobrancaMes(c.id, periodo);
+        resultados.push({ clienteId: c.id, ok: true });
+      } catch (e: any) {
+        this.logger.error(`Cobrança automática cliente ${c.id}: ${e?.message}`);
+        resultados.push({ clienteId: c.id, ok: false, msg: e?.message });
+      }
+    }
+    this.ultimoDiaRodado = chaveDia;
+    return { ok: true, periodo, processados: resultados.length, resultados };
+  }
 
   configurada() {
     return { configurada: this.cora.isConfigured(), ambiente: process.env.CORA_ENV || 'stage' };

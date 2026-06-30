@@ -56,6 +56,8 @@ type FormState = {
   celular: string
   segmento: string
   projeto: string
+  cobrancaAutomatica: boolean
+  diaCobranca: string
   descontoPadrao: string
   observacoes: string
   // endereço inline
@@ -83,6 +85,8 @@ const EMPTY: FormState = {
   celular: '',
   segmento: 'recorrente',
   projeto: '',
+  cobrancaAutomatica: false,
+  diaCobranca: '',
   descontoPadrao: '',
   observacoes: '',
   endTipo: 'sede',
@@ -111,6 +115,8 @@ function clienteToForm(c: Cliente): FormState {
     celular: c.celular ?? '',
     segmento: c.segmento,
     projeto: c.projeto ?? '',
+    cobrancaAutomatica: Boolean(c.cobrancaAutomatica),
+    diaCobranca: c.diaCobranca ? String(c.diaCobranca) : '',
     descontoPadrao: c.descontoPadrao ? String(c.descontoPadrao) : '',
     observacoes: c.observacoes ?? '',
     endTipo: end?.tipo ?? 'sede',
@@ -184,7 +190,7 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
     }
   }
 
-  function set(field: keyof FormState, value: string) {
+  function set(field: keyof FormState, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }))
     setErrors((e) => ({ ...e, [field]: undefined }))
   }
@@ -232,6 +238,8 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
         celular: form.celular.replace(/\D/g, '') || undefined,
         segmento: form.segmento,
         projeto: form.segmento === 'pesquisador' ? (form.projeto.trim() || undefined) : undefined,
+        cobrancaAutomatica: form.cobrancaAutomatica,
+        diaCobranca: form.cobrancaAutomatica && form.diaCobranca.trim() ? Number(form.diaCobranca) : undefined,
         descontoPadrao: form.descontoPadrao.trim() ? Number(form.descontoPadrao) : 0,
         observacoes: form.observacoes.trim() || undefined,
         ...(hasEndereco
@@ -413,6 +421,32 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
               hint="Sai na nota fiscal dos pedidos deste pesquisador"
             />
           )}
+
+          {/* Cobrança programada */}
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.cobrancaAutomatica}
+                onChange={(e) => set('cobrancaAutomatica', e.target.checked)}
+                className="h-4 w-4 accent-blue-600"
+              />
+              <span className="text-[13px] font-medium text-slate-700 dark:text-slate-200">Cobrança programada</span>
+              <span className="text-[11px] text-slate-400">— gera a cobrança do mês automaticamente</span>
+            </label>
+            {form.cobrancaAutomatica && (
+              <Input
+                label="Dia da cobrança (1–28)"
+                type="number"
+                min={1}
+                max={28}
+                value={form.diaCobranca}
+                onChange={(e) => set('diaCobranca', e.target.value)}
+                placeholder="Ex: 5"
+                hint="No dia escolhido o sistema fatura o mês anterior e emite o boleto"
+              />
+            )}
+          </div>
         </section>
 
         {/* ── Contato ── */}

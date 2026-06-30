@@ -1,6 +1,8 @@
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -103,6 +105,18 @@ export class CreateClienteDto {
   @IsString()
   @IsOptional()
   projeto?: string;
+
+  /** Cobrança programada (gera a fatura do mês automaticamente) */
+  @IsBoolean()
+  @IsOptional()
+  cobrancaAutomatica?: boolean;
+
+  /** Dia do mês (1–28) para a cobrança automática */
+  @IsInt()
+  @Min(1)
+  @Max(28)
+  @IsOptional()
+  diaCobranca?: number;
 
   /** Desconto fixo recorrente (%) aplicado automaticamente a cada pedido deste cliente */
   @IsNumber()

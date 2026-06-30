@@ -53,6 +53,14 @@ export class CobrancaController {
     return this.service.emitirBoleto(id);
   }
 
+  /** Roda as cobranças programadas agora (gerência) — útil para teste/forçar */
+  @Post('rodar-agendadas')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia')
+  rodarAgendadas() {
+    return this.service.rodarAgendadas(true);
+  }
+
   /** Sincroniza o status da fatura com a Cora */
   @Post(':id/sincronizar')
   @UseGuards(JwtAuthGuard, RolesGuard)
