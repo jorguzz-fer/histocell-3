@@ -54,6 +54,7 @@ export class PedidosController {
     variante3?: string
     variante4?: string
     variante5?: string
+    geraEtiqueta?: boolean
   }) {
     return this.service.criarServico(body);
   }

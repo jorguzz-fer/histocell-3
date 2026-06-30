@@ -145,6 +145,7 @@ model Servico {
   observacoes   String? @db.Text
   geraEtiqueta  Boolean @default(false)
   ativo         Boolean @default(true)
+  geraEtiqueta  Boolean @default(true) // se o serviço gera etiqueta (ex.: "caixa corta-lâmina" = false)
   // Campos para seleção guiada (cascata)
   tipo          String? // Eppendorf, Histológico, Microdissecção, etc.
   variante1     String? // Lâmina Silanizada, Material Ósseo, Em Resina, etc.

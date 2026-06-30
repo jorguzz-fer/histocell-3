@@ -135,6 +135,7 @@ export default function RastreioPage() {
                   <th className="px-4 py-2 font-semibold">Código</th>
                   <th className="px-4 py-2 font-semibold">Identificação</th>
                   <th className="px-4 py-2 font-semibold">Cliente</th>
+                  <th className="px-4 py-2 font-semibold text-center">Orçamento</th>
                   <th className="px-4 py-2 font-semibold w-44">Progresso</th>
                   <th className="px-4 py-2 font-semibold">Departamento</th>
                   <th className="px-4 py-2 font-semibold">Responsável</th>
@@ -152,6 +153,13 @@ export default function RastreioPage() {
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{e.identificacao ?? '—'}</td>
                     <td className="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[140px] truncate">
                       {e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      {e.amostra.pedido.qtdPrevista != null && e.amostra.pedido.qtdPrevista > 0 ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] font-semibold">
+                          {e.amostra.pedido.qtdRecebida ?? '—'}/{e.amostra.pedido.qtdPrevista}
+                        </span>
+                      ) : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-2">
                       <ProgressoDepartamentos departamentos={departamentos} atual={e.departamentoAtual} status={e.rastreioStatus} />

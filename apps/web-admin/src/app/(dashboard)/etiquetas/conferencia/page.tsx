@@ -202,8 +202,13 @@ function ConferenciaPedido() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-[12px] text-slate-700 dark:text-slate-300 max-w-[220px]">
+                        <div className="text-[12px] text-slate-700 dark:text-slate-300 max-w-[220px] flex items-center gap-1.5">
                           {l.servicoNome}
+                          {l.geraEtiqueta === false && (
+                            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+                              não etiqueta
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">{l.servicoCodigo}</div>
                       </td>

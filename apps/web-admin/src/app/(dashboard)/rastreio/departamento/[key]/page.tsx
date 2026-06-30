@@ -22,6 +22,7 @@ function desde(iso?: string | null) {
 
 function Card({ e }: { e: RastreioEtiqueta }) {
   const cli = e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome
+  const prevista = e.amostra.pedido.qtdPrevista
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
       <div className="flex items-center justify-between gap-2">
@@ -35,8 +36,13 @@ function Card({ e }: { e: RastreioEtiqueta }) {
       <div className="text-[12px] text-slate-600 dark:text-slate-300 mt-1 truncate">
         {e.identificacao ?? '—'} {e.coloracao ? `· ${e.coloracao}` : ''}
       </div>
-      <div className="text-[11px] text-slate-400 mt-0.5">
-        Histocell {e.amostra.numeroInterno} · {cli}
+      <div className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between gap-2">
+        <span className="truncate">Histocell {e.amostra.numeroInterno} · {cli}</span>
+        {prevista != null && prevista > 0 && (
+          <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
+            {prevista} no orçamento
+          </span>
+        )}
       </div>
     </div>
   )

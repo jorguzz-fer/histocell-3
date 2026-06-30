@@ -40,6 +40,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
   const [v3, setV3] = useState(servico?.variante3 ?? '')
   const [v4, setV4] = useState(servico?.variante4 ?? '')
   const [v5, setV5] = useState(servico?.variante5 ?? '')
+  const [geraEtiqueta, setGeraEtiqueta] = useState(servico?.geraEtiqueta ?? true)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -132,6 +133,11 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
             <Input label="Valor Rotina (R$) *" type="number" min="0" step="0.01" value={precoRotina} onChange={(e) => setPrecoRotina(e.target.value)} placeholder="0,00" />
             <Input label="Valor Pesquisa (R$)" type="number" min="0" step="0.01" value={precoPesquisa} onChange={(e) => setPrecoPesquisa(e.target.value)} placeholder="= rotina" />
           </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2">
+            <input type="checkbox" checked={geraEtiqueta} onChange={(e) => setGeraEtiqueta(e.target.checked)} className="h-4 w-4 accent-blue-600" />
+            <span className="text-[13px] text-slate-700 dark:text-slate-200">Gera etiqueta</span>
+            <span className="text-[11px] text-slate-400">— desmarque para serviços que não etiquetam (ex.: caixa corta-lâmina)</span>
+          </label>
           <div className="flex flex-col gap-1">
             <label className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Observações</label>
             <textarea

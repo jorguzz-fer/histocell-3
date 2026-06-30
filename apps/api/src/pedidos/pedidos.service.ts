@@ -130,7 +130,7 @@ export class PedidosService {
         variante4:    dto.variante4 ?? null,
         variante5:    dto.variante5 ?? null,
         observacoes:  dto.observacoes ?? null,
-        geraEtiqueta: dto.geraEtiqueta ?? false,
+        geraEtiqueta: dto.geraEtiqueta ?? true,
       },
     });
     return {
