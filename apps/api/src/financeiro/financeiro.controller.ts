@@ -43,6 +43,22 @@ export class FinanceiroController {
     );
   }
 
+  /** Fechamento detalhado (discriminação por serviço) de um cliente no mês */
+  @Get('fechamento/:clienteId/detalhe')
+  @Roles('gerencia', 'financeiro')
+  fechamentoDetalhe(
+    @Param('clienteId', ParseIntPipe) clienteId: number,
+    @Query('ano') ano: string,
+    @Query('mes') mes: string,
+  ) {
+    const hoje = new Date();
+    return this.service.fechamentoDetalhado(
+      clienteId,
+      parseInt(ano, 10) || hoje.getFullYear(),
+      parseInt(mes, 10) || hoje.getMonth() + 1,
+    );
+  }
+
   /** Saldo de um cliente (leve — recepção pode ver para informar no pedido) */
   @Get('creditos/:clienteId/saldo')
   @Roles('gerencia', 'financeiro', 'recepcao')

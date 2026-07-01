@@ -25,6 +25,14 @@ function fmtData(iso?: string | null) {
   return new Date(iso).toLocaleDateString('pt-BR')
 }
 
+// Cor estável por cliente (facilita a leitura da fila — pedido do Célio)
+const CORES_CLIENTE = ['#2563eb', '#16a34a', '#d97706', '#db2777', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#c026d3', '#0d9488']
+function corCliente(nome: string) {
+  let h = 0
+  for (let i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) >>> 0
+  return CORES_CLIENTE[h % CORES_CLIENTE.length]
+}
+
 export default function FilaPage() {
   const user = useCurrentUser()
   const [soMeus, setSoMeus] = useState(false)
@@ -154,7 +162,8 @@ function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: string; itens: Fil
       ) : (
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {itens.map((o) => (
-            <div key={o.id} className="px-5 py-3 flex items-center justify-between gap-3">
+            <div key={o.id} className="px-5 py-3 flex items-center justify-between gap-3 border-l-4"
+              style={{ borderLeftColor: corCliente(o.amostra.pedido.cliente.nomeFantasia || o.amostra.pedido.cliente.nome) }}>
               <div className="min-w-0">
                 <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
                   {o.numero} · Amostra {o.amostra.numeroInterno}

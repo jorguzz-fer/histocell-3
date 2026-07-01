@@ -81,11 +81,11 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Backend/Frontend:** histórico da OS exibindo e-mails/motivos enviados (quem, quando, para quem, texto). Reusa `AuditService` + Ocorrencia (E3).
 - **Aceite:** atendente abre a OS e vê todo o histórico de comunicação.
 
-### E9 — Relatório financeiro detalhado (discriminação por serviço) 🟨 esforço M
+### E9 — Relatório financeiro detalhado (discriminação por serviço) ✅ FEITO
 - **Backend/Frontend:** no fechamento/relatório, discriminar linha a linha por serviço (ex.: "10 H&E, 15 lâminas em branco, 10 específica") por cliente/período — base para a NF de projeto.
 - **Aceite:** relatório mostra a discriminação; exportável.
 
-### E10 — UX da fila (cor por cliente) 🟩 nice-to-have · esforço P
+### E10 — UX da fila (cor por cliente) ✅ FEITO
 - Colorir por cliente na fila da microscopia. (Pós-lançamento se apertar.)
 
 ---
