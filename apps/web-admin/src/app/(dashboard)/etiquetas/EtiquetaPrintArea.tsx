@@ -1,17 +1,23 @@
 import { EtiquetaLabel } from './EtiquetaLabel'
 import type { Etiqueta } from './types'
+import { lerEtiquetaConfig, type EtiquetaConfig } from './etiquetaConfig'
 
 /**
  * Área oculta em tela e visível apenas na impressão (window.print()).
- * Centraliza o layout físico da etiqueta (50mm) para reuso entre a lista
- * e a conferência do pedido.
+ * Cada etiqueta ocupa UMA página do tamanho configurado (largura×altura),
+ * empilhadas uma embaixo da outra — formato adequado para impressora de
+ * etiqueta (Zebra), e não folha A4.
  */
-export function EtiquetaPrintArea({ etiquetas }: { etiquetas: Etiqueta[] }) {
+export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]; config?: EtiquetaConfig }) {
+  const { larguraMm, alturaMm } = config ?? lerEtiquetaConfig()
+
   return (
     <>
       <div className="etiqueta-print-area" aria-hidden>
         {etiquetas.map((e) => (
-          <EtiquetaLabel key={e.id} etiqueta={e} />
+          <div className="etiqueta-page" key={e.id}>
+            <EtiquetaLabel etiqueta={e} />
+          </div>
         ))}
       </div>
 
@@ -19,19 +25,22 @@ export function EtiquetaPrintArea({ etiquetas }: { etiquetas: Etiqueta[] }) {
         .etiqueta-print-area { display: none; }
         .etiqueta-label {
           box-sizing: border-box;
-          width: 50mm;
+          width: ${larguraMm}mm;
+          height: ${alturaMm}mm;
           padding: 1mm 1.5mm;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           text-align: center;
           color: #000;
           font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.15;
+          line-height: 1.1;
+          overflow: hidden;
           break-inside: avoid;
         }
         .etiqueta-ident { font-size: 7pt; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .etiqueta-coloracao { font-size: 10pt; font-weight: 700; }
+        .etiqueta-coloracao { font-size: 9pt; font-weight: 700; }
         .etiqueta-barcode { width: 100%; height: auto; }
         .etiqueta-numero { font-family: 'Courier New', monospace; font-size: 8pt; }
         .etiqueta-histocell { font-size: 8pt; }
@@ -39,16 +48,20 @@ export function EtiquetaPrintArea({ etiquetas }: { etiquetas: Etiqueta[] }) {
           body * { visibility: hidden; }
           .etiqueta-print-area, .etiqueta-print-area * { visibility: visible; }
           .etiqueta-print-area {
-            display: flex !important;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            gap: 2mm;
+            display: block !important;
             position: absolute;
             left: 0;
             top: 0;
-            width: 100%;
           }
-          @page { margin: 8mm; }
+          .etiqueta-page {
+            width: ${larguraMm}mm;
+            height: ${alturaMm}mm;
+            page-break-after: always;
+            break-after: page;
+            overflow: hidden;
+          }
+          .etiqueta-page:last-child { page-break-after: auto; }
+          @page { size: ${larguraMm}mm ${alturaMm}mm; margin: 0; }
         }
       `}</style>
     </>

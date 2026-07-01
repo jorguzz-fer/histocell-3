@@ -34,7 +34,7 @@ Relatório de tempos, Perfil técnico sem valores.
 
 ## 2. Épicos de lançamento (ordenados por prioridade)
 
-### E1 — Fluxo completo de etapas (Fila + OS) 🟥 MVP · esforço P–M
+### E1 — Fluxo completo de etapas (Fila + OS) ✅ FEITO (commit 1cff6a0)
 **Por quê:** hoje a Fila (`macroscopia/processamento/laudo`) e a OS (`triagem/macroscopia/processamento/laudo`) não têm todos os setores do fluxo real. O Rastreio já tem os 7.
 - **Etapas oficiais:** Recepção → Macroscopia → Processamento/Inclusão → Microtomia (Corte) → Coloração/Montagem → (Laudo, quando houver) → **Finalização/Conferência fina** → Expedição/Retirada.
 - **Backend:** unificar a lista de etapas (uma fonte única) usada por Fila, OS e Rastreio; ajustar `ETAPAS_ORDEM` e `fila.service`.
@@ -72,7 +72,7 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Frontend:** campo de prazo no orçamento; **pop-up obrigatório** confirmando o prazo antes de finalizar/enviar.
 - **Aceite:** não finaliza o orçamento sem confirmar o prazo; prazo puxa dos serviços.
 
-### E7 — Impressão de etiqueta (config de tamanho) 🟥 MVP · esforço P
+### E7 — Impressão de etiqueta (config de tamanho) ✅ FEITO
 - **Frontend:** tela de impressão parametrizável (tamanho, ex.: 10×3 cm; múltiplas empilhadas).
 - **Operacional:** instalar a Zebra (presencial); Jorge configura o layout a partir do modelo/tamanho informado.
 - **Aceite:** recepção imprime a etiqueta do recipiente no tamanho correto.
