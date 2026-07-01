@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Plus, ChevronRight, AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react'
+import { ComunicacaoDrawer } from '@/components/comunicacao/ComunicacaoDrawer'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -99,6 +100,7 @@ export default function OrdensPage() {
   const [limit, setLimit]             = useState(20)
   const [drawerOpen, setDrawerOpen]   = useState(false)
   const [avancandoId, setAvancandoId] = useState<number | null>(null)
+  const [comOS, setComOS] = useState<{ pedidoId: number; ordemId: number; numero: string } | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -351,14 +353,21 @@ export default function OrdensPage() {
                         {/* Ações */}
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              title="Comunicar cliente (ocorrência / pronto)"
+                              onClick={() => setComOS({ pedidoId: os.amostra.pedido.id, ordemId: os.id, numero: os.amostra.pedido.numero })}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </button>
                             {podeAvancar && (
                               <Button
                                 size="sm"
-                                variant={os.etapaAtual === 'laudo' ? 'primary' : 'secondary'}
+                                variant={os.etapaAtual === 'expedicao' ? 'primary' : 'secondary'}
                                 loading={isAvancando}
                                 onClick={() => avancarEtapa(os)}
                               >
-                                {os.etapaAtual === 'laudo' ? 'Concluir' : 'Avançar'}
+                                {os.etapaAtual === 'expedicao' ? 'Concluir' : 'Avançar'}
                               </Button>
                             )}
                             <button
@@ -452,6 +461,16 @@ export default function OrdensPage() {
         onClose={() => setDrawerOpen(false)}
         onSaved={fetchOrdens}
       />
+
+      {comOS && (
+        <ComunicacaoDrawer
+          open
+          onClose={() => setComOS(null)}
+          pedidoId={comOS.pedidoId}
+          ordemServicoId={comOS.ordemId}
+          pedidoNumero={comOS.numero}
+        />
+      )}
     </div>
   )
 }

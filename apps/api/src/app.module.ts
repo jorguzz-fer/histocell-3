@@ -20,6 +20,7 @@ import { FinanceiroModule } from './financeiro/financeiro.module';
 import { RelatoriosModule } from './relatorios/relatorios.module';
 import { LaudosModule } from './laudos/laudos.module';
 import { CobrancaModule } from './cobranca/cobranca.module';
+import { ComunicacaoModule } from './comunicacao/comunicacao.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -45,6 +46,7 @@ import { HealthController } from './health.controller';
     RelatoriosModule,
     LaudosModule,
     CobrancaModule,
+    ComunicacaoModule,
   ],
   controllers: [HealthController],
 })

@@ -248,6 +248,7 @@ model Pedido {
   creditos CreditoPrePago[]
   recipientes Recipiente[]
   laudos Laudo[]
+  comunicacoes Comunicacao[]
 
   @@index([clienteId])
   @@index([numero])
@@ -597,4 +598,38 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+// ── Comunicação com o cliente (motivos/ocorrências por setor + notificações) ──
+model Motivo {
+  id               Int      @id @default(autoincrement())
+  setor            String   // recepcao | macroscopia | tecnica | coloracao | expedicao | geral
+  titulo           String
+  mensagemTemplate String   @db.Text // aceita {cliente} {pedido} {itens} {obs}
+  notificaCliente  Boolean  @default(true)
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([setor])
+}
+
+model Comunicacao {
+  id             Int      @id @default(autoincrement())
+  pedidoId       Int?
+  ordemServicoId Int?
+  setor          String
+  tipo           String   // ocorrencia | notificacao_pronto | atraso
+  assunto        String
+  mensagem       String   @db.Text
+  destinatario   String?
+  criadoPor      String?
+  emailEnviado   Boolean  @default(false)
+  emailInfo      String?
+  createdAt      DateTime @default(now())
+
+  pedido Pedido? @relation(fields: [pedidoId], references: [id])
+
+  @@index([pedidoId])
+  @@index([ordemServicoId])
 }

@@ -46,14 +46,14 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Backend:** `MailService` (provedor via env: `MAIL_PROVIDER`, `MAIL_API_KEY`/SMTP, `MAIL_FROM`), com fallback "não configurado" (não quebra). Templates simples com variáveis.
 - **Aceite:** com credencial, `mailService.enviar()` entrega; sem credencial, registra e segue.
 
-### E3 — Motivos/ocorrências por setor + comunicação ao cliente 🟥 MVP · esforço M–G
+### E3 — Motivos/ocorrências por setor + comunicação ao cliente ✅ FEITO (UI de motivos-admin pendente; envio real com MAIL_API_KEY)
 **Por quê:** núcleo da comunicação (recepção e técnica) pedido pelo Célio.
 - **Dados:** `Motivo { id, setor, titulo, mensagemTemplate, notificaCliente, notificaLab, ativo }`; `Ocorrencia { id, ordemId/pedidoId, motivoId, setor, texto, criadoPor, criadoEm, emailEnviado }`.
 - **Backend:** CRUD de Motivos (gerência); registrar Ocorrência → dispara e-mail ao cliente (template) + registra no histórico da OS.
 - **Frontend:** em cada setor (Recepção/Rastreio/OS), botão "Registrar ocorrência" → escolhe motivo do setor → prévia da mensagem → envia. Motivos **escopados por setor**.
 - **Aceite:** recepção registra "amostra faltante (10→9)" → cliente recebe e-mail + fica no histórico da OS; técnica tem motivos próprios.
 
-### E4 — Notificação de conclusão/retirada + liberação parcial 🟥 MVP · esforço M
+### E4 — Notificação de conclusão/retirada + liberação parcial ✅ FEITO
 **Por quê:** avisar o cliente quando pronto foi o ponto mais batido na reunião.
 - **Backend:** ao mover para **Expedição**, dispara e-mail "material disponível para retirada" (com nº do pedido/itens). Suporte a **liberação parcial**: marcar itens prontos e um com problema/atraso → e-mail explicando o que está pronto e o que atrasou.
 - **Frontend:** ação "Liberar/Notificar" na expedição; seleção de itens liberados vs pendentes.
@@ -77,7 +77,7 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Operacional:** instalar a Zebra (presencial); Jorge configura o layout a partir do modelo/tamanho informado.
 - **Aceite:** recepção imprime a etiqueta do recipiente no tamanho correto.
 
-### E8 — Log de comunicações na OS 🟨 esforço P–M
+### E8 — Log de comunicações na OS ✅ FEITO (histórico por pedido no drawer)
 - **Backend/Frontend:** histórico da OS exibindo e-mails/motivos enviados (quem, quando, para quem, texto). Reusa `AuditService` + Ocorrencia (E3).
 - **Aceite:** atendente abre a OS e vê todo o histórico de comunicação.
 
