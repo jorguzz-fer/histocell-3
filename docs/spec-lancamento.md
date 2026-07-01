@@ -66,7 +66,7 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Frontend:** tela de **conferência fina** com bipagem; item bipado **verde**, faltante **vermelho**; OS travada até resolver. **Relatório de pendências** (por cliente/setor).
 - **Aceite:** bipando 9 de 10, a OS fica vermelha e não avança para expedição até resolver ou justificar.
 
-### E6 — Prazo de entrega no orçamento 🟨 MVP-leve · esforço M
+### E6 — Prazo de entrega no orçamento ✅ FEITO
 - **Dados:** `Servico.prazoDias` (default 1 = 24h); `Pedido.prazoDias`.
 - **Backend:** ao criar orçamento, `prazoDias` = maior prazo dos itens (ou definido); editável por quem faz orçamento.
 - **Frontend:** campo de prazo no orçamento; **pop-up obrigatório** confirmando o prazo antes de finalizar/enviar.

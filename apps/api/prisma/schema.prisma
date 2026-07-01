@@ -150,6 +150,7 @@ model Servico {
   observacoes   String? @db.Text
   ativo         Boolean @default(true)
   geraEtiqueta  Boolean @default(true) // se o serviço gera etiqueta (ex.: "caixa corta-lâmina" = false)
+  prazoDias     Int     @default(1) // prazo de entrega padrão (dias úteis); 1 = 24h
   // Campos para seleção guiada (cascata)
   tipo          String? // Eppendorf, Histológico, Microdissecção, etc.
   variante1     String? // Lâmina Silanizada, Material Ósseo, Em Resina, etc.
@@ -234,6 +235,7 @@ model Pedido {
   qtdPrevista   Int?      // qtd de amostras prevista (conferência no recebimento)
   qtdRecebida   Int?      // qtd de amostras efetivamente recebida
   excedente     Boolean   @default(false) // recebeu mais que o previsto → verificar cobrança
+  prazoDias     Int?      // prazo de entrega acordado no orçamento (dias úteis)
   dataEnvio     DateTime?
   dataRecepcao  DateTime? // entrada registrada na recepção (etapa 1)
   dataRecebimento DateTime?

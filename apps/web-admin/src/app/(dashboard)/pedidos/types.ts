@@ -56,6 +56,7 @@ export type Servico = {
   precoRotina: number
   precoPesquisa: number
   geraEtiqueta?: boolean
+  prazoDias?: number
   observacoes?: string | null
   tipo?:      string | null
   variante1?: string | null

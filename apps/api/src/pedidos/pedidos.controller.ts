@@ -49,6 +49,7 @@ export class PedidosController {
     precoPesquisa: number
     observacoes?: string
     geraEtiqueta?: boolean
+    prazoDias?: number
     variante1?: string
     variante2?: string
     variante3?: string

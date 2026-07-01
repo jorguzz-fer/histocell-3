@@ -65,6 +65,7 @@ export function useOrderCart() {
   const [saved, setSaved]             = useState(false)
   const [clientes, setClientes]       = useState<ClienteOpt[]>([])
   const [pedidoCriado, setPedidoCriado] = useState<{ id: number; numero: string } | null>(null)
+  const [prazoDias, setPrazoDias]         = useState(1)
   const [urgente, setUrgente]             = useState(false)
   const [pagamentoAdiantado, setPagamentoAdiantado] = useState(false)
   const [creditoSaldo, setCreditoSaldo]   = useState<number | null>(null)
@@ -113,6 +114,8 @@ export function useOrderCart() {
       ...prev,
       { key: `${s.id}-${Date.now()}`, servicoId: s.id, nome: s.nome, categoria: s.categoria, quantidade: 1, preco, desconto, descontoTipo: 'pct' },
     ])
+    // prazo do orçamento = maior prazo entre os serviços adicionados
+    setPrazoDias((p) => Math.max(p, Number(s.prazoDias ?? 1) || 1))
     toast.success(`"${s.nome}" adicionado`)
   }, [clienteId, priceKey])
 
@@ -187,7 +190,7 @@ export function useOrderCart() {
   }
 
   const limpar = useCallback(() => {
-    setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false); setEditId(null)
+    setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false); setPrazoDias(1); setEditId(null)
   }, [])
 
   // Carrega um rascunho de volta no carrinho para continuar editando.
@@ -197,6 +200,7 @@ export function useOrderCart() {
       setEditId(p.id)
       setClienteId(String(p.cliente?.id ?? p.clienteId ?? ''))
       setObservacoes(p.observacoes ?? '')
+      setPrazoDias(Number(p.prazoDias ?? 1) || 1)
       setUrgente(Boolean(p.urgente))
       setPagamentoAdiantado(Boolean(p.pagamentoAdiantado))
       setItens(
@@ -238,6 +242,7 @@ export function useOrderCart() {
         observacoes: observacoes || undefined,
         urgente,
         pagamentoAdiantado,
+        prazoDias,
         status: finalStatus,
         itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
       }
@@ -272,6 +277,7 @@ export function useOrderCart() {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
+    prazoDias, setPrazoDias,
     addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
     rascunhos, editId, continuarRascunho, excluirRascunho,
   }
