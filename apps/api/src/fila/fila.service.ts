@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { ETAPAS_FILA } from '../ordens/etapas';
 
-const ETAPAS = ['macroscopia', 'processamento', 'laudo'] as const;
+const ETAPAS = ETAPAS_FILA;
 
 @Injectable()
 export class FilaService {
@@ -62,7 +63,7 @@ export class FilaService {
     const baseWhere: any = { status: 'em_andamento' };
     if (userId) baseWhere.responsavelUserId = userId;
 
-    const [macroscopia, processamento, laudo] = await Promise.all(
+    const porEtapa = await Promise.all(
       ETAPAS.map((etapa) =>
         this.prisma.ordemServico.findMany({
           where: { ...baseWhere, etapaAtual: etapa },
@@ -73,19 +74,13 @@ export class FilaService {
       ),
     );
 
-    return {
-      counts: {
-        aprovacaoDivergencia: aprovacaoDivergencia.length,
-        macroscopia: macroscopia.length,
-        processamento: processamento.length,
-        laudo: laudo.length,
-      },
-      secoes: {
-        aprovacaoDivergencia,
-        macroscopia,
-        processamento,
-        laudo,
-      },
-    };
+    const secoes: Record<string, any> = { aprovacaoDivergencia };
+    const counts: Record<string, number> = { aprovacaoDivergencia: aprovacaoDivergencia.length };
+    ETAPAS.forEach((etapa, i) => {
+      secoes[etapa] = porEtapa[i];
+      counts[etapa] = porEtapa[i].length;
+    });
+
+    return { etapas: ETAPAS, counts, secoes };
   }
 }

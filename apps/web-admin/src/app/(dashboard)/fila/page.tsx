@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, ChevronRight } from 'lucide-react'
+import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, Scissors, Palette, PackageCheck, Truck, ClipboardList, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/Badge'
@@ -10,9 +10,14 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { FilaResponse, FilaOS, FilaPedidoPendente } from './types'
 
 const ETAPA_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  macroscopia:   { label: 'Em macroscopia',   icon: Microscope, color: 'text-blue-600' },
-  processamento: { label: 'Em processamento', icon: Layers,     color: 'text-indigo-600' },
-  laudo:         { label: 'Em laudo',         icon: FileCheck,  color: 'text-emerald-600' },
+  triagem:       { label: 'Triagem / Recebidas',   icon: ClipboardList, color: 'text-slate-500' },
+  macroscopia:   { label: 'Macroscopia',           icon: Microscope,    color: 'text-blue-600' },
+  processamento: { label: 'Processamento / Inclusão', icon: Layers,     color: 'text-indigo-600' },
+  microtomia:    { label: 'Microtomia (Corte)',    icon: Scissors,      color: 'text-cyan-600' },
+  coloracao:     { label: 'Coloração / Montagem',  icon: Palette,       color: 'text-fuchsia-600' },
+  laudo:         { label: 'Laudo',                 icon: FileCheck,     color: 'text-emerald-600' },
+  finalizacao:   { label: 'Finalização',           icon: PackageCheck,  color: 'text-amber-600' },
+  expedicao:     { label: 'Expedição / Retirada',  icon: Truck,         color: 'text-green-600' },
 }
 
 function fmtData(iso?: string | null) {
@@ -92,12 +97,12 @@ export default function FilaPage() {
             />
           )}
 
-          {(['macroscopia', 'processamento', 'laudo'] as const).map((etapa) => (
+          {(data.etapas ?? []).map((etapa) => (
             <SecaoOS
               key={etapa}
               etapa={etapa}
-              itens={data.secoes[etapa]}
-              count={data.counts[etapa]}
+              itens={data.secoes[etapa] ?? []}
+              count={data.counts[etapa] ?? 0}
               onAvancar={avancarOS}
             />
           ))}
@@ -134,8 +139,8 @@ function SecaoDivergencia({ itens, onAprovar }: { itens: FilaPedidoPendente[]; o
   )
 }
 
-function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: 'macroscopia' | 'processamento' | 'laudo'; itens: FilaOS[]; count: number; onAvancar: (id: number) => void }) {
-  const meta = ETAPA_META[etapa]
+function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: string; itens: FilaOS[]; count: number; onAvancar: (id: number) => void }) {
+  const meta = ETAPA_META[etapa] ?? { label: etapa, icon: ClipboardList, color: 'text-slate-500' }
   const Icon = meta.icon
   return (
     <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">

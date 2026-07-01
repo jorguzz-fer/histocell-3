@@ -12,7 +12,7 @@ import type { OrdemServico, OrdensListResponse } from './types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
 
-const ETAPAS = ['triagem', 'macroscopia', 'processamento', 'laudo'] as const
+const ETAPAS = ['triagem', 'macroscopia', 'processamento', 'microtomia', 'coloracao', 'laudo', 'finalizacao', 'expedicao'] as const
 
 const statusOS: Record<string, { label: string; variant: 'slate' | 'amber' | 'blue' | 'green' | 'rose' }> = {
   fila:         { label: 'Na fila',      variant: 'slate' },
@@ -25,7 +25,11 @@ const etapaLabel: Record<string, string> = {
   triagem:       'Triagem',
   macroscopia:   'Macroscopia',
   processamento: 'Processamento',
+  microtomia:    'Microtomia (Corte)',
+  coloracao:     'Coloração',
   laudo:         'Laudo',
+  finalizacao:   'Finalização',
+  expedicao:     'Expedição',
 }
 
 function labelMaterial(m: string) {
@@ -136,7 +140,7 @@ export default function OrdensPage() {
     try {
       await api.patch(`/ordens/${os.id}/avancar`, {})
       toast.success(
-        os.etapaAtual === 'laudo'
+        os.etapaAtual === ETAPAS[ETAPAS.length - 1]
           ? `OS ${os.numero} concluída!`
           : `OS ${os.numero} avançada para ${etapaLabel[
               ETAPAS[ETAPAS.indexOf(os.etapaAtual as typeof ETAPAS[number]) + 1]
@@ -199,10 +203,9 @@ export default function OrdensPage() {
             focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
         >
           <option value="">Todas as etapas</option>
-          <option value="triagem">Triagem</option>
-          <option value="macroscopia">Macroscopia</option>
-          <option value="processamento">Processamento</option>
-          <option value="laudo">Laudo</option>
+          {ETAPAS.map((e) => (
+            <option key={e} value={e}>{etapaLabel[e]}</option>
+          ))}
         </select>
 
         <button

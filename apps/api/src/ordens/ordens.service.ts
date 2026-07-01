@@ -9,11 +9,11 @@ import { AuditService } from '../common/audit.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
+import { ETAPAS_ORDEM, type EtapaOrdem } from './etapas';
 
 // ─── constantes ───────────────────────────────────────────────────────────────
 
-const ETAPAS_ORDEM = ['triagem', 'macroscopia', 'processamento', 'laudo'] as const;
-type Etapa = typeof ETAPAS_ORDEM[number];
+type Etapa = EtapaOrdem;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -26,6 +26,7 @@ function toDateStr(d: Date): string {
 
 function proximaEtapa(atual: Etapa): Etapa | null {
   const idx = ETAPAS_ORDEM.indexOf(atual);
+  if (idx < 0) return ETAPAS_ORDEM[1] ?? null; // etapa desconhecida → segue p/ macroscopia
   return idx < ETAPAS_ORDEM.length - 1 ? ETAPAS_ORDEM[idx + 1] : null;
 }
 
