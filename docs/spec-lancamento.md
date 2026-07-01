@@ -41,7 +41,7 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Frontend:** a Fila mostra colunas de todas as etapas; avançar/retroceder entre elas.
 - **Aceite:** um item percorre todas as etapas na Fila e no Rastreio, sem etapa faltando.
 
-### E2 — Envio de e-mail (infra) 🟥 MVP · esforço P (depende de SMTP)
+### E2 — Envio de e-mail (infra) ✅ FEITO (Resend; aguardando MAIL_API_KEY)
 **Por quê:** base para E3, E4, E7.
 - **Backend:** `MailService` (provedor via env: `MAIL_PROVIDER`, `MAIL_API_KEY`/SMTP, `MAIL_FROM`), com fallback "não configurado" (não quebra). Templates simples com variáveis.
 - **Aceite:** com credencial, `mailService.enviar()` entrega; sem credencial, registra e segue.
