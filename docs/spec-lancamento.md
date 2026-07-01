@@ -59,7 +59,7 @@ Relatório de tempos, Perfil técnico sem valores.
 - **Frontend:** ação "Liberar/Notificar" na expedição; seleção de itens liberados vs pendentes.
 - **Aceite:** ao liberar, cliente recebe e-mail; liberação parcial envia mensagem correta.
 
-### E5 — Pendências + trava de finalização da OS (conferência fina/bipagem) 🟥 MVP · esforço G
+### E5 — Pendências + trava de finalização da OS (conferência fina/bipagem) ✅ FEITO
 **Por quê:** impedir material incompleto de ser liberado.
 - **Dados:** por OS/amostra, estado de conferência (esperado × bipado); `pendente` até completar.
 - **Backend:** endpoint de "bipar" item na conferência fina; OS **não finaliza** enquanto houver item não bipado, salvo registro de motivo (E3).

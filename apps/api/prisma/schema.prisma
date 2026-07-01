@@ -341,6 +341,9 @@ model OrdemServico {
   responsavelUserId Int?
   responsavelUser   User?  @relation("OSResponsavel", fields: [responsavelUserId], references: [id])
   observacoes String?   @db.Text
+  // Conferência fina: liberada com justificativa mesmo incompleta (trava a expedição)
+  conferenciaLiberada Boolean @default(false)
+  conferenciaObs      String? @db.Text
   iniciadoEm  DateTime?
   concluidoEm DateTime?
   createdAt   DateTime  @default(now())
@@ -422,6 +425,9 @@ model Etiqueta {
   rastreioStatus    String    @default("nao_iniciado") // nao_iniciado, em_andamento, aguardando, concluido
   ultimoEventoEm    DateTime?
   ultimoResponsavel String?   // quem fez o último scan
+  // Conferência fina (bipagem antes da expedição)
+  conferidaEm       DateTime?
+  conferidaPor      String?
 
   amostra Amostra @relation(fields: [amostraId], references: [id])
   eventos RastreioEvento[]

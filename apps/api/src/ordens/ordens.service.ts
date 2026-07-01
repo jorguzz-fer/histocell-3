@@ -208,6 +208,109 @@ export class OrdensService {
   }
 
   // ── AVANÇAR ETAPA ────────────────────────────────────────────────────────────
+  // ── Conferência fina (bipagem das lâminas antes da expedição) ─────────────────
+  async statusConferencia(osId: number) {
+    const os = await this.prisma.ordemServico.findUnique({
+      where: { id: osId },
+      select: { id: true, amostraId: true, conferenciaLiberada: true, conferenciaObs: true },
+    });
+    if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
+    const etiquetas = await this.prisma.etiqueta.findMany({
+      where: { amostraId: os.amostraId },
+      select: { id: true, codigo: true, numero: true, laminaSeq: true, coloracao: true, conferidaEm: true, conferidaPor: true },
+      orderBy: { laminaSeq: 'asc' },
+    });
+    const conferidas = etiquetas.filter((e) => e.conferidaEm).length;
+    return {
+      esperado: etiquetas.length,
+      conferidas,
+      faltantes: etiquetas.length - conferidas,
+      completo: etiquetas.length > 0 && conferidas === etiquetas.length,
+      liberada: os.conferenciaLiberada,
+      obs: os.conferenciaObs,
+      etiquetas,
+    };
+  }
+
+  /** Bipa uma etiqueta na conferência fina (deve pertencer à amostra da OS). */
+  async conferir(osId: number, codigo: string, userId: number) {
+    const os = await this.prisma.ordemServico.findUnique({ where: { id: osId }, select: { amostraId: true } });
+    if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
+    const alvo = (codigo ?? '').trim();
+    const et = await this.prisma.etiqueta.findFirst({
+      where: {
+        amostraId: os.amostraId,
+        OR: [{ codigo: alvo }, { numero: /^\d+$/.test(alvo) ? parseInt(alvo, 10) : -1 }],
+      },
+      select: { id: true },
+    });
+    if (!et) throw new BadRequestException(`Etiqueta "${alvo}" não pertence a esta OS.`);
+    const nome = await this.nomeUsuario(userId);
+    await this.prisma.etiqueta.update({ where: { id: et.id }, data: { conferidaEm: new Date(), conferidaPor: nome } });
+    return this.statusConferencia(osId);
+  }
+
+  /** Libera a conferência incompleta com justificativa (destrava a expedição). */
+  async liberarConferencia(osId: number, obs: string, userId: number) {
+    const os = await this.prisma.ordemServico.findUnique({ where: { id: osId }, select: { id: true } });
+    if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
+    if (!obs?.trim()) throw new BadRequestException('Informe a justificativa para liberar com pendência.');
+    await this.prisma.ordemServico.update({
+      where: { id: osId },
+      data: { conferenciaLiberada: true, conferenciaObs: obs.trim() },
+    });
+    await this.audit.log(userId, 'LIBERA_CONFERENCIA', 'OrdemServico', osId, { obs });
+    return this.statusConferencia(osId);
+  }
+
+  private async nomeUsuario(userId: number): Promise<string | undefined> {
+    if (!userId) return undefined;
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { nome: true } });
+    return u?.nome;
+  }
+
+  /** OS com conferência incompleta (relatório de pendências). */
+  async pendencias() {
+    const ativas = await this.prisma.ordemServico.findMany({
+      where: { status: { in: ['fila', 'em_andamento'] } },
+      select: {
+        id: true, numero: true, etapaAtual: true, amostraId: true, conferenciaLiberada: true,
+        amostra: {
+          select: {
+            numeroInterno: true,
+            pedido: { select: { numero: true, cliente: { select: { nome: true, nomeFantasia: true } } } },
+          },
+        },
+      },
+      orderBy: { iniciadoEm: 'asc' },
+    });
+    const ids = ativas.map((o) => o.amostraId);
+    const grupos = await this.prisma.etiqueta.groupBy({
+      by: ['amostraId'],
+      where: { amostraId: { in: ids } },
+      _count: { _all: true },
+    });
+    const conf = await this.prisma.etiqueta.groupBy({
+      by: ['amostraId'],
+      where: { amostraId: { in: ids }, conferidaEm: { not: null } },
+      _count: { _all: true },
+    });
+    const total = new Map(grupos.map((g) => [g.amostraId, g._count._all]));
+    const feitas = new Map(conf.map((g) => [g.amostraId, g._count._all]));
+    return ativas
+      .map((o) => {
+        const esperado = total.get(o.amostraId) ?? 0;
+        const conferidas = feitas.get(o.amostraId) ?? 0;
+        return {
+          osId: o.id, numero: o.numero, etapaAtual: o.etapaAtual,
+          cliente: o.amostra.pedido.cliente.nomeFantasia ?? o.amostra.pedido.cliente.nome,
+          pedido: o.amostra.pedido.numero, amostra: o.amostra.numeroInterno,
+          esperado, conferidas, faltantes: esperado - conferidas, liberada: o.conferenciaLiberada,
+        };
+      })
+      .filter((o) => o.esperado > 0 && o.faltantes > 0 && !o.liberada);
+  }
+
   async avancar(id: number, userId: number) {
     const os = await this.prisma.ordemServico.findUnique({
       where: { id },
@@ -220,6 +323,16 @@ export class OrdensService {
     const agora = new Date();
     const etapaAtual = os.etapaAtual as Etapa;
     const proxima = proximaEtapa(etapaAtual);
+
+    // Trava: sair da Finalização exige conferência fina completa (ou liberada c/ justificativa)
+    if (etapaAtual === 'finalizacao') {
+      const conf = await this.statusConferencia(id);
+      if (!conf.completo && !conf.liberada) {
+        throw new BadRequestException(
+          `Conferência fina incompleta (${conf.conferidas}/${conf.esperado}). Bipe todas as lâminas ou libere com justificativa.`,
+        );
+      }
+    }
 
     // Conclui etapa atual
     const etapaRecord = os.etapas.find((e) => e.etapa === etapaAtual);
