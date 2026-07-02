@@ -1,0 +1,15 @@
+# Reduz o contexto de build e evita que `COPY . .` sobrescreva o node_modules
+# instalado no estágio deps. Mantém o build determinístico e mais leve.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.git
+.gitignore
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/.DS_Store
+scratchpad

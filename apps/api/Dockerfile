@@ -19,6 +19,9 @@ RUN npx turbo run build --filter=@histocell/api
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# curl é usado pela healthcheck do Coolify (GET /health). A imagem node:20-alpine
+# não traz curl, então a healthcheck falhava com "curl: not found".
+RUN apk add --no-cache curl
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/prisma ./prisma
 COPY --from=builder /app/apps/api/scripts ./scripts
