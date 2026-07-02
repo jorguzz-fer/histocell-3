@@ -3,20 +3,20 @@
 -- obrigatória "numero" pode ser adicionada como NOT NULL diretamente.
 
 -- AlterTable
-ALTER TABLE "Etiqueta" ADD COLUMN     "numero" INTEGER NOT NULL;
-ALTER TABLE "Etiqueta" ADD COLUMN     "coloracao" TEXT;
-ALTER TABLE "Etiqueta" ADD COLUMN     "identificacao" TEXT;
-ALTER TABLE "Etiqueta" ADD COLUMN     "laminaSeq" INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE "Etiqueta" ADD COLUMN     "impressoEm" TIMESTAMP(3);
+ALTER TABLE "Etiqueta" ADD COLUMN IF NOT EXISTS "numero" INTEGER NOT NULL;
+ALTER TABLE "Etiqueta" ADD COLUMN IF NOT EXISTS "coloracao" TEXT;
+ALTER TABLE "Etiqueta" ADD COLUMN IF NOT EXISTS "identificacao" TEXT;
+ALTER TABLE "Etiqueta" ADD COLUMN IF NOT EXISTS "laminaSeq" INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE "Etiqueta" ADD COLUMN IF NOT EXISTS "impressoEm" TIMESTAMP(3);
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Etiqueta_numero_key" ON "Etiqueta"("numero");
+CREATE UNIQUE INDEX IF NOT EXISTS "Etiqueta_numero_key" ON "Etiqueta"("numero");
 
 -- CreateIndex
-CREATE INDEX "Etiqueta_numero_idx" ON "Etiqueta"("numero");
+CREATE INDEX IF NOT EXISTS "Etiqueta_numero_idx" ON "Etiqueta"("numero");
 
 -- CreateIndex
-CREATE INDEX "Etiqueta_impresso_idx" ON "Etiqueta"("impresso");
+CREATE INDEX IF NOT EXISTS "Etiqueta_impresso_idx" ON "Etiqueta"("impresso");
 
 -- Sequência global do número da etiqueta (ex: 1384126). Para continuar a
 -- numeração física atual, ajuste o início com:
