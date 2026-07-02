@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Post,
@@ -16,10 +17,15 @@ import { CobrancaService } from './cobranca.service';
 export class CobrancaController {
   constructor(private service: CobrancaService) {}
 
-  /** Webhook PÚBLICO da Cora (sem JWT) — notificação de boleto pago etc. */
+  /** Webhook PÚBLICO da Cora (sem JWT) — autenticado por segredo compartilhado
+   *  (token na query `?token=` da URL registrada, ou header `x-webhook-token`). */
   @Post('webhook/cora')
-  webhook(@Body() body: any) {
-    return this.service.webhook(body);
+  webhook(
+    @Body() body: any,
+    @Query('token') tokenQuery?: string,
+    @Headers('x-webhook-token') tokenHeader?: string,
+  ) {
+    return this.service.webhook(body, tokenQuery ?? tokenHeader);
   }
 
   // ── Rotas autenticadas ──────────────────────────────────────────────────────

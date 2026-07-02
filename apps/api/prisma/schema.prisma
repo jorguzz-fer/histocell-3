@@ -553,6 +553,7 @@ model Fatura {
   cliente  Cliente       @relation(fields: [clienteId], references: [id])
   itens    ItemFatura[]
 
+  @@unique([clienteId, periodo]) // uma fatura por cliente/mês (evita boleto duplicado)
   @@index([clienteId])
   @@index([status])
   @@index([periodo])

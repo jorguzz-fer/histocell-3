@@ -254,16 +254,26 @@ export class PortalService {
     return itens;
   }
 
+  /** Prazo do pedido = maior prazo entre os serviços escolhidos (mesma regra do orçamento). */
+  private async calcularPrazo(itensDto: { servicoId: number }[]): Promise<number> {
+    const ids = Array.from(new Set(itensDto.map((i) => i.servicoId)));
+    if (ids.length === 0) return 1;
+    const servs = await this.prisma.servico.findMany({ where: { id: { in: ids } }, select: { prazoDias: true } });
+    return servs.reduce((m, s) => Math.max(m, s.prazoDias ?? 1), 1);
+  }
+
   // ── Criar pedido (origem=web; preços recalculados no servidor) ─────────────
   async criarPedido(token: string, dto: PortalPedidoDto) {
     const cliente = await this.resolverCliente(token);
     const itens = await this.precificar(cliente.id, dto.itens);
+    const prazoDias = await this.calcularPrazo(dto.itens);
 
     const pedido = await this.pedidos.create({
       clienteId: cliente.id,
       status: dto.status ?? 'enviado',
       origem: 'web',
       observacoes: dto.observacoes,
+      prazoDias,
       itens,
     } as any);
 
@@ -303,10 +313,12 @@ export class PortalService {
     const cliente = await this.resolverCliente(token);
     const rasc = await this.acharRascunho(cliente.id, numero);
     const itens = await this.precificar(cliente.id, dto.itens);
+    const prazoDias = await this.calcularPrazo(dto.itens);
 
     const pedido = await this.pedidos.update(rasc.id, {
       status: dto.status ?? 'rascunho',
       observacoes: dto.observacoes,
+      prazoDias,
       itens,
     } as any);
 

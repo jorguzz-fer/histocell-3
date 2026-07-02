@@ -46,20 +46,23 @@ export class ComunicacaoService {
     pedidoId?: number; ordemServicoId?: number; setor: string; tipo: string;
     assunto: string; mensagem: string; destinatario?: string; criadoPor?: string; notificar: boolean;
   }) {
-    let emailEnviado = false;
-    let emailInfo: string | undefined;
-    if (data.notificar && data.destinatario) {
-      const r = await this.mail.enviar({ para: data.destinatario, assunto: data.assunto, texto: data.mensagem });
-      emailEnviado = r.sent;
-      emailInfo = r.sent ? r.id : r.motivo;
-    }
-    return this.prisma.comunicacao.create({
+    // Grava a ocorrência PRIMEIRO — o histórico não pode depender do e-mail
+    // (um envio lento/falho não deve impedir o registro).
+    const registro = await this.prisma.comunicacao.create({
       data: {
         pedidoId: data.pedidoId, ordemServicoId: data.ordemServicoId, setor: data.setor, tipo: data.tipo,
         assunto: data.assunto, mensagem: data.mensagem, destinatario: data.destinatario,
-        criadoPor: data.criadoPor, emailEnviado, emailInfo,
+        criadoPor: data.criadoPor, emailEnviado: false,
       },
     });
+    if (data.notificar && data.destinatario) {
+      const r = await this.mail.enviar({ para: data.destinatario, assunto: data.assunto, texto: data.mensagem });
+      return this.prisma.comunicacao.update({
+        where: { id: registro.id },
+        data: { emailEnviado: r.sent, emailInfo: r.sent ? r.id : r.motivo },
+      });
+    }
+    return registro;
   }
 
   // ── E3: registrar ocorrência (motivo) ─────────────────────────────────────────

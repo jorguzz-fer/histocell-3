@@ -361,7 +361,7 @@ export class PedidosService {
       select: {
         id: true, codigo: true, codigoLegado: true, categoria: true,
         nome: true, precoBase: true, precoRotina: true, precoPesquisa: true,
-        ativo: true, observacoes: true,
+        ativo: true, observacoes: true, geraEtiqueta: true, prazoDias: true,
         variante1: true, variante2: true, variante3: true, variante4: true, variante5: true,
       },
       orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],

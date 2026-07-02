@@ -47,19 +47,29 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
    */
   async rodarAgendadas(force = false) {
     const hoje = new Date();
-    const chaveDia = hoje.toISOString().slice(0, 10);
+    const dia = hoje.getDate();
+    // Chave do dia em horário LOCAL (mesma base de getDate()), não UTC — evita
+    // que a janela "vire" às 21h em servidores UTC-3 e pule/duplique execuções.
+    const chaveDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
     if (!force && this.ultimoDiaRodado === chaveDia) return { ok: true, ja_rodou_hoje: true };
     if (!this.cora.isConfigured()) return { ok: false, motivo: 'Cora não configurada' };
 
-    const dia = hoje.getDate();
     // mês anterior (fecha o mês passado)
     const ref = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
     const periodo = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
 
-    const clientes = await this.prisma.cliente.findMany({
-      where: { ativo: true, cobrancaAutomatica: true, diaCobranca: dia },
-      select: { id: true, nome: true },
+    const automaticos = await this.prisma.cliente.findMany({
+      where: { ativo: true, cobrancaAutomatica: true },
+      select: { id: true, nome: true, diaCobranca: true },
     });
+    // Clientes marcados como automáticos mas sem dia definido nunca faturam — avisa (não some em silêncio).
+    const semDia = automaticos.filter((c) => !c.diaCobranca);
+    if (semDia.length) {
+      this.logger.warn(`Cobrança automática sem diaCobranca (não serão faturados): ${semDia.map((c) => `#${c.id}`).join(', ')}`);
+    }
+    // Clamp para o último dia do mês (ex.: diaCobranca=31 fatura no dia 28/fev).
+    const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    const clientes = automaticos.filter((c) => c.diaCobranca && Math.min(c.diaCobranca, ultimoDiaMes) === dia);
 
     const resultados: { clienteId: number; ok: boolean; msg?: string }[] = [];
     for (const c of clientes) {
@@ -141,34 +151,50 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
     });
     if (pedidos.length === 0) throw new BadRequestException('Nenhum pedido faturável neste mês para o cliente.');
 
-    // uma linha por (serviço) agregando quantidade e valor
-    const itens: { descricao: string; quantidade: number; valor: number }[] = [];
+    // Uma linha por (serviço + preço unitário líquido), agregando quantidades —
+    // evita boleto com centenas de linhas repetidas (mesma regra do fechamentoDetalhado).
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const mapa = new Map<string, { descricao: string; quantidade: number; valor: number }>();
     let total = 0;
     for (const p of pedidos) {
       for (const it of p.itens) {
-        const liquido = Number(it.preco) * (1 - Number(it.desconto) / 100);
-        itens.push({ descricao: it.servico.nome, quantidade: it.quantidade, valor: Math.round(liquido * 100) / 100 });
-        total += liquido * it.quantidade;
+        const valor = round(Number(it.preco) * (1 - Number(it.desconto) / 100));
+        const chave = `${it.servico.nome}::${valor}`;
+        const cur = mapa.get(chave) ?? { descricao: it.servico.nome, quantidade: 0, valor };
+        cur.quantidade += it.quantidade;
+        mapa.set(chave, cur);
+        total += valor * it.quantidade;
       }
     }
-    total = Math.round(total * 100) / 100;
+    const itens = Array.from(mapa.values());
+    total = round(total);
 
     const numero = await this.gerarNumeroFatura(periodo);
     const dataVencimento = new Date();
     dataVencimento.setDate(dataVencimento.getDate() + diasVencimento);
 
-    return this.prisma.fatura.create({
-      data: {
-        clienteId,
-        numero,
-        periodo,
-        valorTotal: total,
-        status: 'pendente',
-        dataVencimento,
-        itens: { create: itens },
-      },
-      include: INCLUDE,
-    });
+    // @@unique([clienteId, periodo]) protege contra corrida (2 cliques / 2 réplicas):
+    // se outra transação criou a fatura no meio, retorna a existente em vez de duplicar.
+    try {
+      return await this.prisma.fatura.create({
+        data: {
+          clienteId,
+          numero,
+          periodo,
+          valorTotal: total,
+          status: 'pendente',
+          dataVencimento,
+          itens: { create: itens },
+        },
+        include: INCLUDE,
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        const jaCriada = await this.prisma.fatura.findFirst({ where: { clienteId, periodo }, include: INCLUDE });
+        if (jaCriada) return jaCriada;
+      }
+      throw e;
+    }
   }
 
   /** Monta o payload do boleto Cora a partir da fatura + cliente. */
@@ -249,6 +275,9 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
       });
       return atualizada;
     } catch (err: any) {
+      // Fatura inexistente (montarPayload) → propaga o 404 sem tentar update
+      // (que geraria P2025/500 e mascararia o erro real).
+      if (err instanceof NotFoundException) throw err;
       await this.prisma.fatura.update({
         where: { id: faturaId },
         data: { status: 'erro', erroCobranca: err?.message ?? 'Erro ao emitir' },
@@ -264,7 +293,13 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Webhook da Cora: marca a fatura como paga quando o boleto é liquidado. */
-  async webhook(body: any) {
+  async webhook(body: any, token?: string) {
+    // Endpoint público: exige o segredo registrado na URL do webhook da Cora.
+    // Se CORA_WEBHOOK_SECRET não estiver definido, recusa (evita marcar paga sem verificação).
+    const secret = process.env.CORA_WEBHOOK_SECRET;
+    if (!secret) { this.logger.warn('Webhook Cora recebido sem CORA_WEBHOOK_SECRET configurado — ignorado.'); return { ok: false, ignored: 'webhook não configurado' }; }
+    if (token !== secret) { this.logger.warn('Webhook Cora com token inválido — ignorado.'); return { ok: false, ignored: 'token inválido' }; }
+
     const invoiceId = String(body?.invoice_id ?? body?.id ?? body?.resource?.id ?? '');
     const evento = String(body?.event ?? body?.type ?? '').toLowerCase();
     if (!invoiceId) return { ok: true, ignored: 'sem invoice id' };
@@ -272,7 +307,11 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
     const fatura = await this.prisma.fatura.findFirst({ where: { coraInvoiceId: invoiceId } });
     if (!fatura) return { ok: true, ignored: 'fatura não encontrada' };
 
-    const pago = evento.includes('paid') || evento.includes('settle') || body?.status === 'PAID';
+    // Match por token exato (não substring): 'unpaid'/'settlement_failed' NÃO contam como pago.
+    const tokens = evento.split(/[^a-z]+/).filter(Boolean);
+    const negativo = tokens.some((t) => ['unpaid', 'failed', 'refused', 'canceled', 'cancelled', 'reversed', 'expired', 'pending', 'overdue'].includes(t));
+    const positivo = tokens.includes('paid') || tokens.includes('settled');
+    const pago = !negativo && (body?.status === 'PAID' || positivo);
     await this.prisma.fatura.update({
       where: { id: fatura.id },
       data: {

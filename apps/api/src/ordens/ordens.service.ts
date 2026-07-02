@@ -67,9 +67,11 @@ export class OrdensService {
   async criarAuto(
     amostraId: number,
     etapaInicial: string = 'macroscopia',
-    opts: { prioridade?: string; responsavel?: string } = {},
+    opts: { prioridade?: string; responsavel?: string; userId?: number } = {},
   ) {
     const numero = await this.gerarNumero();
+    const agora = new Date();
+    const idxInicial = ETAPAS_ORDEM.indexOf(etapaInicial as Etapa);
     const os = await this.prisma.ordemServico.create({
       data: {
         amostraId,
@@ -78,13 +80,20 @@ export class OrdensService {
         status: 'em_andamento',
         prioridade: opts.prioridade ?? 'normal',
         responsavel: opts.responsavel,
-        iniciadoEm: new Date(),
+        iniciadoEm: agora,
+        // Cria todas as etapas do fluxo (como no create manual) para que o
+        // avançar registre iniciadoEm/concluidoEm de cada uma. As anteriores à
+        // etapa inicial já nascem concluídas (foram puladas pelo recebimento).
         etapas: {
-          create: {
-            etapa: etapaInicial,
-            status: 'em_andamento',
-            iniciadoEm: new Date(),
-          },
+          create: ETAPAS_ORDEM.map((etapa, i) => {
+            if (idxInicial >= 0 && i < idxInicial) {
+              return { etapa, status: 'concluida', iniciadoEm: agora, concluidoEm: agora };
+            }
+            if (i === idxInicial) {
+              return { etapa, status: 'em_andamento', iniciadoEm: agora };
+            }
+            return { etapa, status: 'pendente' };
+          }),
         },
       },
     });
@@ -93,6 +102,9 @@ export class OrdensService {
       where: { id: amostraId },
       data: { status: 'em_processamento' },
     });
+    if (opts.userId) {
+      await this.audit.log(opts.userId, 'CREATE_AUTO', 'OrdemServico', os.id, { amostraId, etapaInicial });
+    }
     return os;
   }
 
@@ -236,7 +248,9 @@ export class OrdensService {
       esperado: etiquetas.length,
       conferidas,
       faltantes: etiquetas.length - conferidas,
-      completo: etiquetas.length > 0 && conferidas === etiquetas.length,
+      // Sem etiquetas (ex.: serviço sem geração de etiqueta) → nada a bipar,
+      // conferência considerada completa; não trava a finalização.
+      completo: conferidas === etiquetas.length,
       liberada: os.conferenciaLiberada,
       obs: os.conferenciaObs,
       etiquetas,
@@ -248,10 +262,14 @@ export class OrdensService {
     const os = await this.prisma.ordemServico.findUnique({ where: { id: osId }, select: { amostraId: true } });
     if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
     const alvo = (codigo ?? '').trim();
+    // Aceita o código exato, um número puro, OU o primeiro grupo de dígitos de
+    // um texto composto (ex.: "00000032 - 17062026") — mesmo comportamento do rastreio.
+    const grupoDigitos = alvo.match(/\d+/);
+    const asNumero = grupoDigitos ? parseInt(grupoDigitos[0], 10) : -1;
     const et = await this.prisma.etiqueta.findFirst({
       where: {
         amostraId: os.amostraId,
-        OR: [{ codigo: alvo }, { numero: /^\d+$/.test(alvo) ? parseInt(alvo, 10) : -1 }],
+        OR: [{ codigo: alvo }, { numero: Number.isNaN(asNumero) ? -1 : asNumero }],
       },
       select: { id: true },
     });

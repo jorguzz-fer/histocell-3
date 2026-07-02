@@ -233,6 +233,9 @@ export class FinanceiroService {
       where: {
         clienteId,
         status: { notIn: ['rascunho', 'cancelado'] },
+        // Adiantados já foram cobrados na entrada — fora da discriminação a faturar
+        // (mesma regra do fechamentoMensal e do criarFaturaDoMes).
+        pagamentoAdiantado: false,
         dataRecebimento: { gte: inicio, lt: fim },
       },
       select: {

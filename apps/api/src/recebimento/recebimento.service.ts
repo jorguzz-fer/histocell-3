@@ -285,6 +285,7 @@ export class RecebimentoService {
         await this.ordens.criarAuto(amostra.id, 'macroscopia', {
           prioridade: pedido.urgente ? 'urgente' : 'normal',
           responsavel: dto.recebidoPor,
+          userId,
         });
         ordensGeradas += 1;
       } catch {

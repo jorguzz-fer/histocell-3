@@ -1,6 +1,9 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { EtiquetaLabel } from './EtiquetaLabel'
 import type { Etiqueta } from './types'
-import { lerEtiquetaConfig, type EtiquetaConfig } from './etiquetaConfig'
+import { lerEtiquetaConfig, ETIQUETA_CONFIG_PADRAO, type EtiquetaConfig } from './etiquetaConfig'
 
 /**
  * Área oculta em tela e visível apenas na impressão (window.print()).
@@ -9,7 +12,13 @@ import { lerEtiquetaConfig, type EtiquetaConfig } from './etiquetaConfig'
  * etiqueta (Zebra), e não folha A4.
  */
 export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]; config?: EtiquetaConfig }) {
-  const { larguraMm, alturaMm } = config ?? lerEtiquetaConfig()
+  // Config vem do localStorage: lê só no cliente (useEffect) para não divergir
+  // do HTML do servidor (hydration mismatch) e para pegar o tamanho salvo.
+  const [cfg, setCfg] = useState<EtiquetaConfig>(config ?? ETIQUETA_CONFIG_PADRAO)
+  useEffect(() => {
+    if (!config) setCfg(lerEtiquetaConfig())
+  }, [config])
+  const { larguraMm, alturaMm } = config ?? cfg
 
   return (
     <>

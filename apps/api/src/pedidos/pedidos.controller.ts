@@ -36,10 +36,11 @@ export class PedidosController {
     return this.service.listarServicos(filter);
   }
 
-  /** Cria um serviço customizado (define preço) — só gerência (Célio) */
+  /** Cria um serviço customizado (define preço). Recepção também cadastra
+   *  serviços novos no meio de um pedido/orçamento (mesmos pontos do front). */
   @Post('servicos/novo')
   @HttpCode(201)
-  @Roles('gerencia')
+  @Roles('gerencia', 'recepcao')
   criarServico(@Body() body: {
     codigo?: string
     categoria: string

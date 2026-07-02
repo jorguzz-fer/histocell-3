@@ -47,8 +47,11 @@ export class MailService {
   }
 
   private async enviarResend(to: string[], input: MailInput) {
+    // Timeout defensivo: sem isto um Resend lento seguraria a requisição HTTP do
+    // usuário até o timeout de socket da plataforma (~300s).
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: {
         Authorization: `Bearer ${process.env.MAIL_API_KEY}`,
         'Content-Type': 'application/json',
