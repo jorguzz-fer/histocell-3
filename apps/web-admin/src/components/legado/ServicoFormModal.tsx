@@ -34,13 +34,13 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
   const [precoRotina, setPrecoRotina]     = useState(String(servico?.precoRotina ?? ''))
   const [precoPesquisa, setPrecoPesquisa] = useState(String(servico?.precoPesquisa ?? ''))
   const [observacoes, setObservacoes]     = useState(servico?.observacoes ?? '')
-  const [geraEtiqueta, setGeraEtiqueta]   = useState(servico?.geraEtiqueta ?? false)
   const [v1, setV1] = useState(servico?.variante1 ?? '')
   const [v2, setV2] = useState(servico?.variante2 ?? '')
   const [v3, setV3] = useState(servico?.variante3 ?? '')
   const [v4, setV4] = useState(servico?.variante4 ?? '')
   const [v5, setV5] = useState(servico?.variante5 ?? '')
   const [geraEtiqueta, setGeraEtiqueta] = useState(servico?.geraEtiqueta ?? true)
+  const [prazoDias, setPrazoDias] = useState(String(servico?.prazoDias ?? 1))
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -58,7 +58,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
         saved = await api.patch<Servico>(`/pedidos/servicos/${servico!.id}`, {
           nome: nome.trim(), categoria, codigo: codigo.trim() || undefined,
           precoRotina: rot, precoPesquisa: pes, observacoes: observacoes || undefined,
-          geraEtiqueta,
+          geraEtiqueta, prazoDias: parseInt(prazoDias, 10) || 1,
           variante1: v1 || undefined, variante2: v2 || undefined, variante3: v3 || undefined,
           variante4: v4 || undefined, variante5: v5 || undefined,
         })
@@ -69,7 +69,7 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
           categoria, nome: nome.trim(),
           precoBase: rot, precoRotina: rot, precoPesquisa: pes,
           observacoes: observacoes || undefined,
-          geraEtiqueta,
+          geraEtiqueta, prazoDias: parseInt(prazoDias, 10) || 1,
           variante1: v1 || undefined, variante2: v2 || undefined, variante3: v3 || undefined,
           variante4: v4 || undefined, variante5: v5 || undefined,
         })
@@ -113,15 +113,6 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
               />
             )}
           </div>
-          <label className="flex items-center gap-2 text-[12px] text-slate-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={geraEtiqueta}
-              onChange={(e) => setGeraEtiqueta(e.target.checked)}
-              className="rounded border-slate-300"
-            />
-            Gera etiqueta de lâmina/bloco?
-          </label>
           <div className="grid grid-cols-5 gap-2">
             <Input label="Var 1" value={v1} onChange={(e) => setV1(e.target.value)} />
             <Input label="Var 2" value={v2} onChange={(e) => setV2(e.target.value)} />
@@ -129,9 +120,10 @@ export function ServicoFormModal({ servico, initialNome, onClose, onSaved }: Pro
             <Input label="Var 4" value={v4} onChange={(e) => setV4(e.target.value)} />
             <Input label="Var 5" value={v5} onChange={(e) => setV5(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Input label="Valor Rotina (R$) *" type="number" min="0" step="0.01" value={precoRotina} onChange={(e) => setPrecoRotina(e.target.value)} placeholder="0,00" />
             <Input label="Valor Pesquisa (R$)" type="number" min="0" step="0.01" value={precoPesquisa} onChange={(e) => setPrecoPesquisa(e.target.value)} placeholder="= rotina" />
+            <Input label="Prazo (dias úteis)" type="number" min="1" step="1" value={prazoDias} onChange={(e) => setPrazoDias(e.target.value)} placeholder="1" />
           </div>
           <label className="flex items-center gap-2 cursor-pointer select-none rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2">
             <input type="checkbox" checked={geraEtiqueta} onChange={(e) => setGeraEtiqueta(e.target.checked)} className="h-4 w-4 accent-blue-600" />

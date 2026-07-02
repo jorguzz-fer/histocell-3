@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, ChevronRight } from 'lucide-react'
+import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, Scissors, Palette, PackageCheck, Truck, ClipboardList, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/Badge'
@@ -10,14 +10,27 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { FilaResponse, FilaOS, FilaPedidoPendente } from './types'
 
 const ETAPA_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  macroscopia:   { label: 'Em macroscopia',   icon: Microscope, color: 'text-blue-600' },
-  processamento: { label: 'Em processamento', icon: Layers,     color: 'text-indigo-600' },
-  laudo:         { label: 'Em laudo',         icon: FileCheck,  color: 'text-emerald-600' },
+  triagem:       { label: 'Triagem / Recebidas',   icon: ClipboardList, color: 'text-slate-500' },
+  macroscopia:   { label: 'Macroscopia',           icon: Microscope,    color: 'text-blue-600' },
+  processamento: { label: 'Processamento / Inclusão', icon: Layers,     color: 'text-indigo-600' },
+  microtomia:    { label: 'Microtomia (Corte)',    icon: Scissors,      color: 'text-cyan-600' },
+  coloracao:     { label: 'Coloração / Montagem',  icon: Palette,       color: 'text-fuchsia-600' },
+  laudo:         { label: 'Laudo',                 icon: FileCheck,     color: 'text-emerald-600' },
+  finalizacao:   { label: 'Finalização',           icon: PackageCheck,  color: 'text-amber-600' },
+  expedicao:     { label: 'Expedição / Retirada',  icon: Truck,         color: 'text-green-600' },
 }
 
 function fmtData(iso?: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+// Cor estável por cliente (facilita a leitura da fila — pedido do Célio)
+const CORES_CLIENTE = ['#2563eb', '#16a34a', '#d97706', '#db2777', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#c026d3', '#0d9488']
+function corCliente(nome: string) {
+  let h = 0
+  for (let i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) >>> 0
+  return CORES_CLIENTE[h % CORES_CLIENTE.length]
 }
 
 export default function FilaPage() {
@@ -92,12 +105,12 @@ export default function FilaPage() {
             />
           )}
 
-          {(['macroscopia', 'processamento', 'laudo'] as const).map((etapa) => (
+          {(data.etapas ?? []).map((etapa) => (
             <SecaoOS
               key={etapa}
               etapa={etapa}
-              itens={data.secoes[etapa]}
-              count={data.counts[etapa]}
+              itens={data.secoes[etapa] ?? []}
+              count={data.counts[etapa] ?? 0}
               onAvancar={avancarOS}
             />
           ))}
@@ -134,8 +147,8 @@ function SecaoDivergencia({ itens, onAprovar }: { itens: FilaPedidoPendente[]; o
   )
 }
 
-function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: 'macroscopia' | 'processamento' | 'laudo'; itens: FilaOS[]; count: number; onAvancar: (id: number) => void }) {
-  const meta = ETAPA_META[etapa]
+function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: string; itens: FilaOS[]; count: number; onAvancar: (id: number) => void }) {
+  const meta = ETAPA_META[etapa] ?? { label: etapa, icon: ClipboardList, color: 'text-slate-500' }
   const Icon = meta.icon
   return (
     <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
@@ -149,7 +162,8 @@ function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: 'macroscopia' | 'p
       ) : (
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {itens.map((o) => (
-            <div key={o.id} className="px-5 py-3 flex items-center justify-between gap-3">
+            <div key={o.id} className="px-5 py-3 flex items-center justify-between gap-3 border-l-4"
+              style={{ borderLeftColor: corCliente(o.amostra.pedido.cliente.nomeFantasia || o.amostra.pedido.cliente.nome) }}>
               <div className="min-w-0">
                 <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
                   {o.numero} · Amostra {o.amostra.numeroInterno}

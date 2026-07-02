@@ -36,7 +36,8 @@ export class PedidosController {
     return this.service.listarServicos(filter);
   }
 
-  /** Cria um serviço customizado on-the-fly (quando o serviço não existe na lista) */
+  /** Cria um serviço customizado (define preço). Recepção também cadastra
+   *  serviços novos no meio de um pedido/orçamento (mesmos pontos do front). */
   @Post('servicos/novo')
   @HttpCode(201)
   @Roles('gerencia', 'recepcao')
@@ -49,12 +50,12 @@ export class PedidosController {
     precoPesquisa: number
     observacoes?: string
     geraEtiqueta?: boolean
+    prazoDias?: number
     variante1?: string
     variante2?: string
     variante3?: string
     variante4?: string
     variante5?: string
-    geraEtiqueta?: boolean
   }) {
     return this.service.criarServico(body);
   }

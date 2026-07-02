@@ -1,0 +1,77 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/roles.guard';
+import { CobrancaService } from './cobranca.service';
+
+@Controller('cobranca')
+export class CobrancaController {
+  constructor(private service: CobrancaService) {}
+
+  /** Webhook PÚBLICO da Cora (sem JWT) — autenticado por segredo compartilhado
+   *  (token na query `?token=` da URL registrada, ou header `x-webhook-token`). */
+  @Post('webhook/cora')
+  webhook(
+    @Body() body: any,
+    @Query('token') tokenQuery?: string,
+    @Headers('x-webhook-token') tokenHeader?: string,
+  ) {
+    return this.service.webhook(body, tokenQuery ?? tokenHeader);
+  }
+
+  // ── Rotas autenticadas ──────────────────────────────────────────────────────
+  @Get('status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia', 'financeiro')
+  status() {
+    return this.service.configurada();
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia', 'financeiro')
+  findAll(@Query('status') status?: string) {
+    return this.service.findAll(status);
+  }
+
+  /** Gera a cobrança do mês (cria fatura + emite boleto na Cora) */
+  @Post('gerar')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia', 'financeiro')
+  gerar(@Body() body: { clienteId: number; periodo: string }) {
+    return this.service.gerarCobrancaMes(body.clienteId, body.periodo);
+  }
+
+  /** (Re)emite o boleto de uma fatura existente */
+  @Post(':id/emitir')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia', 'financeiro')
+  emitir(@Param('id', ParseIntPipe) id: number) {
+    return this.service.emitirBoleto(id);
+  }
+
+  /** Roda as cobranças programadas agora (gerência) — útil para teste/forçar */
+  @Post('rodar-agendadas')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia')
+  rodarAgendadas() {
+    return this.service.rodarAgendadas(true);
+  }
+
+  /** Sincroniza o status da fatura com a Cora */
+  @Post(':id/sincronizar')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('gerencia', 'financeiro')
+  sincronizar(@Param('id', ParseIntPipe) id: number) {
+    return this.service.sincronizar(id);
+  }
+}

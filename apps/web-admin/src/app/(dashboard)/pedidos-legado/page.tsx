@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollarSign, FileEdit, Trash2, Pencil } from 'lucide-react'
+import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollarSign, FileEdit, Trash2, Pencil, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
@@ -16,9 +17,12 @@ export default function PedidosLegadoPage() {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
+    prazoDias, setPrazoDias,
     addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
     rascunhos, editId, continuarRascunho, excluirRascunho,
   } = useOrderCart()
+
+  const [confirmarPrazo, setConfirmarPrazo] = useState(false)
 
   function fmtDraftData(iso: string) {
     return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -147,6 +151,16 @@ export default function PedidosLegadoPage() {
                     <BadgeDollarSign className="h-3.5 w-3.5" /> Pago adiantado
                   </button>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <label className="text-[12px] text-slate-500 dark:text-slate-400 shrink-0">Prazo de entrega</label>
+                  <input
+                    type="number" min={1} step={1} value={prazoDias}
+                    onChange={(e) => setPrazoDias(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    className="w-16 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[13px] px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-[12px] text-slate-500 dark:text-slate-400">dia(s) útil(eis)</span>
+                </div>
                 <textarea placeholder="Observações internas (não visível ao cliente)…" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2}
                   className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-slate-400" />
                 <div className="flex items-center justify-between">
@@ -160,7 +174,7 @@ export default function PedidosLegadoPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Button className="w-full" onClick={() => handleSalvar('enviado')} loading={saving}>
+                    <Button className="w-full" onClick={() => setConfirmarPrazo(true)} loading={saving}>
                       <Send className="h-4 w-4 mr-2" /> Enviar Orçamento
                     </Button>
                     <Button variant="secondary" className="w-full" onClick={() => handleSalvar('rascunho')} loading={saving}>
@@ -171,6 +185,28 @@ export default function PedidosLegadoPage() {
               </div>
             )}
           </div>
+
+          {confirmarPrazo && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmarPrazo(false)} />
+              <div className="relative z-10 w-full max-w-sm bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                  <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Confirmar prazo de entrega</h2>
+                </div>
+                <p className="text-[13px] text-slate-600 dark:text-slate-300">
+                  O prazo combinado com o cliente é de <strong>{prazoDias} dia{prazoDias !== 1 ? 's' : ''} útil(eis)</strong>.
+                  Confirma que está correto antes de enviar o orçamento?
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button variant="secondary" onClick={() => setConfirmarPrazo(false)}>Corrigir prazo</Button>
+                  <Button onClick={() => { setConfirmarPrazo(false); handleSalvar('enviado') }} loading={saving}>
+                    Confirmar e enviar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {rascunhos.length > 0 && (
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">

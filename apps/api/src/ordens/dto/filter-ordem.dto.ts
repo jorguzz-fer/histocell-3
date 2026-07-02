@@ -1,7 +1,8 @@
 import { IsOptional, IsString, IsInt, Min, IsIn } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { ETAPAS_ORDEM } from '../etapas';
 
-const ETAPAS   = ['triagem', 'macroscopia', 'processamento', 'laudo'] as const;
+const ETAPAS   = ETAPAS_ORDEM;
 const STATUS   = ['fila', 'em_andamento', 'concluida', 'cancelada']  as const;
 const PRIORIDADES = ['normal', 'urgente'] as const;
 

@@ -15,6 +15,8 @@ type PacoteItem = { servicoId: number; quantidade: number; nome: string; categor
 type Pacote = { id: number; codigo: string; nome: string; itens: PacoteItem[]; precoTotal: number; totalItens: number; categorias: string[] }
 type Catalogo = { servicos: Servico[]; pacotes: Pacote[]; populares: Servico[]; historico: Servico[] }
 type Pedido = { numero: string; status: string; origem: string; createdAt: string; totalItens: number; valorTotal: number }
+type LaudoCliente = { id: number; arquivoNome?: string | null; liberadoEm?: string | null; pedidoNumero?: string | null }
+type FaturaCliente = { numero: string; periodo: string; status: string; valorTotal: number; dataVencimento?: string | null; linhaDigitavel?: string | null; pixQrCode?: string | null; pdfUrl?: string | null }
 type CartItem = { servicoId: number; codigo?: string; nome: string; preco: number; desconto: number; quantidade: number }
 type Tab = 'catalogo' | 'pacotes' | 'historico' | 'populares' | 'extrato'
 
@@ -57,6 +59,8 @@ export default function PortalPedidoPage() {
   const [info, setInfo] = useState<Info | null>(null)
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [laudos, setLaudos] = useState<LaudoCliente[]>([])
+  const [faturas, setFaturas] = useState<FaturaCliente[]>([])
   const [erro, setErro] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [dark, setDark] = useState(false)
@@ -98,7 +102,24 @@ export default function PortalPedidoPage() {
 
   const fetchPedidos = useCallback(() => {
     portalApi.get<Pedido[]>(`/portal/${token}/pedidos`).then(setPedidos).catch(() => {})
+    portalApi.get<LaudoCliente[]>(`/portal/${token}/laudos`).then(setLaudos).catch(() => {})
+    portalApi.get<FaturaCliente[]>(`/portal/${token}/faturas`).then(setFaturas).catch(() => {})
   }, [token])
+
+  function copiar(texto?: string | null) {
+    if (!texto) return
+    navigator.clipboard?.writeText(texto)
+  }
+
+  async function baixarLaudo(l: LaudoCliente) {
+    try {
+      const r = await portalApi.get<{ arquivoBase64: string; arquivoNome: string }>(`/portal/${token}/laudo/${l.id}/arquivo`)
+      const link = document.createElement('a')
+      link.href = `data:application/pdf;base64,${r.arquivoBase64}`
+      link.download = r.arquivoNome || 'laudo.pdf'
+      link.click()
+    } catch {}
+  }
 
   useEffect(() => {
     let ok = true
@@ -459,6 +480,85 @@ export default function PortalPedidoPage() {
             </div>
           )}
         </section>
+
+        {/* Minhas faturas (2ª via) */}
+        {faturas.length > 0 && (
+          <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Minhas faturas</h2>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {faturas.map((f) => (
+                <div key={f.numero} className="px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
+                        {f.numero} · {brl(f.valorTotal)}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {f.status === 'paga' ? 'Paga' : `Vence ${f.dataVencimento ? dataFmt(f.dataVencimento) : '—'}`}
+                      </p>
+                    </div>
+                    {f.status === 'paga'
+                      ? <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Paga</span>
+                      : <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">Em aberto</span>}
+                  </div>
+                  {f.status !== 'paga' && (
+                    <div className="flex flex-wrap gap-2">
+                      {f.pdfUrl && (
+                        <a href={f.pdfUrl} target="_blank" rel="noreferrer"
+                          className="text-[12px] font-medium px-2.5 py-1 rounded-md bg-histocell-600 hover:bg-histocell-700 text-white">
+                          Baixar boleto
+                        </a>
+                      )}
+                      {f.linhaDigitavel && (
+                        <button onClick={() => copiar(f.linhaDigitavel)}
+                          className="text-[12px] font-medium px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300">
+                          Copiar linha digitável
+                        </button>
+                      )}
+                      {f.pixQrCode && (
+                        <button onClick={() => copiar(f.pixQrCode)}
+                          className="text-[12px] font-medium px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300">
+                          Copiar Pix
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Meus laudos */}
+        {laudos.length > 0 && (
+          <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Meus laudos</h2>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {laudos.map((l) => (
+                <div key={l.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
+                      Pedido {l.pedidoNumero ?? '—'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Liberado em {l.liberadoEm ? dataFmt(l.liberadoEm) : '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => baixarLaudo(l)}
+                    className="shrink-0 rounded-lg bg-histocell-600 hover:bg-histocell-700 text-white text-[12px] font-medium px-3 py-1.5"
+                  >
+                    Ver resultado
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Contato */}
         <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">

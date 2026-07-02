@@ -166,6 +166,54 @@ export class PortalService {
     return { servicos, pacotes, populares, historico };
   }
 
+  // ── Faturas/boletos do cliente (2ª via no portal) ───────────────────────────
+  async listarFaturas(token: string) {
+    const cliente = await this.resolverCliente(token);
+    const faturas = await this.prisma.fatura.findMany({
+      where: { clienteId: cliente.id, status: { in: ['emitida', 'paga'] } },
+      select: {
+        numero: true, periodo: true, status: true,
+        valorTotal: true, dataVencimento: true, dataPagamento: true,
+        linhaDigitavel: true, pixQrCode: true, pdfUrl: true,
+      },
+      orderBy: { dataVencimento: 'desc' },
+      take: 24,
+    });
+    return faturas.map((f) => ({ ...f, valorTotal: Number(f.valorTotal) }));
+  }
+
+  // ── Laudos liberados do cliente (portal) ────────────────────────────────────
+  async listarLaudos(token: string) {
+    const cliente = await this.resolverCliente(token);
+    const laudos = await this.prisma.laudo.findMany({
+      where: { liberado: true, pedido: { clienteId: cliente.id } },
+      select: {
+        id: true,
+        arquivoNome: true,
+        liberadoEm: true,
+        pedido: { select: { numero: true } },
+      },
+      orderBy: { liberadoEm: 'desc' },
+    });
+    return laudos.map((l) => ({
+      id: l.id,
+      arquivoNome: l.arquivoNome,
+      liberadoEm: l.liberadoEm,
+      pedidoNumero: l.pedido?.numero ?? null,
+    }));
+  }
+
+  /** PDF de um laudo liberado do próprio cliente. */
+  async laudoArquivo(token: string, id: number) {
+    const cliente = await this.resolverCliente(token);
+    const laudo = await this.prisma.laudo.findFirst({
+      where: { id, liberado: true, pedido: { clienteId: cliente.id } },
+      select: { arquivoBase64: true, arquivoNome: true },
+    });
+    if (!laudo || !laudo.arquivoBase64) throw new NotFoundException('Laudo não encontrado.');
+    return laudo;
+  }
+
   // ── Últimos pedidos do cliente ──────────────────────────────────────────────
   async listarPedidos(token: string) {
     const cliente = await this.resolverCliente(token);
@@ -206,16 +254,26 @@ export class PortalService {
     return itens;
   }
 
+  /** Prazo do pedido = maior prazo entre os serviços escolhidos (mesma regra do orçamento). */
+  private async calcularPrazo(itensDto: { servicoId: number }[]): Promise<number> {
+    const ids = Array.from(new Set(itensDto.map((i) => i.servicoId)));
+    if (ids.length === 0) return 1;
+    const servs = await this.prisma.servico.findMany({ where: { id: { in: ids } }, select: { prazoDias: true } });
+    return servs.reduce((m, s) => Math.max(m, s.prazoDias ?? 1), 1);
+  }
+
   // ── Criar pedido (origem=web; preços recalculados no servidor) ─────────────
   async criarPedido(token: string, dto: PortalPedidoDto) {
     const cliente = await this.resolverCliente(token);
     const itens = await this.precificar(cliente.id, dto.itens);
+    const prazoDias = await this.calcularPrazo(dto.itens);
 
     const pedido = await this.pedidos.create({
       clienteId: cliente.id,
       status: dto.status ?? 'enviado',
       origem: 'web',
       observacoes: dto.observacoes,
+      prazoDias,
       itens,
     } as any);
 
@@ -255,10 +313,12 @@ export class PortalService {
     const cliente = await this.resolverCliente(token);
     const rasc = await this.acharRascunho(cliente.id, numero);
     const itens = await this.precificar(cliente.id, dto.itens);
+    const prazoDias = await this.calcularPrazo(dto.itens);
 
     const pedido = await this.pedidos.update(rasc.id, {
       status: dto.status ?? 'rascunho',
       observacoes: dto.observacoes,
+      prazoDias,
       itens,
     } as any);
 

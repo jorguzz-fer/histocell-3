@@ -1,15 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Tags, Plus, Printer, Trash2, RefreshCw } from 'lucide-react'
+import { Tags, Plus, Printer, Trash2, RefreshCw, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
+import { Input } from '@/components/ui/Input'
 import { api } from '@/lib/api'
 import { GerarEtiquetasDrawer } from './GerarEtiquetasDrawer'
 import { EtiquetaPrintArea } from './EtiquetaPrintArea'
+import { lerEtiquetaConfig, salvarEtiquetaConfig } from './etiquetaConfig'
 import type { Etiqueta, EtiquetaListResponse } from './types'
 
 const TIPO_LABEL: Record<string, string> = { lamina: 'Lâmina', cassete: 'Cassete', bloco: 'Bloco' }
@@ -35,6 +37,22 @@ export default function EtiquetasPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [printList, setPrintList] = useState<Etiqueta[]>([])
+  const [cfgOpen, setCfgOpen] = useState(false)
+  const [cfgL, setCfgL] = useState('50')
+  const [cfgA, setCfgA] = useState('30')
+
+  useEffect(() => {
+    const c = lerEtiquetaConfig()
+    setCfgL(String(c.larguraMm)); setCfgA(String(c.alturaMm))
+  }, [])
+
+  function salvarConfig() {
+    const larguraMm = parseFloat(cfgL.replace(',', '.')) || 50
+    const alturaMm = parseFloat(cfgA.replace(',', '.')) || 30
+    salvarEtiquetaConfig({ larguraMm, alturaMm })
+    setCfgOpen(false)
+    toast.success(`Etiqueta ${larguraMm}×${alturaMm} mm salva.`)
+  }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -115,6 +133,10 @@ export default function EtiquetasPage() {
         subtitle="Geração e impressão de etiquetas (Code128) por lâmina/cassete"
         action={
           <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => setCfgOpen(true)}>
+              <Settings className="h-4 w-4 mr-1.5" />
+              Tamanho
+            </Button>
             <Button variant="secondary" onClick={fetchEtiquetas}>
               <RefreshCw className="h-4 w-4 mr-1.5" />
               Atualizar
@@ -298,6 +320,37 @@ export default function EtiquetasPage() {
         onClose={() => setDrawerOpen(false)}
         onGenerated={fetchEtiquetas}
       />
+
+      {/* Configuração do tamanho da etiqueta (impressora Zebra) */}
+      {cfgOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCfgOpen(false)} />
+          <div className="relative z-10 w-full max-w-sm bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+            <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <Settings className="h-4 w-4 text-blue-600" /> Tamanho da etiqueta
+            </h2>
+            <p className="text-[12px] text-slate-500 dark:text-slate-400">
+              Ajuste conforme o rolo da impressora (Zebra). Cada etiqueta sai em uma página desse tamanho.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Largura (mm)" type="number" min="10" step="1" value={cfgL} onChange={(e) => setCfgL(e.target.value)} />
+              <Input label="Altura (mm)" type="number" min="10" step="1" value={cfgA} onChange={(e) => setCfgA(e.target.value)} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[[50, 30], [100, 30], [40, 25]].map(([l, a]) => (
+                <button key={`${l}x${a}`} onClick={() => { setCfgL(String(l)); setCfgA(String(a)) }}
+                  className="text-[11px] px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                  {l}×{a} mm
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="secondary" onClick={() => setCfgOpen(false)}>Cancelar</Button>
+              <Button onClick={salvarConfig}>Salvar</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Área de impressão (oculta em tela, visível só na impressão) */}
       <EtiquetaPrintArea etiquetas={printList} />

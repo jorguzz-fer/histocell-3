@@ -14,6 +14,8 @@ import {
   Tags,
   ClipboardList,
   ScanLine,
+  FileText,
+  MessageSquare,
   ShieldCheck,
   Briefcase,
   Wallet,
@@ -45,7 +47,9 @@ const menuItems: MenuItem[] = [
   { href: '/etiquetas', label: 'Etiquetas', icon: Tags },
   { href: '/ordens', label: 'Ordem de Serviço', icon: ClipboardList },
   { href: '/rastreio', label: 'Rastreio', icon: ScanLine },
+  { href: '/laudos', label: 'Laudos', icon: FileText },
   { href: '/relatorios', label: 'Relatórios', icon: LineChart, roles: ['gerencia', 'financeiro'] },
+  { href: '/motivos', label: 'Motivos', icon: MessageSquare, roles: ['gerencia'] },
   { href: '/comercial', label: 'Comercial', icon: Briefcase, roles: ['gerencia', 'financeiro'] },
   // Qualidade: não usado hoje — fica no rodapé do menu (implementar depois).
   { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck },

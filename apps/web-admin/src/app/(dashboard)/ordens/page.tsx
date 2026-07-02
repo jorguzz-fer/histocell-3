@@ -1,7 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Plus, ChevronRight, AlertTriangle, RefreshCw, MessageSquare, ScanLine } from 'lucide-react'
+import { ComunicacaoDrawer } from '@/components/comunicacao/ComunicacaoDrawer'
+import { ConferenciaDrawer } from '@/components/comunicacao/ConferenciaDrawer'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -12,7 +14,7 @@ import type { OrdemServico, OrdensListResponse } from './types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
 
-const ETAPAS = ['triagem', 'macroscopia', 'processamento', 'laudo'] as const
+const ETAPAS = ['triagem', 'macroscopia', 'processamento', 'microtomia', 'coloracao', 'laudo', 'finalizacao', 'expedicao'] as const
 
 const statusOS: Record<string, { label: string; variant: 'slate' | 'amber' | 'blue' | 'green' | 'rose' }> = {
   fila:         { label: 'Na fila',      variant: 'slate' },
@@ -25,7 +27,11 @@ const etapaLabel: Record<string, string> = {
   triagem:       'Triagem',
   macroscopia:   'Macroscopia',
   processamento: 'Processamento',
+  microtomia:    'Microtomia (Corte)',
+  coloracao:     'Coloração',
   laudo:         'Laudo',
+  finalizacao:   'Finalização',
+  expedicao:     'Expedição',
 }
 
 function labelMaterial(m: string) {
@@ -95,6 +101,8 @@ export default function OrdensPage() {
   const [limit, setLimit]             = useState(20)
   const [drawerOpen, setDrawerOpen]   = useState(false)
   const [avancandoId, setAvancandoId] = useState<number | null>(null)
+  const [comOS, setComOS] = useState<{ pedidoId: number; ordemId: number; numero: string } | null>(null)
+  const [confOS, setConfOS] = useState<{ ordemId: number; numero: string } | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -136,7 +144,7 @@ export default function OrdensPage() {
     try {
       await api.patch(`/ordens/${os.id}/avancar`, {})
       toast.success(
-        os.etapaAtual === 'laudo'
+        os.etapaAtual === ETAPAS[ETAPAS.length - 1]
           ? `OS ${os.numero} concluída!`
           : `OS ${os.numero} avançada para ${etapaLabel[
               ETAPAS[ETAPAS.indexOf(os.etapaAtual as typeof ETAPAS[number]) + 1]
@@ -199,10 +207,9 @@ export default function OrdensPage() {
             focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
         >
           <option value="">Todas as etapas</option>
-          <option value="triagem">Triagem</option>
-          <option value="macroscopia">Macroscopia</option>
-          <option value="processamento">Processamento</option>
-          <option value="laudo">Laudo</option>
+          {ETAPAS.map((e) => (
+            <option key={e} value={e}>{etapaLabel[e]}</option>
+          ))}
         </select>
 
         <button
@@ -348,14 +355,28 @@ export default function OrdensPage() {
                         {/* Ações */}
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              title="Conferência fina (bipar lâminas)"
+                              onClick={() => setConfOS({ ordemId: os.id, numero: os.numero })}
+                              className="p-1.5 text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded"
+                            >
+                              <ScanLine className="h-4 w-4" />
+                            </button>
+                            <button
+                              title="Comunicar cliente (ocorrência / pronto)"
+                              onClick={() => setComOS({ pedidoId: os.amostra.pedido.id, ordemId: os.id, numero: os.amostra.pedido.numero })}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </button>
                             {podeAvancar && (
                               <Button
                                 size="sm"
-                                variant={os.etapaAtual === 'laudo' ? 'primary' : 'secondary'}
+                                variant={os.etapaAtual === 'expedicao' ? 'primary' : 'secondary'}
                                 loading={isAvancando}
                                 onClick={() => avancarEtapa(os)}
                               >
-                                {os.etapaAtual === 'laudo' ? 'Concluir' : 'Avançar'}
+                                {os.etapaAtual === 'expedicao' ? 'Concluir' : 'Avançar'}
                               </Button>
                             )}
                             <button
@@ -449,6 +470,26 @@ export default function OrdensPage() {
         onClose={() => setDrawerOpen(false)}
         onSaved={fetchOrdens}
       />
+
+      {comOS && (
+        <ComunicacaoDrawer
+          open
+          onClose={() => setComOS(null)}
+          pedidoId={comOS.pedidoId}
+          ordemServicoId={comOS.ordemId}
+          pedidoNumero={comOS.numero}
+        />
+      )}
+
+      {confOS && (
+        <ConferenciaDrawer
+          open
+          onClose={() => setConfOS(null)}
+          ordemId={confOS.ordemId}
+          numero={confOS.numero}
+          onChange={fetchOrdens}
+        />
+      )}
     </div>
   )
 }

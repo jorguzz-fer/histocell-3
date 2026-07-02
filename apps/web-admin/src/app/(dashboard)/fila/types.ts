@@ -29,16 +29,7 @@ export type FilaPedidoPendente = {
 }
 
 export type FilaResponse = {
-  counts: {
-    aprovacaoDivergencia: number
-    macroscopia: number
-    processamento: number
-    laudo: number
-  }
-  secoes: {
-    aprovacaoDivergencia: FilaPedidoPendente[]
-    macroscopia: FilaOS[]
-    processamento: FilaOS[]
-    laudo: FilaOS[]
-  }
+  etapas: string[]
+  counts: Record<string, number> & { aprovacaoDivergencia: number }
+  secoes: Record<string, FilaOS[]> & { aprovacaoDivergencia: FilaPedidoPendente[] }
 }

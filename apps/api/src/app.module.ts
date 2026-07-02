@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './common/prisma.module';
+import { MailModule } from './common/mail.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ClientesModule } from './clientes/clientes.module';
@@ -17,6 +18,9 @@ import { QualidadeModule } from './qualidade/qualidade.module';
 import { ComercialModule } from './comercial/comercial.module';
 import { FinanceiroModule } from './financeiro/financeiro.module';
 import { RelatoriosModule } from './relatorios/relatorios.module';
+import { LaudosModule } from './laudos/laudos.module';
+import { CobrancaModule } from './cobranca/cobranca.module';
+import { ComunicacaoModule } from './comunicacao/comunicacao.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -24,6 +28,7 @@ import { HealthController } from './health.controller';
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }]),
     PrismaModule,
+    MailModule,
     AuthModule,
     UsersModule,
     ClientesModule,
@@ -39,6 +44,9 @@ import { HealthController } from './health.controller';
     ComercialModule,
     FinanceiroModule,
     RelatoriosModule,
+    LaudosModule,
+    CobrancaModule,
+    ComunicacaoModule,
   ],
   controllers: [HealthController],
 })

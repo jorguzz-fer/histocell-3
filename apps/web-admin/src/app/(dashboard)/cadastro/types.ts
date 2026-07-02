@@ -25,6 +25,9 @@ export type Cliente = {
   telefone?: string
   celular?: string
   segmento: string
+  projeto?: string | null
+  cobrancaAutomatica?: boolean
+  diaCobranca?: number | null
   descontoPadrao?: number
   portalToken?: string | null
   observacoes?: string

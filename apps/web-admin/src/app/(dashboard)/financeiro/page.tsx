@@ -15,6 +15,8 @@ type Movimento = { id: number; tipo: string; valor: number; descricao: string; s
 type Extrato = { cliente: ClienteOpt; saldoAtual: number; movimentos: Movimento[] }
 type FechLinha = { clienteId: number; nome: string; nomeFantasia?: string | null; qtdPedidos: number; totalBruto: number; adiantado: number; aFaturar: number; creditoSaldo: number }
 type Fechamento = { ano: number; mes: number; linhas: FechLinha[]; totais: { clientes: number; pedidos: number; totalBruto: number; aFaturar: number } }
+type DetLinha = { servico: string; codigo: string; quantidade: number; valorUnit: number; valorTotal: number }
+type Detalhe = { cliente: string; segmento: string; projeto?: string | null; periodo: string; pedidos: string[]; linhas: DetLinha[]; total: number }
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -43,6 +45,19 @@ export default function FinanceiroPage() {
   // fechamento mensal
   const [mesRef, setMesRef] = useState(() => new Date().toISOString().slice(0, 7)) // YYYY-MM
   const [fechamento, setFechamento] = useState<Fechamento | null>(null)
+  const [coraOk, setCoraOk] = useState<boolean | null>(null)
+  const [gerandoId, setGerandoId] = useState<number | null>(null)
+  const [detalhe, setDetalhe] = useState<Detalhe | null>(null)
+
+  async function abrirDetalhe(clienteId: number) {
+    const [ano, mes] = mesRef.split('-')
+    try {
+      const d = await api.get<Detalhe>(`/financeiro/fechamento/${clienteId}/detalhe?ano=${ano}&mes=${mes}`)
+      setDetalhe(d)
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao carregar detalhe')
+    }
+  }
 
   const fetchFechamento = useCallback(() => {
     const [ano, mes] = mesRef.split('-')
@@ -52,6 +67,21 @@ export default function FinanceiroPage() {
   }, [mesRef])
 
   useEffect(() => { fetchFechamento() }, [fetchFechamento])
+  useEffect(() => {
+    api.get<{ configurada: boolean }>('/cobranca/status').then((r) => setCoraOk(r.configurada)).catch(() => setCoraOk(null))
+  }, [])
+
+  async function gerarCobranca(clienteId: number) {
+    setGerandoId(clienteId)
+    try {
+      await api.post('/cobranca/gerar', { clienteId, periodo: mesRef })
+      toast.success('Cobrança gerada (boleto emitido na Cora).')
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao gerar cobrança')
+    } finally {
+      setGerandoId(null)
+    }
+  }
 
   const fetchResumo = useCallback(async () => {
     setLoading(true)
@@ -188,18 +218,37 @@ export default function FinanceiroPage() {
                   <th className="px-4 py-2 font-semibold text-right">Adiantado</th>
                   <th className="px-4 py-2 font-semibold text-right">A faturar</th>
                   <th className="px-4 py-2 font-semibold text-right">Crédito atual</th>
+                  <th className="px-4 py-2 font-semibold text-right">Cobrança</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {fechamento.linhas.map((l) => (
-                  <tr key={l.clienteId} className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                    onClick={() => abrirExtrato(l.clienteId)}>
-                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200">{l.nomeFantasia ?? l.nome}</td>
+                  <tr key={l.clienteId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200 cursor-pointer" onClick={() => abrirExtrato(l.clienteId)}>{l.nomeFantasia ?? l.nome}</td>
                     <td className="px-4 py-2 text-center tabular-nums">{l.qtdPedidos}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{fmtBRL(l.totalBruto)}</td>
                     <td className="px-4 py-2 text-right tabular-nums text-slate-400">{l.adiantado ? fmtBRL(l.adiantado) : '—'}</td>
                     <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100">{fmtBRL(l.aFaturar)}</td>
                     <td className={`px-4 py-2 text-right tabular-nums ${l.creditoSaldo > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{fmtBRL(l.creditoSaldo)}</td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => abrirDetalhe(l.clienteId)}
+                          title="Ver discriminação por serviço (base da NF)"
+                          className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          Detalhe
+                        </button>
+                        <button
+                          onClick={() => gerarCobranca(l.clienteId)}
+                          disabled={gerandoId === l.clienteId || l.aFaturar <= 0}
+                          title={coraOk === false ? 'Cora ainda não configurada — a fatura é criada, o boleto sai quando configurar' : 'Gerar boleto na Cora'}
+                          className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white"
+                        >
+                          {gerandoId === l.clienteId ? '…' : 'Gerar cobrança'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -207,7 +256,9 @@ export default function FinanceiroPage() {
           </div>
         )}
         <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400">
-          💡 Base da fatura do mês. A emissão de <strong>boleto + nota fiscal</strong> (integração Cora) é o próximo passo — depende de credenciais/API do banco.
+          {coraOk === false
+            ? <>⚠️ <strong>Cora ainda não configurada</strong> — "Gerar cobrança" cria a fatura, mas o boleto só é emitido após cadastrar as credenciais (CORA_CLIENT_ID/CERT/KEY).</>
+            : <>💡 "Gerar cobrança" cria a fatura do mês e emite o <strong>boleto (Cora)</strong>; a NFS-e depende da configuração fiscal no painel do banco.</>}
         </div>
       </div>
 
@@ -288,6 +339,52 @@ export default function FinanceiroPage() {
           )}
         </div>
       </div>
+
+      {/* Detalhe (discriminação por serviço — base da NF) */}
+      {detalhe && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDetalhe(null)} />
+          <div className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 max-h-[90vh] overflow-y-auto">
+            <div>
+              <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Discriminação — {detalhe.cliente}</h2>
+              <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                {detalhe.periodo} · {detalhe.pedidos.length} pedido(s)
+                {detalhe.segmento === 'pesquisador' && detalhe.projeto ? ` · Projeto ${detalhe.projeto}` : ''}
+              </p>
+            </div>
+            <table className="w-full text-[12px]">
+              <thead className="text-slate-500 dark:text-slate-400 text-left border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="py-1.5 font-semibold">Serviço</th>
+                  <th className="py-1.5 font-semibold text-center">Qtd</th>
+                  <th className="py-1.5 font-semibold text-right">Unit.</th>
+                  <th className="py-1.5 font-semibold text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {detalhe.linhas.map((l, i) => (
+                  <tr key={i}>
+                    <td className="py-1.5 text-slate-700 dark:text-slate-200">{l.servico}</td>
+                    <td className="py-1.5 text-center tabular-nums">{l.quantidade}</td>
+                    <td className="py-1.5 text-right tabular-nums text-slate-500">{fmtBRL(l.valorUnit)}</td>
+                    <td className="py-1.5 text-right tabular-nums font-medium">{fmtBRL(l.valorTotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-slate-200 dark:border-slate-700">
+                  <td colSpan={3} className="py-2 text-right text-slate-500">Total</td>
+                  <td className="py-2 text-right font-bold text-slate-900 dark:text-white">{fmtBRL(detalhe.total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+            <p className="text-[11px] text-slate-400">💡 Esta discriminação vai na nota fiscal (linha a linha) para clientes de projeto/pesquisa.</p>
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setDetalhe(null)}>Fechar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -51,6 +51,11 @@ export class CreatePedidoDto {
   @IsBoolean()
   pagamentoAdiantado?: boolean;
 
+  /** Prazo de entrega acordado (dias úteis) */
+  @IsOptional()
+  @IsInt()
+  prazoDias?: number;
+
   /** Status inicial do pedido (rascunho ao salvar, enviado ao enviar) */
   @IsOptional()
   @IsIn(['rascunho', 'enviado'])

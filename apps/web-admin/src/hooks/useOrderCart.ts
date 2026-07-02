@@ -34,6 +34,7 @@ export type OrderCartItem = {
   preco: number
   desconto: number          // valor digitado — interpretado conforme descontoTipo
   descontoTipo: DescontoTipo // 'pct' = percentual | 'valor' = R$ abatidos do total do item
+  prazoDias: number          // prazo (dias) do serviço — usado para o prazo do orçamento
 }
 
 export function fmtBRL(v: number) {
@@ -65,6 +66,8 @@ export function useOrderCart() {
   const [saved, setSaved]             = useState(false)
   const [clientes, setClientes]       = useState<ClienteOpt[]>([])
   const [pedidoCriado, setPedidoCriado] = useState<{ id: number; numero: string } | null>(null)
+  const [prazoDias, setPrazoDiasState]    = useState(1)
+  const [prazoManual, setPrazoManual]     = useState(false) // true quando o usuário editou o prazo à mão
   const [urgente, setUrgente]             = useState(false)
   const [pagamentoAdiantado, setPagamentoAdiantado] = useState(false)
   const [creditoSaldo, setCreditoSaldo]   = useState<number | null>(null)
@@ -97,6 +100,17 @@ export function useOrderCart() {
   const isPesquisador = cliente?.segmento === 'pesquisador'
   const priceKey = isPesquisador ? 'precoPesquisa' : 'precoRotina'
 
+  // Edição manual do prazo pelo usuário (fixa o valor; para de seguir os itens).
+  const setPrazoDias = useCallback((v: number) => { setPrazoManual(true); setPrazoDiasState(v) }, [])
+
+  // Prazo do orçamento = maior prazo entre os itens — recalcula ao adicionar/remover
+  // (enquanto o usuário não editar à mão). Sem itens volta a 1.
+  useEffect(() => {
+    if (prazoManual) return
+    const maior = itens.reduce((m, i) => Math.max(m, Number(i.prazoDias) || 1), 1)
+    setPrazoDiasState(maior)
+  }, [itens, prazoManual])
+
   const addServico = useCallback(async (s: Servico) => {
     let preco = Number(s[priceKey as keyof Servico] ?? s.precoRotina)
     let desconto = 0
@@ -111,8 +125,9 @@ export function useOrderCart() {
     }
     setItens((prev) => [
       ...prev,
-      { key: `${s.id}-${Date.now()}`, servicoId: s.id, nome: s.nome, categoria: s.categoria, quantidade: 1, preco, desconto, descontoTipo: 'pct' },
+      { key: `${s.id}-${Date.now()}`, servicoId: s.id, nome: s.nome, categoria: s.categoria, quantidade: 1, preco, desconto, descontoTipo: 'pct', prazoDias: Number(s.prazoDias ?? 1) || 1 },
     ])
+    // o prazo do orçamento é recalculado pelo efeito (maior prazo entre os itens)
     toast.success(`"${s.nome}" adicionado`)
   }, [clienteId, priceKey])
 
@@ -136,6 +151,7 @@ export function useOrderCart() {
         preco: args.preco,
         desconto: 0,
         descontoTipo: 'pct',
+        prazoDias: 1,
       },
     ])
   }, [])
@@ -187,7 +203,8 @@ export function useOrderCart() {
   }
 
   const limpar = useCallback(() => {
-    setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false); setEditId(null)
+    setItens([]); setClienteId(''); setObservacoes(''); setUrgente(false); setPagamentoAdiantado(false)
+    setPrazoDiasState(1); setPrazoManual(false); setEditId(null)
   }, [])
 
   // Carrega um rascunho de volta no carrinho para continuar editando.
@@ -197,6 +214,8 @@ export function useOrderCart() {
       setEditId(p.id)
       setClienteId(String(p.cliente?.id ?? p.clienteId ?? ''))
       setObservacoes(p.observacoes ?? '')
+      setPrazoDiasState(Number(p.prazoDias ?? 1) || 1)
+      setPrazoManual(true) // respeita o prazo salvo do rascunho
       setUrgente(Boolean(p.urgente))
       setPagamentoAdiantado(Boolean(p.pagamentoAdiantado))
       setItens(
@@ -209,6 +228,7 @@ export function useOrderCart() {
           preco: Number(it.preco),
           desconto: Number(it.desconto ?? 0),
           descontoTipo: 'pct' as DescontoTipo,
+          prazoDias: Number(it.servico?.prazoDias ?? 1) || 1,
         })),
       )
       toast.success(`Rascunho ${p.numero} carregado`)
@@ -238,6 +258,7 @@ export function useOrderCart() {
         observacoes: observacoes || undefined,
         urgente,
         pagamentoAdiantado,
+        prazoDias,
         status: finalStatus,
         itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
       }
@@ -272,6 +293,7 @@ export function useOrderCart() {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
+    prazoDias, setPrazoDias,
     addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
     rascunhos, editId, continuarRascunho, excluirRascunho,
   }

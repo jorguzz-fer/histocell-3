@@ -7,7 +7,6 @@ import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
-import { OrdensService } from '../ordens/ordens.service';
 import { AuditService } from '../common/audit.service';
 
 // ─── include padrão de amostra ────────────────────────────────────────────────
@@ -32,7 +31,6 @@ export class RecebimentoService {
     private audit: AuditService,
     private financeiro: FinanceiroService,
     private etiquetas: EtiquetasService,
-    private ordens: OrdensService,
   ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
@@ -259,14 +257,6 @@ export class RecebimentoService {
         include: INCLUDE_AMOSTRA,
       });
       amostrasCreated.push(amostra);
-
-      // Auto-cria OS para a amostra, na etapa macroscopia
-      await this.ordens.criarAuto(amostra.id, 'macroscopia');
-      // Amostra entra em em_processamento (OS assumiu)
-      await this.prisma.amostra.update({
-        where: { id: amostra.id },
-        data: { status: 'em_processamento' },
-      });
     }
 
     // ── Etiqueta de nível 2: 1 lâmina por amostra designada (Célio) ─────────────
@@ -287,14 +277,15 @@ export class RecebimentoService {
     }
 
     // ── OS automática: 1 ordem de serviço por amostra designada (Célio) ─────────
-    // Best-effort: falha na criação da OS não bloqueia o recebimento.
+    // Nasce em_andamento na Macroscopia (aparece na Fila). Best-effort: falha
+    // na criação da OS não bloqueia o recebimento.
     let ordensGeradas = 0;
     for (const amostra of amostrasCreated) {
       try {
-        await this.ordens.create({
-          amostraId: amostra.id,
+        await this.ordens.criarAuto(amostra.id, 'macroscopia', {
           prioridade: pedido.urgente ? 'urgente' : 'normal',
           responsavel: dto.recebidoPor,
+          userId,
         });
         ordensGeradas += 1;
       } catch {

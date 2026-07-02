@@ -216,4 +216,64 @@ export class FinanceiroService {
       },
     };
   }
+
+  // ── Fechamento detalhado: discriminação por serviço de um cliente no mês ──────
+  // Base da NF (ex.: "10 H&E, 15 lâminas em branco, 10 específica").
+  async fechamentoDetalhado(clienteId: number, ano: number, mes: number) {
+    const inicio = new Date(ano, mes - 1, 1);
+    const fim = new Date(ano, mes, 1);
+
+    const cliente = await this.prisma.cliente.findUnique({
+      where: { id: clienteId },
+      select: { nome: true, nomeFantasia: true, segmento: true, projeto: true },
+    });
+    if (!cliente) throw new NotFoundException(`Cliente #${clienteId} não encontrado.`);
+
+    const pedidos = await this.prisma.pedido.findMany({
+      where: {
+        clienteId,
+        status: { notIn: ['rascunho', 'cancelado'] },
+        // Adiantados já foram cobrados na entrada — fora da discriminação a faturar
+        // (mesma regra do fechamentoMensal e do criarFaturaDoMes).
+        pagamentoAdiantado: false,
+        dataRecebimento: { gte: inicio, lt: fim },
+      },
+      select: {
+        numero: true,
+        itens: {
+          select: {
+            quantidade: true, preco: true, desconto: true,
+            servico: { select: { nome: true, codigo: true } },
+          },
+        },
+      },
+      orderBy: { dataRecebimento: 'asc' },
+    });
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    // agrega por (serviço + preço unitário líquido), somando quantidades
+    const mapa = new Map<string, { servico: string; codigo: string; quantidade: number; valorUnit: number; valorTotal: number }>();
+    for (const p of pedidos) {
+      for (const it of p.itens) {
+        const unit = round(Number(it.preco) * (1 - Number(it.desconto) / 100));
+        const chave = `${it.servico.codigo}::${unit}`;
+        const cur = mapa.get(chave) ?? { servico: it.servico.nome, codigo: it.servico.codigo, quantidade: 0, valorUnit: unit, valorTotal: 0 };
+        cur.quantidade += it.quantidade;
+        cur.valorTotal = round(cur.valorTotal + unit * it.quantidade);
+        mapa.set(chave, cur);
+      }
+    }
+    const linhas = Array.from(mapa.values()).sort((a, b) => a.servico.localeCompare(b.servico, 'pt'));
+    const total = round(linhas.reduce((s, l) => s + l.valorTotal, 0));
+
+    return {
+      cliente: cliente.nomeFantasia ?? cliente.nome,
+      segmento: cliente.segmento,
+      projeto: cliente.projeto,
+      periodo: `${ano}-${String(mes).padStart(2, '0')}`,
+      pedidos: pedidos.map((p) => p.numero),
+      linhas,
+      total,
+    };
+  }
 }

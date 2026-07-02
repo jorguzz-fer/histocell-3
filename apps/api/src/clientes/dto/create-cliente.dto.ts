@@ -1,6 +1,8 @@
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -98,6 +100,23 @@ export class CreateClienteDto {
   @IsEnum(['recorrente', 'esporadico', 'pesquisador'])
   @IsOptional()
   segmento?: 'recorrente' | 'esporadico' | 'pesquisador';
+
+  /** Nº/código do projeto de financiamento (FAPESP/CNPq) — sai na NF (pesquisador) */
+  @IsString()
+  @IsOptional()
+  projeto?: string;
+
+  /** Cobrança programada (gera a fatura do mês automaticamente) */
+  @IsBoolean()
+  @IsOptional()
+  cobrancaAutomatica?: boolean;
+
+  /** Dia do mês (1–28) para a cobrança automática */
+  @IsInt()
+  @Min(1)
+  @Max(28)
+  @IsOptional()
+  diaCobranca?: number;
 
   /** Desconto fixo recorrente (%) aplicado automaticamente a cada pedido deste cliente */
   @IsNumber()

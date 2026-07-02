@@ -113,6 +113,7 @@ export class PedidosService {
     variante5?: string
     observacoes?: string
     geraEtiqueta?: boolean
+    prazoDias?: number
   }) {
     const codigo = dto.codigo?.trim() || (await this.gerarCodigoServico());
     const servico = await this.prisma.servico.create({
@@ -131,6 +132,7 @@ export class PedidosService {
         variante5:    dto.variante5 ?? null,
         observacoes:  dto.observacoes ?? null,
         geraEtiqueta: dto.geraEtiqueta ?? true,
+        prazoDias:    dto.prazoDias ?? 1,
       },
     });
     return {
@@ -359,7 +361,7 @@ export class PedidosService {
       select: {
         id: true, codigo: true, codigoLegado: true, categoria: true,
         nome: true, precoBase: true, precoRotina: true, precoPesquisa: true,
-        ativo: true, observacoes: true,
+        ativo: true, observacoes: true, geraEtiqueta: true, prazoDias: true,
         variante1: true, variante2: true, variante3: true, variante4: true, variante5: true,
       },
       orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
@@ -522,6 +524,7 @@ export class PedidosService {
         observacoes: dto.observacoes,
         urgente: dto.urgente ?? false,
         pagamentoAdiantado: dto.pagamentoAdiantado ?? false,
+        prazoDias: dto.prazoDias ?? null,
         dataEnvio: status === 'enviado' ? new Date() : undefined,
         itens: {
           create: dto.itens.map((item) => ({
