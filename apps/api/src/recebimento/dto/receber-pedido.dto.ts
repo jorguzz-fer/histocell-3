@@ -48,6 +48,11 @@ export class ReceberPedidoDto {
   @IsInt()
   qtdPrevista?: number;
 
+  /** Quantidade recebida (conferência). Default: nº de amostras registradas. */
+  @IsOptional()
+  @IsInt()
+  qtdRecebida?: number;
+
   /** Observação manual da conferência (anexada às observações do pedido). */
   @IsOptional()
   @IsString()

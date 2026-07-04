@@ -294,7 +294,12 @@ export class RecebimentoService {
     }
 
     // ── Conferência: previsto x recebido ──────────────────────────────────────
-    const recebida = amostrasCreated.length;
+    // Recebida = valor informado na conferência (quando enviado); senão, o nº
+    // de amostras efetivamente registradas.
+    const recebida =
+      dto.qtdRecebida != null && dto.qtdRecebida >= 0
+        ? dto.qtdRecebida
+        : amostrasCreated.length;
     const somaItens = pedido.itens.reduce((s, i) => s + i.quantidade, 0);
     const prevista =
       dto.qtdPrevista != null && dto.qtdPrevista >= 0 ? dto.qtdPrevista : somaItens;
@@ -376,8 +381,8 @@ export class RecebimentoService {
 
     return {
       message: divergente
-        ? `${recebida} amostra(s) registrada(s). Contagem prevista (${prevista}) diverge — pedido aguarda aprovação da gerência.`
-        : `${recebida} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
+        ? `${amostrasCreated.length} amostra(s) registrada(s). Conferência ${recebida}×${prevista} diverge — pedido aguarda aprovação da gerência.`
+        : `${amostrasCreated.length} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
       amostras: amostrasCreated,
       etiquetasGeradas,
       ordensGeradas, // OS criadas automaticamente (1 por amostra)

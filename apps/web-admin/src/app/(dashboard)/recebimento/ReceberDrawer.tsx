@@ -34,6 +34,8 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [recebidoPor, setRecebidoPor] = useState('')
   const [qtdPrevista, setQtdPrevista] = useState('')
+  const [qtdRecebida, setQtdRecebidaState] = useState('')
+  const [recebidaManual, setRecebidaManual] = useState(false) // true quando o usuário digita a qtd recebida
   const [obsConferencia, setObsConferencia] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -49,12 +51,23 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
       setRecebidoPor('')
       const qtdItens = pedido.itens.reduce((s, it) => s + it.quantidade, 0)
       setQtdPrevista(String(qtdItens))
+      setQtdRecebidaState(String(inicial.length))
+      setRecebidaManual(false)
       setObsConferencia('')
     }
   }, [open, pedido, recipientes])
 
+  // Recebendo: por padrão acompanha o nº de amostras cadastradas; depois que o
+  // usuário digita, respeita o valor manual.
+  useEffect(() => {
+    if (!recebidaManual) setQtdRecebidaState(String(linhas.length))
+  }, [linhas.length, recebidaManual])
+  const setQtdRecebida = (v: string) => { setRecebidaManual(true); setQtdRecebidaState(v) }
+
   const previstaNum = parseInt(qtdPrevista, 10)
-  const diferenca = Number.isFinite(previstaNum) ? linhas.length - previstaNum : 0
+  const recebidaNum = parseInt(qtdRecebida, 10)
+  const diferenca =
+    Number.isFinite(previstaNum) && Number.isFinite(recebidaNum) ? recebidaNum - previstaNum : 0
 
   function setLinha(key: string, field: keyof AmostraItemForm, value: string) {
     setLinhas((prev) => prev.map((l) => (l._key === key ? { ...l, [field]: value } : l)))
@@ -82,6 +95,7 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
         pedidoId: pedido.id,
         recebidoPor: recebidoPor.trim() || undefined,
         qtdPrevista: Number.isFinite(previstaNum) ? previstaNum : undefined,
+        qtdRecebida: Number.isFinite(recebidaNum) ? recebidaNum : undefined,
         observacaoConferencia: obsConferencia.trim() || undefined,
         amostras: linhas.map((a) => ({
           recipienteId: a.recipienteId ?? undefined,
@@ -171,12 +185,14 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
               onChange={(e) => setQtdPrevista(e.target.value)}
               hint="Padrão = soma do pedido"
             />
-            <div>
-              <span className="block text-[12px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">Recebendo</span>
-              <div className="rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2 text-[13px] tabular-nums bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200">
-                {linhas.length}
-              </div>
-            </div>
+            <Input
+              label="Recebendo"
+              type="number"
+              min="0"
+              value={qtdRecebida}
+              onChange={(e) => setQtdRecebida(e.target.value)}
+              hint="Padrão = nº de amostras"
+            />
             <div>
               <span className="block text-[12px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">Diferença</span>
               <div className={`rounded-md border px-3 py-2 text-[13px] tabular-nums font-semibold ${
