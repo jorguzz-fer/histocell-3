@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './common/prisma.module';
 import { MailModule } from './common/mail.module';
 import { AuthModule } from './auth/auth.module';
@@ -49,5 +50,10 @@ import { HealthController } from './health.controller';
     ComunicacaoModule,
   ],
   controllers: [HealthController],
+  providers: [
+    // Ativa o rate limiting globalmente. Sem isto, o ThrottlerModule e todos os
+    // @Throttle (ex.: login) ficam INERTES — não impõem limite nenhum.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

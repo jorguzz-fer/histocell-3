@@ -12,10 +12,16 @@ import { RolesGuard } from './roles.guard';
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRATION', '12h') },
-      }),
+      useFactory: (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET não definido — configuração obrigatória ausente.');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: config.get('JWT_EXPIRATION', '12h') },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

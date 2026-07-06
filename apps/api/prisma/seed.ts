@@ -94,18 +94,33 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // ── Usuários admin ──────────────────────────────────────────────────────────
-  const senhaHash = await bcrypt.hash('Histocell@2026', 12);
+  // Senha inicial NUNCA hardcoded. Vem de SEED_ADMIN_PASSWORD (defina no deploy).
+  // Sem ela, cada conta NOVA recebe uma senha aleatória impressa no log — troque
+  // no primeiro acesso. Contas já existentes NÃO são alteradas.
+  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
 
   for (const u of [
     { nome: 'Célio',     email: 'celio@histocell.com.br',     role: 'gerencia' },
     { nome: 'Kleber',    email: 'kleber@histocell.com.br',    role: 'gerencia' },
     { nome: 'Recepção',  email: 'recepcao@histocell.com.br',  role: 'recepcao' },
   ]) {
-    await prisma.user.upsert({
+    const existente = await prisma.user.findUnique({
       where: { email: u.email },
-      update: {},
-      create: { nome: u.nome, email: u.email, senha: senhaHash, role: u.role },
+      select: { id: true },
     });
+    if (existente) continue; // não mexe em conta existente (preserva senha rotacionada)
+
+    const senhaInicial =
+      seedAdminPassword ?? crypto.randomBytes(12).toString('base64url');
+    const senhaHash = await bcrypt.hash(senhaInicial, 12);
+    await prisma.user.create({
+      data: { nome: u.nome, email: u.email, senha: senhaHash, role: u.role },
+    });
+    if (!seedAdminPassword) {
+      console.log(
+        `[seed] Conta criada ${u.email} — senha inicial: ${senhaInicial} (troque no 1º acesso)`,
+      );
+    }
   }
 
   // ── Remove placeholders antigos e seed serviços reais ────────────────────────
