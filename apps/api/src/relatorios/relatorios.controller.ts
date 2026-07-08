@@ -1,10 +1,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { RelatoriosService } from './relatorios.service';
 
 @Controller('relatorios')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('relatorios')
 export class RelatoriosController {
   constructor(private service: RelatoriosService) {}
 

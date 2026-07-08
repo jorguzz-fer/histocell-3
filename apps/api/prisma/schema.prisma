@@ -47,6 +47,37 @@ model RefreshToken {
   @@index([userId])
 }
 
+// Papel de acesso. `nome` é o slug usado em User.role e nos guards.
+// Os 4 papéis do sistema (gerencia/recepcao/tecnico/financeiro) têm sistema=true
+// (não podem ser excluídos nem ter o slug alterado). Gerência é superadmin.
+model Papel {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique // slug: gerencia, recepcao, tecnico, financeiro, ou custom
+  label     String
+  descricao String?
+  sistema   Boolean  @default(false)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  permissoes PapelPermissao[]
+
+  @@index([nome])
+}
+
+// Permissão concedida a um papel. `chave` referencia o catálogo de áreas
+// definido em código (permissoes.catalog.ts).
+model PapelPermissao {
+  id      Int    @id @default(autoincrement())
+  papelId Int
+  chave   String
+
+  papel Papel @relation(fields: [papelId], references: [id], onDelete: Cascade)
+
+  @@unique([papelId, chave])
+  @@index([papelId])
+}
+
 // ==========================================
 // M01 — CADASTRO DE CLIENTES
 // ==========================================

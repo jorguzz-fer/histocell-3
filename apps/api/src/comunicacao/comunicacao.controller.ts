@@ -2,11 +2,12 @@ import {
   Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Request, UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { ComunicacaoService } from './comunicacao.service';
 
 @Controller('comunicacao')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('qualidade')
 export class ComunicacaoController {
   constructor(private service: ComunicacaoService) {}
 

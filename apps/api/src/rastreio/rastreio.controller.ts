@@ -1,12 +1,13 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { RastreioService } from './rastreio.service';
 import { ScanDto } from './dto/scan.dto';
 import { FilterRastreioDto } from './dto/filter-rastreio.dto';
 
 @Controller('rastreio')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('rastreio')
 export class RastreioController {
   constructor(private service: RastreioService) {}
 
