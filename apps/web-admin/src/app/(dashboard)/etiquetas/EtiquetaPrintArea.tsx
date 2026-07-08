@@ -52,7 +52,9 @@ export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]
            se o usuário ajustar o tamanho da etiqueta. */
         .etiqueta-ident { font-size: ${(alturaMm * 0.095).toFixed(2)}mm; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .etiqueta-coloracao { font-size: ${(alturaMm * 0.13).toFixed(2)}mm; font-weight: 700; }
-        .etiqueta-barcode { width: 100%; height: auto; }
+        /* display:block remove o espaçamento de baseline do SVG (que fazia o número
+           encostar no código); margem dá respiro acima e abaixo das barras. */
+        .etiqueta-barcode { width: 100%; height: auto; display: block; margin: ${(alturaMm * 0.03).toFixed(2)}mm auto; }
         .etiqueta-numero { font-family: 'Courier New', monospace; font-size: ${(alturaMm * 0.095).toFixed(2)}mm; }
         .etiqueta-histocell { font-size: ${(alturaMm * 0.09).toFixed(2)}mm; }
         @media print {

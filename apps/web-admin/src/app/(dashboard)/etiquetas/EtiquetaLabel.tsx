@@ -35,7 +35,7 @@ export function EtiquetaLabel({
 
   // Barras: altura ~38% da etiqueta; módulo proporcional à largura (limitado
   // para permanecer legível/escaneável em etiqueta pequena). 1mm ≈ 3.78px.
-  const barrasAltura = Math.max(16, Math.round(alturaMm * 0.38 * 3.78))
+  const barrasAltura = Math.max(15, Math.round(alturaMm * 0.32 * 3.78))
   const barraLargura = Math.max(0.8, Math.min(2, larguraMm / 24))
 
   return (
