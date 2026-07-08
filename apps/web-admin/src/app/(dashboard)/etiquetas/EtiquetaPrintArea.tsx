@@ -25,7 +25,7 @@ export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]
       <div className="etiqueta-print-area" aria-hidden>
         {etiquetas.map((e) => (
           <div className="etiqueta-page" key={e.id}>
-            <EtiquetaLabel etiqueta={e} />
+            <EtiquetaLabel etiqueta={e} larguraMm={larguraMm} alturaMm={alturaMm} />
           </div>
         ))}
       </div>
@@ -36,7 +36,7 @@ export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]
           box-sizing: border-box;
           width: ${larguraMm}mm;
           height: ${alturaMm}mm;
-          padding: 1mm 1.5mm;
+          padding: ${(alturaMm * 0.04).toFixed(2)}mm ${(larguraMm * 0.05).toFixed(2)}mm;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -44,15 +44,17 @@ export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]
           text-align: center;
           color: #000;
           font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.1;
+          line-height: 1.05;
           overflow: hidden;
           break-inside: avoid;
         }
-        .etiqueta-ident { font-size: 7pt; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .etiqueta-coloracao { font-size: 9pt; font-weight: 700; }
+        /* Fontes proporcionais ao tamanho (mm) para caberem em 24×18 e escalarem
+           se o usuário ajustar o tamanho da etiqueta. */
+        .etiqueta-ident { font-size: ${(alturaMm * 0.095).toFixed(2)}mm; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .etiqueta-coloracao { font-size: ${(alturaMm * 0.13).toFixed(2)}mm; font-weight: 700; }
         .etiqueta-barcode { width: 100%; height: auto; }
-        .etiqueta-numero { font-family: 'Courier New', monospace; font-size: 8pt; }
-        .etiqueta-histocell { font-size: 8pt; }
+        .etiqueta-numero { font-family: 'Courier New', monospace; font-size: ${(alturaMm * 0.095).toFixed(2)}mm; }
+        .etiqueta-histocell { font-size: ${(alturaMm * 0.09).toFixed(2)}mm; }
         @media print {
           body * { visibility: hidden; }
           .etiqueta-print-area, .etiqueta-print-area * { visibility: visible; }
