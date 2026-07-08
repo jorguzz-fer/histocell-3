@@ -36,6 +36,7 @@ export default function EtiquetasPage() {
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [copias, setCopias] = useState<Record<number, number>>({}) // etiquetaId → nº de cópias
   const [printList, setPrintList] = useState<Etiqueta[]>([])
   const [cfgOpen, setCfgOpen] = useState(false)
   const [cfgL, setCfgL] = useState('50')
@@ -96,15 +97,24 @@ export default function EtiquetasPage() {
     )
   }
 
+  // ── cópias por etiqueta ─────────────────────────────────────────────────────────
+  const getCopias = (id: number) => copias[id] ?? 1
+  function setCopiasFor(id: number, n: number) {
+    setCopias((prev) => ({ ...prev, [id]: Math.max(1, Math.min(99, Math.floor(n) || 1)) }))
+  }
+
   // ── impressão ─────────────────────────────────────────────────────────────────
+  // Expande cada etiqueta em N cópias e imprime só essas. A mesma etiqueta pode
+  // repetir no papel conforme o nº de cópias escolhido.
   async function imprimir(lista: Etiqueta[]) {
     if (lista.length === 0) return
-    setPrintList(lista)
+    const paginas = lista.flatMap((e) => Array.from({ length: getCopias(e.id) }, () => e))
+    setPrintList(paginas)
     // espera o render dos códigos de barras antes de abrir o diálogo
     await new Promise((r) => setTimeout(r, 400))
     window.print()
     try {
-      await api.post('/etiquetas/imprimir', { ids: lista.map((e) => e.id) })
+      await api.post('/etiquetas/imprimir', { ids: Array.from(new Set(lista.map((e) => e.id))) })
     } catch {
       /* impressão pode ter sido cancelada — silencioso */
     }
@@ -125,6 +135,7 @@ export default function EtiquetasPage() {
   }
 
   const selecionadas = etiquetas.filter((e) => selected.has(e.id))
+  const totalCopias = selecionadas.reduce((s, e) => s + getCopias(e.id), 0)
 
   return (
     <div className="space-y-6">
@@ -171,7 +182,7 @@ export default function EtiquetasPage() {
           {selected.size > 0 && (
             <Button variant="secondary" onClick={() => imprimir(selecionadas)}>
               <Printer className="h-4 w-4 mr-1.5" />
-              Imprimir selecionadas ({selected.size})
+              Imprimir selecionadas ({selected.size} · {totalCopias} cópia{totalCopias !== 1 ? 's' : ''})
             </Button>
           )}
           <span className="text-[12px] text-slate-400">
@@ -210,7 +221,7 @@ export default function EtiquetasPage() {
                       className="rounded border-slate-300 dark:border-slate-600"
                     />
                   </th>
-                  {['Nº', 'Identificação', 'Coloração', 'Tipo', 'Código', 'Amostra / Cliente', 'Status', ''].map((h) => (
+                  {['Nº', 'Identificação', 'Coloração', 'Tipo', 'Código', 'Amostra / Cliente', 'Status', 'Cópias', ''].map((h) => (
                     <th
                       key={h}
                       className="text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-4 py-3 whitespace-nowrap"
@@ -271,10 +282,23 @@ export default function EtiquetasPage() {
                           <Badge variant="amber">Pendente</Badge>
                         )}
                       </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min={1}
+                          max={99}
+                          value={getCopias(e.id)}
+                          onChange={(ev) => setCopiasFor(e.id, Number(ev.target.value))}
+                          onClick={(ev) => ev.stopPropagation()}
+                          className="w-14 rounded-md border border-slate-200 dark:border-slate-700 px-2 py-1 text-[12px] tabular-nums
+                            bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200
+                            focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            title="Imprimir"
+                            title={`Imprimir ${getCopias(e.id)} cópia${getCopias(e.id) !== 1 ? 's' : ''}`}
                             onClick={() => imprimir([e])}
                             className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50
                               dark:hover:bg-blue-500/10 transition-colors"
