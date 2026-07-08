@@ -17,7 +17,7 @@ export class FilaService {
         numero: true,
         dataRecebimento: true,
         contagemDivergente: true,
-        cliente: { select: { nome: true, nomeFantasia: true } },
+        cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         itens: { select: { quantidade: true } },
         amostras: { select: { id: true } },
       },
@@ -53,7 +53,7 @@ export class FilaService {
           pedido: {
             select: {
               numero: true,
-              cliente: { select: { nome: true, nomeFantasia: true } },
+              cliente: { select: { id: true, nome: true, nomeFantasia: true } },
             },
           },
         },

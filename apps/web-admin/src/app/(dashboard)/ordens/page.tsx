@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { api } from '@/lib/api'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { NovaOSDrawer } from './NovaOSDrawer'
 import type { OrdemServico, OrdensListResponse } from './types'
 
@@ -298,11 +299,19 @@ export default function OrdensPage() {
 
                         {/* Cliente */}
                         <td className="px-4 py-3">
-                          <div className="text-[13px] text-slate-700 dark:text-slate-300 leading-tight">
-                            {os.amostra.pedido.cliente.nomeFantasia ?? os.amostra.pedido.cliente.nome}
-                          </div>
-                          <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                            {os.amostra.pedido.numero}
+                          <div className="flex items-center gap-2">
+                            <ClienteAvatar
+                              nome={os.amostra.pedido.cliente.nomeFantasia ?? os.amostra.pedido.cliente.nome}
+                              seed={os.amostra.pedido.cliente.id}
+                            />
+                            <div className="min-w-0">
+                              <div className="text-[13px] text-slate-700 dark:text-slate-300 leading-tight truncate">
+                                {os.amostra.pedido.cliente.nomeFantasia ?? os.amostra.pedido.cliente.nome}
+                              </div>
+                              <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                                {os.amostra.pedido.numero}
+                              </div>
+                            </div>
                           </div>
                         </td>
 

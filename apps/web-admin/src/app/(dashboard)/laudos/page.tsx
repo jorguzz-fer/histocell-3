@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { api } from '@/lib/api'
 
 type Laudo = {
@@ -21,7 +22,7 @@ type Laudo = {
   solicitadoEm?: string | null
   liberado: boolean
   liberadoEm?: string | null
-  pedido?: { numero: string; cliente: { nome: string; nomeFantasia?: string | null } }
+  pedido?: { numero: string; cliente: { id: number; nome: string; nomeFantasia?: string | null } }
 }
 
 type PedidoOpt = { id: number; numero: string; clienteNome: string; clienteNomeFantasia?: string | null }
@@ -193,7 +194,20 @@ export default function LaudosPage() {
                 {laudos.map((l) => (
                   <tr key={l.id}>
                     <td className="px-4 py-2 font-mono text-slate-700 dark:text-slate-200">{l.pedido?.numero ?? `#${l.pedidoId}`}</td>
-                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{l.pedido?.cliente.nomeFantasia ?? l.pedido?.cliente.nome ?? '—'}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[180px]">
+                      {l.pedido?.cliente ? (
+                        <div className="flex items-center gap-2">
+                          <ClienteAvatar
+                            nome={l.pedido.cliente.nomeFantasia ?? l.pedido.cliente.nome}
+                            seed={l.pedido.cliente.id}
+                            size={24}
+                          />
+                          <span className="truncate">{l.pedido.cliente.nomeFantasia ?? l.pedido.cliente.nome}</span>
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-slate-500 dark:text-slate-400">
                       {l.patologistaNome ?? '—'}<br /><span className="text-[11px] text-slate-400">{l.patologistaEmail}</span>
                     </td>

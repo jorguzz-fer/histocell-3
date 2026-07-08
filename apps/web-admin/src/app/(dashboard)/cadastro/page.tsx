@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { api } from '@/lib/api'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { ClienteDrawer } from './ClienteDrawer'
 import type { Cliente, ClienteListResponse } from './types'
 
@@ -251,14 +252,17 @@ export default function CadastroPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button
                             onClick={() => abrirEditar(c)}
-                            className="text-left group"
+                            className="flex items-center gap-2.5 text-left group"
                           >
-                            <p className="text-[13px] font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                              {c.nomeFantasia || c.nome}
-                            </p>
-                            {c.nomeFantasia && (
-                              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{c.nome}</p>
-                            )}
+                            <ClienteAvatar nome={c.nomeFantasia || c.nome} seed={c.id} size={30} />
+                            <span>
+                              <p className="text-[13px] font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {c.nomeFantasia || c.nome}
+                              </p>
+                              {c.nomeFantasia && (
+                                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{c.nome}</p>
+                              )}
+                            </span>
                           </button>
                         </td>
 
