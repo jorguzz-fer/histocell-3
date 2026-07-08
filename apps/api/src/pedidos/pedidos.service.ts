@@ -11,6 +11,8 @@ import { FilterPedidoDto } from './dto/filter-pedido.dto';
 import { UpdateServicoDto } from './dto/update-servico.dto';
 import { FilterServicoDto } from './dto/filter-servico.dto';
 import { AuditService } from '../common/audit.service';
+import { OrdensService } from '../ordens/ordens.service';
+import { FinanceiroService } from '../financeiro/financeiro.service';
 
 const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'recebido_pendente_aprovacao', 'cancelado'];
 
@@ -44,7 +46,12 @@ const INCLUDE_FULL = {
 
 @Injectable()
 export class PedidosService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+    private ordens: OrdensService,
+    private financeiro: FinanceiroService,
+  ) {}
 
   // ── numero sequencial diário ────────────────────────────────────────────────
   // Usa o MAIOR sufixo do dia + 1 (à prova de buracos deixados por exclusões;
@@ -603,7 +610,10 @@ export class PedidosService {
 
   // ── APROVAR DIVERGÊNCIA ─────────────────────────────────────────────────────
   async aprovarDivergencia(id: number, userId: number) {
-    const pedido = await this.prisma.pedido.findUnique({ where: { id } });
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id },
+      include: { itens: { select: { quantidade: true, preco: true, desconto: true } } },
+    });
     if (!pedido) throw new NotFoundException(`Pedido #${id} não encontrado.`);
     if (pedido.status !== 'recebido_pendente_aprovacao') {
       throw new BadRequestException(
@@ -615,7 +625,40 @@ export class PedidosService {
       data: { status: 'recebido' }, // contagemDivergente fica true como rastro histórico
       include: INCLUDE_FULL,
     });
-    await this.audit.log(userId, 'DIVERGENCIA_APROVADA', 'Pedido', id, { aprovadoPor: userId });
+
+    // Libera o fluxo do laboratório: cria as OS que ficaram retidas na aprovação
+    // (na retenção o recebimento NÃO cria OS). Agora as amostras entram na Fila.
+    const os = await this.ordens.criarAutoParaPedido(id, {
+      prioridade: pedido.urgente ? 'urgente' : 'normal',
+      userId,
+    });
+
+    // Abate o crédito pré-pago agora (não foi abatido no recebimento por estar retido).
+    if (!pedido.pagamentoAdiantado) {
+      const valorPedido =
+        Math.round(
+          pedido.itens.reduce(
+            (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
+            0,
+          ) * 100,
+        ) / 100;
+      try {
+        await this.financeiro.debitarPorPedido({
+          clienteId: pedido.clienteId,
+          pedidoId: pedido.id,
+          pedidoNumero: pedido.numero,
+          valorPedido,
+        });
+      } catch {
+        /* falha no abatimento não bloqueia a aprovação */
+      }
+    }
+
+    await this.audit.log(userId, 'DIVERGENCIA_APROVADA', 'Pedido', id, {
+      aprovadoPor: userId,
+      osCriadas: os.criadas,
+      osFalhas: os.falhas,
+    });
     return this.toShape(updated);
   }
 
