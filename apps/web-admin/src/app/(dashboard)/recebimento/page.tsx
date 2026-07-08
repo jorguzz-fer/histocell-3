@@ -56,17 +56,20 @@ function FilaCard({ p, onReceber, acaoLabel = 'Receber' }: { p: PedidoFila; onRe
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-slate-200">{p.numero}</p>
-          <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
-            {p.clienteNomeFantasia ?? p.clienteNome}
-          </p>
-          {(p.urgente || p.pagamentoAdiantado) && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {p.urgente && <Badge variant="rose">Urgente</Badge>}
-              {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
-            </div>
-          )}
+        <div className="flex items-start gap-2.5">
+          <ClienteAvatar nome={p.clienteNomeFantasia ?? p.clienteNome} seed={p.clienteId} size={32} />
+          <div>
+            <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-slate-200">{p.numero}</p>
+            <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
+              {p.clienteNomeFantasia ?? p.clienteNome}
+            </p>
+            {(p.urgente || p.pagamentoAdiantado) && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {p.urgente && <Badge variant="rose">Urgente</Badge>}
+                {p.pagamentoAdiantado && <Badge variant="green">Pago</Badge>}
+              </div>
+            )}
+          </div>
         </div>
         {diasNaFila > 0 && (
           <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full ${

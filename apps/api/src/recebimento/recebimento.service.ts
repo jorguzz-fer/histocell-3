@@ -41,10 +41,10 @@ export class RecebimentoService {
     return String(Number(rows[0].nextval)).padStart(5, '0');
   }
 
-  // ── Fila por status (com recipientes) ─────────────────────────────────────────
-  private async filaPorStatus(status: string) {
+  // ── Fila por filtro (com recipientes) ─────────────────────────────────────────
+  private async filaPorWhere(where: any) {
     const pedidos = await this.prisma.pedido.findMany({
-      where: { status },
+      where,
       include: {
         cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         itens: { include: { servico: { select: { nome: true, codigo: true } } } },
@@ -63,10 +63,18 @@ export class RecebimentoService {
     }));
   }
 
-  /** Etapa 1 — Recepção: pedidos enviados aguardando entrada */
-  async filaRecepcao() { return this.filaPorStatus('enviado'); }
+  /** Etapa 1 — Recepção: orçamentos aguardando entrada.
+   *  - Admin (origem 'local'): entram mesmo como rascunho — orçamento criado no
+   *    admin já aparece no recebimento sem precisar "enviar".
+   *  - Portal (origem 'web'): só quando enviados (rascunhos do cliente não
+   *    poluem a recepção). */
+  async filaRecepcao() {
+    return this.filaPorWhere({
+      OR: [{ status: 'enviado' }, { status: 'rascunho', origem: 'local' }],
+    });
+  }
   /** Etapa 2 — Laboratório: pedidos com entrada feita, aguardando identificação */
-  async filaLaboratorio() { return this.filaPorStatus('recepcao'); }
+  async filaLaboratorio() { return this.filaPorWhere({ status: 'recepcao' }); }
   /** back-compat */
   async findFila() { return this.filaRecepcao(); }
 
