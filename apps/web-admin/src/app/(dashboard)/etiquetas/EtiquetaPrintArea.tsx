@@ -1,37 +1,46 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { EtiquetaLabel } from './EtiquetaLabel'
 import type { Etiqueta } from './types'
 import { lerEtiquetaConfig, ETIQUETA_CONFIG_PADRAO, type EtiquetaConfig } from './etiquetaConfig'
 
 /**
- * Área oculta em tela e visível apenas na impressão (window.print()).
- * Cada etiqueta ocupa UMA página do tamanho configurado (largura×altura),
- * empilhadas uma embaixo da outra — formato adequado para impressora de
- * etiqueta (Zebra), e não folha A4.
+ * Área de impressão das etiquetas. Renderizada num portal no <body> e visível
+ * apenas na impressão (window.print()). Cada etiqueta ocupa UMA página do
+ * tamanho configurado (largura×altura) — formato de impressora de etiqueta.
+ *
+ * Na impressão, TODO o resto da página é `display:none` (não apenas escondido),
+ * senão o conteúdo do app — mesmo invisível — continuaria ocupando espaço e
+ * geraria páginas em branco. A lista pode conter a mesma etiqueta repetida
+ * (cópias), por isso a key é o índice.
  */
 export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]; config?: EtiquetaConfig }) {
-  // Config vem do localStorage: lê só no cliente (useEffect) para não divergir
-  // do HTML do servidor (hydration mismatch) e para pegar o tamanho salvo.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  // Config vem do localStorage: lê só no cliente (evita hydration mismatch).
   const [cfg, setCfg] = useState<EtiquetaConfig>(config ?? ETIQUETA_CONFIG_PADRAO)
   useEffect(() => {
     if (!config) setCfg(lerEtiquetaConfig())
   }, [config])
   const { larguraMm, alturaMm } = config ?? cfg
 
-  return (
-    <>
+  if (!mounted) return null
+
+  return createPortal(
+    <div className="etq-print-root">
       <div className="etiqueta-print-area" aria-hidden>
-        {etiquetas.map((e) => (
-          <div className="etiqueta-page" key={e.id}>
+        {etiquetas.map((e, i) => (
+          <div className="etiqueta-page" key={i}>
             <EtiquetaLabel etiqueta={e} larguraMm={larguraMm} alturaMm={alturaMm} />
           </div>
         ))}
       </div>
 
       <style>{`
-        .etiqueta-print-area { display: none; }
+        .etq-print-root { display: none; }
         .etiqueta-label {
           box-sizing: border-box;
           width: ${larguraMm}mm;
@@ -58,14 +67,11 @@ export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]
         .etiqueta-numero { font-family: 'Courier New', monospace; font-size: ${(alturaMm * 0.095).toFixed(2)}mm; }
         .etiqueta-histocell { font-size: ${(alturaMm * 0.09).toFixed(2)}mm; }
         @media print {
-          body * { visibility: hidden; }
-          .etiqueta-print-area, .etiqueta-print-area * { visibility: visible; }
-          .etiqueta-print-area {
-            display: block !important;
-            position: absolute;
-            left: 0;
-            top: 0;
-          }
+          /* Esconde o app inteiro (display:none evita páginas em branco); só a
+             área de impressão aparece. */
+          body > *:not(.etq-print-root) { display: none !important; }
+          .etq-print-root { display: block !important; }
+          .etiqueta-print-area { display: block; }
           .etiqueta-page {
             width: ${larguraMm}mm;
             height: ${alturaMm}mm;
@@ -73,10 +79,11 @@ export function EtiquetaPrintArea({ etiquetas, config }: { etiquetas: Etiqueta[]
             break-after: page;
             overflow: hidden;
           }
-          .etiqueta-page:last-child { page-break-after: auto; }
+          .etiqueta-page:last-child { page-break-after: auto; break-after: auto; }
           @page { size: ${larguraMm}mm ${alturaMm}mm; margin: 0; }
         }
       `}</style>
-    </>
+    </div>,
+    document.body,
   )
 }
