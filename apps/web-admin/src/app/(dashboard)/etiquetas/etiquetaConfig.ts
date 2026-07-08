@@ -3,7 +3,8 @@
 export type EtiquetaConfig = { larguraMm: number; alturaMm: number }
 
 const KEY = 'etiquetaConfig'
-export const ETIQUETA_CONFIG_PADRAO: EtiquetaConfig = { larguraMm: 50, alturaMm: 30 }
+// Etiqueta da lâmina (colada na ponta fosca): 24 mm × 18 mm.
+export const ETIQUETA_CONFIG_PADRAO: EtiquetaConfig = { larguraMm: 24, alturaMm: 18 }
 
 export function lerEtiquetaConfig(): EtiquetaConfig {
   if (typeof window === 'undefined') return ETIQUETA_CONFIG_PADRAO
