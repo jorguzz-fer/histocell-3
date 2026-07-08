@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { api } from '@/lib/api'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { GerarEtiquetasDrawer } from './GerarEtiquetasDrawer'
 import { EtiquetaPrintArea } from './EtiquetaPrintArea'
 import { lerEtiquetaConfig, salvarEtiquetaConfig } from './etiquetaConfig'
@@ -270,10 +271,15 @@ export default function EtiquetasPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-[12px] font-mono text-slate-600 dark:text-slate-400">
-                          {e.amostra.numeroInterno}
+                        <div className="flex items-center gap-2">
+                          <ClienteAvatar nome={cli} seed={e.amostra.pedido.cliente.id} size={26} />
+                          <div className="min-w-0">
+                            <div className="text-[12px] font-mono text-slate-600 dark:text-slate-400">
+                              {e.amostra.numeroInterno}
+                            </div>
+                            <div className="text-[12px] text-slate-700 dark:text-slate-300 truncate max-w-[180px]">{cli}</div>
+                          </div>
                         </div>
-                        <div className="text-[12px] text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{cli}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {e.impresso ? (

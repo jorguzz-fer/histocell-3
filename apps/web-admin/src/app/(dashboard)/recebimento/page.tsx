@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { ReceberDrawer } from './ReceberDrawer'
 import { RecepcaoDrawer } from './RecepcaoDrawer'
 import type { PedidoFila, Amostra, AmostraListResponse } from './types'
@@ -387,9 +388,16 @@ export default function RecebimentoPage() {
 
                           {/* Cliente */}
                           <td className="px-4 py-3">
-                            <span className="text-[13px] text-slate-700 dark:text-slate-300">
-                              {a.pedido.cliente.nomeFantasia ?? a.pedido.cliente.nome}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <ClienteAvatar
+                                nome={a.pedido.cliente.nomeFantasia ?? a.pedido.cliente.nome}
+                                seed={a.pedido.cliente.id}
+                                size={26}
+                              />
+                              <span className="text-[13px] text-slate-700 dark:text-slate-300 truncate">
+                                {a.pedido.cliente.nomeFantasia ?? a.pedido.cliente.nome}
+                              </span>
+                            </div>
                           </td>
 
                           {/* Espécie */}

@@ -14,7 +14,7 @@ export type FilaOS = {
     material: string
     pedido: {
       numero: string
-      cliente: { nome: string; nomeFantasia?: string | null }
+      cliente: { id: number; nome: string; nomeFantasia?: string | null }
     }
   }
 }

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { api } from '@/lib/api'
 import { ScanBox } from './ScanBox'
 import { ProgressoDepartamentos } from './ProgressoDepartamentos'
@@ -151,8 +152,17 @@ export default function RastreioPage() {
                   >
                     <td className="px-4 py-2 font-mono text-slate-700 dark:text-slate-200">{e.codigo}</td>
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{e.identificacao ?? '—'}</td>
-                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[140px] truncate">
-                      {e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
+                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[160px]">
+                      <div className="flex items-center gap-2">
+                        <ClienteAvatar
+                          nome={e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
+                          seed={e.amostra.pedido.cliente.id}
+                          size={24}
+                        />
+                        <span className="truncate">
+                          {e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-2 text-center">
                       {e.amostra.pedido.qtdPrevista != null && e.amostra.pedido.qtdPrevista > 0 ? (

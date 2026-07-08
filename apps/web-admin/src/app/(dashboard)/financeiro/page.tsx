@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
+import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { api } from '@/lib/api'
 
 type ClienteOpt = { id: number; nome: string; nomeFantasia?: string | null }
@@ -224,7 +225,12 @@ export default function FinanceiroPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {fechamento.linhas.map((l) => (
                   <tr key={l.clienteId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200 cursor-pointer" onClick={() => abrirExtrato(l.clienteId)}>{l.nomeFantasia ?? l.nome}</td>
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-200 cursor-pointer" onClick={() => abrirExtrato(l.clienteId)}>
+                      <div className="flex items-center gap-2">
+                        <ClienteAvatar nome={l.nomeFantasia ?? l.nome} seed={l.clienteId} size={24} />
+                        <span className="truncate">{l.nomeFantasia ?? l.nome}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-2 text-center tabular-nums">{l.qtdPedidos}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{fmtBRL(l.totalBruto)}</td>
                     <td className="px-4 py-2 text-right tabular-nums text-slate-400">{l.adiantado ? fmtBRL(l.adiantado) : '—'}</td>
