@@ -54,13 +54,20 @@ export class OrdensService {
   constructor(private prisma: PrismaService, private audit: AuditService) {}
 
   // ── número sequencial diário ─────────────────────────────────────────────────
+  // Usa o MAIOR sufixo existente + 1 (não count+1): resiste a lacunas deixadas
+  // por OS canceladas/removidas, evitando gerar um número já usado (P2002).
   private async gerarNumero(): Promise<string> {
     const hoje = toDateStr(new Date());
     const prefix = `OS-${hoje}-`;
-    const count = await this.prisma.ordemServico.count({
+    const existentes = await this.prisma.ordemServico.findMany({
       where: { numero: { startsWith: prefix } },
+      select: { numero: true },
     });
-    return `${prefix}${String(count + 1).padStart(3, '0')}`;
+    const maxSeq = existentes.reduce((max, o) => {
+      const n = parseInt(o.numero.slice(prefix.length), 10);
+      return Number.isFinite(n) && n > max ? n : max;
+    }, 0);
+    return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
   }
 
   /** Cria OS automaticamente para uma amostra (usado pelo Recebimento). */
@@ -69,34 +76,45 @@ export class OrdensService {
     etapaInicial: string = 'macroscopia',
     opts: { prioridade?: string; responsavel?: string; userId?: number } = {},
   ) {
-    const numero = await this.gerarNumero();
     const agora = new Date();
     const idxInicial = ETAPAS_ORDEM.indexOf(etapaInicial as Etapa);
-    const os = await this.prisma.ordemServico.create({
-      data: {
-        amostraId,
-        numero,
-        etapaAtual: etapaInicial,
-        status: 'em_andamento',
-        prioridade: opts.prioridade ?? 'normal',
-        responsavel: opts.responsavel,
-        iniciadoEm: agora,
-        // Cria todas as etapas do fluxo (como no create manual) para que o
-        // avançar registre iniciadoEm/concluidoEm de cada uma. As anteriores à
-        // etapa inicial já nascem concluídas (foram puladas pelo recebimento).
-        etapas: {
-          create: ETAPAS_ORDEM.map((etapa, i) => {
-            if (idxInicial >= 0 && i < idxInicial) {
-              return { etapa, status: 'concluida', iniciadoEm: agora, concluidoEm: agora };
-            }
-            if (i === idxInicial) {
-              return { etapa, status: 'em_andamento', iniciadoEm: agora };
-            }
-            return { etapa, status: 'pendente' };
-          }),
-        },
-      },
+    const dadosEtapas = ETAPAS_ORDEM.map((etapa, i) => {
+      // Cria todas as etapas do fluxo (como no create manual) para que o
+      // avançar registre iniciadoEm/concluidoEm de cada uma. As anteriores à
+      // etapa inicial já nascem concluídas (foram puladas pelo recebimento).
+      if (idxInicial >= 0 && i < idxInicial) {
+        return { etapa, status: 'concluida', iniciadoEm: agora, concluidoEm: agora };
+      }
+      if (i === idxInicial) {
+        return { etapa, status: 'em_andamento', iniciadoEm: agora };
+      }
+      return { etapa, status: 'pendente' };
     });
+
+    // Retry curto em caso de colisão de número (P2002) sob concorrência:
+    // gerarNumero relê o máximo a cada tentativa, então converge.
+    let os: any;
+    for (let tentativa = 0; ; tentativa++) {
+      const numero = await this.gerarNumero();
+      try {
+        os = await this.prisma.ordemServico.create({
+          data: {
+            amostraId,
+            numero,
+            etapaAtual: etapaInicial,
+            status: 'em_andamento',
+            prioridade: opts.prioridade ?? 'normal',
+            responsavel: opts.responsavel,
+            iniciadoEm: agora,
+            etapas: { create: dadosEtapas },
+          },
+        });
+        break;
+      } catch (e: any) {
+        if (e?.code === 'P2002' && tentativa < 4) continue;
+        throw e;
+      }
+    }
     // amostra entra em processamento (a OS assumiu)
     await this.prisma.amostra.update({
       where: { id: amostraId },
@@ -106,6 +124,47 @@ export class OrdensService {
       await this.audit.log(opts.userId, 'CREATE_AUTO', 'OrdemServico', os.id, { amostraId, etapaInicial });
     }
     return os;
+  }
+
+  /**
+   * Cria OS automática (Macroscopia) para TODAS as amostras de um pedido que
+   * ainda não têm OS. Best-effort POR AMOSTRA: a falha de uma não derruba as
+   * demais — mas NUNCA é silenciosa: é logada, auditada e contabilizada em
+   * `falhas`, para que o chamador possa avisar o operador.
+   */
+  async criarAutoParaPedido(
+    pedidoId: number,
+    opts: { prioridade?: string; responsavel?: string; userId?: number } = {},
+  ): Promise<{ criadas: number; falhas: number }> {
+    const amostras = await this.prisma.amostra.findMany({
+      where: { pedidoId, ordemServico: null },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    let criadas = 0;
+    let falhas = 0;
+    for (const a of amostras) {
+      try {
+        await this.criarAuto(a.id, 'macroscopia', opts);
+        criadas++;
+      } catch (e: any) {
+        falhas++;
+        // Não silenciar: sem OS a amostra some da Fila. Registra para diagnóstico.
+        console.error(
+          `[OS auto] Falha ao criar OS da amostra #${a.id} (pedido #${pedidoId}):`,
+          e?.message ?? e,
+        );
+        if (opts.userId) {
+          await this.audit
+            .log(opts.userId, 'CREATE_AUTO_FALHA', 'Amostra', a.id, {
+              pedidoId,
+              erro: String(e?.message ?? e),
+            })
+            .catch(() => {});
+        }
+      }
+    }
+    return { criadas, falhas };
   }
 
   // ── Amostras pendentes sem OS ────────────────────────────────────────────────

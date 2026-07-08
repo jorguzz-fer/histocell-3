@@ -9,6 +9,10 @@ import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
 import { AuditService } from '../common/audit.service';
 
+// Divergência de contagem acima deste percentual (pra mais OU pra menos) segura
+// o pedido para aprovação da gerência antes de entrar no laboratório (regra Célio).
+const LIMITE_APROVACAO_PCT = 0.1; // 10%
+
 // ─── include padrão de amostra ────────────────────────────────────────────────
 
 const INCLUDE_AMOSTRA = {
@@ -284,23 +288,6 @@ export class RecebimentoService {
       }
     }
 
-    // ── OS automática: 1 ordem de serviço por amostra designada (Célio) ─────────
-    // Nasce em_andamento na Macroscopia (aparece na Fila). Best-effort: falha
-    // na criação da OS não bloqueia o recebimento.
-    let ordensGeradas = 0;
-    for (const amostra of amostrasCreated) {
-      try {
-        await this.ordens.criarAuto(amostra.id, 'macroscopia', {
-          prioridade: pedido.urgente ? 'urgente' : 'normal',
-          responsavel: dto.recebidoPor,
-          userId,
-        });
-        ordensGeradas += 1;
-      } catch {
-        /* segue sem bloquear */
-      }
-    }
-
     // ── Conferência: previsto x recebido ──────────────────────────────────────
     // Recebida = valor informado na conferência (quando enviado); senão, o nº
     // de amostras efetivamente registradas.
@@ -313,9 +300,14 @@ export class RecebimentoService {
       dto.qtdPrevista != null && dto.qtdPrevista >= 0 ? dto.qtdPrevista : somaItens;
     const diferenca = recebida - prevista;
     const excedente = diferenca > 0;
-    // Gate da Spec 1A: qualquer divergência (mais OU menos) cai em aprovação da gerência.
-    const divergente = diferenca !== 0;
-    const novoStatus = divergente ? 'recebido_pendente_aprovacao' : 'recebido';
+    const contagemDivergente = diferenca !== 0;
+    // Regra Célio: só divergências ACIMA de 10% (pra mais ou pra menos) seguram
+    // o pedido para aprovação da gerência. Até 10% segue direto para o laboratório.
+    const percentualDiverg =
+      prevista > 0 ? Math.abs(diferenca) / prevista : recebida > 0 ? 1 : 0;
+    const precisaAprovacao = percentualDiverg > LIMITE_APROVACAO_PCT;
+    const novoStatus = precisaAprovacao ? 'recebido_pendente_aprovacao' : 'recebido';
+    const pctStr = `${Math.round(percentualDiverg * 100)}%`;
 
     // Notas de conferência (automática + manual)
     const dataStr = agora.toLocaleDateString('pt-BR');
@@ -323,12 +315,12 @@ export class RecebimentoService {
     if (excedente) {
       notas.push(
         `[Conferência ${dataStr}] Recebidas ${recebida} amostra(s) vs ${prevista} prevista(s) — ` +
-          `${diferenca} a mais. Verificar cobrança do excedente.`,
+          `${diferenca} a mais (${pctStr}).${precisaAprovacao ? ' Aguardando aprovação da gerência.' : ' Verificar cobrança do excedente.'}`,
       );
     } else if (diferenca < 0) {
       notas.push(
         `[Conferência ${dataStr}] Recebidas ${recebida} amostra(s) vs ${prevista} prevista(s) — ` +
-          `${Math.abs(diferenca)} a menos.`,
+          `${Math.abs(diferenca)} a menos (${pctStr}).${precisaAprovacao ? ' Aguardando aprovação da gerência.' : ''}`,
       );
     }
     if (dto.observacaoConferencia?.trim()) {
@@ -344,14 +336,14 @@ export class RecebimentoService {
         qtdPrevista: prevista,
         qtdRecebida: recebida,
         excedente,
-        contagemDivergente: divergente,
+        contagemDivergente,
         observacoes: observacoes || undefined,
       },
     });
 
     await this.audit.log(
       userId,
-      divergente ? 'RECEBIDO_PENDENTE_APROVACAO' : 'RECEBIDO',
+      precisaAprovacao ? 'RECEBIDO_PENDENTE_APROVACAO' : 'RECEBIDO',
       'Pedido',
       dto.pedidoId,
       {
@@ -359,44 +351,66 @@ export class RecebimentoService {
         recebida,
         diferenca,
         excedente,
-        divergente,
+        divergente: contagemDivergente,
+        percentual: percentualDiverg,
+        precisaAprovacao,
         amostrasIds: amostrasCreated.map((a) => a.id),
       },
     );
 
-    // ── Abatimento automático do crédito pré-pago (se houver e não pago adiantado) ──
-    // Só abate se o pedido ficou em status final 'recebido' (sem pendência de aprovação).
+    // ── OS automática + abatimento de crédito ──────────────────────────────────
+    // Só quando o pedido NÃO precisa de aprovação. Se precisa (>10%), a OS e o
+    // abatimento acontecem em pedidos.aprovarDivergencia (após liberação).
+    let ordensGeradas = 0;
+    let ordensFalhas = 0;
     let credito: { abatido: number; saldo: number } | null = null;
-    if (!divergente && !pedido.pagamentoAdiantado) {
-      const valorPedido =
-        Math.round(
-          pedido.itens.reduce(
-            (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
-            0,
-          ) * 100,
-        ) / 100;
-      try {
-        credito = await this.financeiro.debitarPorPedido({
-          clienteId: pedido.clienteId,
-          pedidoId: pedido.id,
-          pedidoNumero: pedido.numero,
-          valorPedido,
-        });
-      } catch {
-        /* falha no abatimento não bloqueia o recebimento */
+    if (!precisaAprovacao) {
+      const res = await this.ordens.criarAutoParaPedido(dto.pedidoId, {
+        prioridade: pedido.urgente ? 'urgente' : 'normal',
+        responsavel: dto.recebidoPor,
+        userId,
+      });
+      ordensGeradas = res.criadas;
+      ordensFalhas = res.falhas;
+
+      if (!pedido.pagamentoAdiantado) {
+        const valorPedido =
+          Math.round(
+            pedido.itens.reduce(
+              (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
+              0,
+            ) * 100,
+          ) / 100;
+        try {
+          credito = await this.financeiro.debitarPorPedido({
+            clienteId: pedido.clienteId,
+            pedidoId: pedido.id,
+            pedidoNumero: pedido.numero,
+            valorPedido,
+          });
+        } catch {
+          /* falha no abatimento não bloqueia o recebimento */
+        }
       }
     }
 
+    const avisoFalha =
+      ordensFalhas > 0
+        ? ` ⚠️ ${ordensFalhas} Ordem(ns) de Serviço não puderam ser criadas — verifique a Fila.`
+        : '';
+
     return {
-      message: divergente
-        ? `${amostrasCreated.length} amostra(s) registrada(s). Conferência ${recebida}×${prevista} diverge — pedido aguarda aprovação da gerência.`
-        : `${amostrasCreated.length} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.`,
+      message: precisaAprovacao
+        ? `${amostrasCreated.length} amostra(s) registrada(s). Conferência ${recebida}×${prevista} diverge ${pctStr} (> 10%) — pedido aguarda aprovação da gerência.`
+        : `${amostrasCreated.length} amostra(s) registrada(s). Pedido #${dto.pedidoId} marcado como recebido.${avisoFalha}`,
       amostras: amostrasCreated,
       etiquetasGeradas,
       ordensGeradas, // OS criadas automaticamente (1 por amostra)
-      conferencia: { prevista, recebida, diferenca, excedente },
+      ordensFalhas, // OS que falharam ao ser criadas (0 = tudo certo)
+      conferencia: { prevista, recebida, diferenca, excedente, percentual: percentualDiverg },
       credito, // { abatido, saldo } quando consumiu crédito; senão null
-      divergente,
+      precisaAprovacao,
+      divergente: contagemDivergente,
     };
   }
 

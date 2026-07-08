@@ -61,7 +61,10 @@ export class FilaService {
     } as const;
 
     const baseWhere: any = { status: 'em_andamento' };
-    if (userId) baseWhere.responsavelUserId = userId;
+    // "Só meus": mostra as OS atribuídas a mim E as ainda SEM dono (não
+    // atribuídas) — senão a fila fica vazia, pois a OS automática do
+    // recebimento nasce sem responsável.
+    if (userId) baseWhere.OR = [{ responsavelUserId: userId }, { responsavelUserId: null }];
 
     const porEtapa = await Promise.all(
       ETAPAS.map((etapa) =>

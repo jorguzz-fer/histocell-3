@@ -89,7 +89,10 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
     setSaving(true)
     try {
       const res = await api.post<{
+        message?: string
         etiquetasGeradas?: number
+        ordensFalhas?: number
+        precisaAprovacao?: boolean
         credito?: { abatido: number; saldo: number } | null
       }>('/recebimento/receber', {
         pedidoId: pedido.id,
@@ -104,16 +107,29 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
         })),
       })
 
-      toast.success(`${linhas.length} amostra(s) registrada(s).`)
+      if (res.precisaAprovacao) {
+        // Divergência > 10%: pedido retido, sem OS. Aguarda aprovação da gerência.
+        toast.warning(
+          res.message ?? `${linhas.length} amostra(s) registrada(s). Aguardando aprovação da gerência (divergência > 10%).`,
+        )
+      } else {
+        toast.success(`${linhas.length} amostra(s) registrada(s).`)
+      }
       if (res.etiquetasGeradas) {
         toast.success(`${res.etiquetasGeradas} etiqueta(s) de lâmina geradas.`)
+      }
+      if (res.ordensFalhas && res.ordensFalhas > 0) {
+        toast.error(`${res.ordensFalhas} Ordem(ns) de Serviço não foram criadas — verifique a Fila.`)
       }
       if (res.credito && res.credito.abatido > 0) {
         const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
         toast.success(`Crédito abatido: ${fmt(res.credito.abatido)} · saldo ${fmt(res.credito.saldo)}`)
       }
-      // abre a Ordem de Serviço (folha sem valores) para impressão
-      window.open(`/imprimir/os/${pedido.id}`, '_blank', 'noopener')
+      // abre a Ordem de Serviço (folha sem valores) para impressão — só quando
+      // há OS (pedido retido para aprovação ainda não tem OS).
+      if (!res.precisaAprovacao) {
+        window.open(`/imprimir/os/${pedido.id}`, '_blank', 'noopener')
+      }
       onSaved()
       onClose()
     } catch (err: any) {
