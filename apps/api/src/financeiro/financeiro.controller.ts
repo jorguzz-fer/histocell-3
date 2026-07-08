@@ -9,12 +9,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { FinanceiroService } from './financeiro.service';
 import { LancarCreditoDto } from './dto/lancar-credito.dto';
 
 @Controller('financeiro')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('financeiro')
 export class FinanceiroController {
   constructor(private service: FinanceiroService) {}
 

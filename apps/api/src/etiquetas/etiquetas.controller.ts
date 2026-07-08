@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { EtiquetasService } from './etiquetas.service';
 import { GerarEtiquetasDto } from './dto/gerar-etiquetas.dto';
 import { FilterEtiquetaDto } from './dto/filter-etiqueta.dto';
@@ -20,6 +20,7 @@ import { GerarLoteDto } from './dto/gerar-lote.dto';
 
 @Controller('etiquetas')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('etiquetas')
 export class EtiquetasController {
   constructor(private service: EtiquetasService) {}
 

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Param, Body, Query, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { RecebimentoService } from './recebimento.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
@@ -10,6 +10,7 @@ import { FilterAmostraDto } from './dto/filter-amostra.dto';
 
 @Controller('recebimento')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('recebimento')
 export class RecebimentoController {
   constructor(private service: RecebimentoService) {}
 

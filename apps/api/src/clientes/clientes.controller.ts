@@ -13,7 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { ClientesService } from './clientes.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
@@ -21,6 +21,7 @@ import { FilterClienteDto } from './dto/filter-cliente.dto';
 
 @Controller('clientes')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('clientes')
 export class ClientesController {
   constructor(private service: ClientesService) {}
 

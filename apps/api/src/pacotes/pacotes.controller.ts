@@ -12,7 +12,7 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { PacotesService } from './pacotes.service';
 import { CreatePacoteDto } from './dto/create-pacote.dto';
 import { UpdatePacoteDto } from './dto/update-pacote.dto';
@@ -20,6 +20,7 @@ import { ArquivarPacoteDto } from './dto/arquivar-pacote.dto';
 
 @Controller('pacotes')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('pacotes')
 export class PacotesController {
   constructor(private service: PacotesService) {}
 

@@ -1,11 +1,12 @@
 import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { FilaService } from './fila.service';
 import { FilterFilaDto } from './dto/filter-fila.dto';
 
 @Controller('fila')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('fila')
 export class FilaController {
   constructor(private service: FilaService) {}
 

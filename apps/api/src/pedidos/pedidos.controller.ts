@@ -13,7 +13,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
@@ -24,6 +24,7 @@ import { FilterServicoDto } from './dto/filter-servico.dto';
 
 @Controller('pedidos')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Area('orcamento')
 export class PedidosController {
   constructor(private service: PedidosService) {}
 

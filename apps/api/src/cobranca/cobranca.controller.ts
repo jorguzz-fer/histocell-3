@@ -10,10 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/roles.guard';
+import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { CobrancaService } from './cobranca.service';
 
 @Controller('cobranca')
+@Area('financeiro')
 export class CobrancaController {
   constructor(private service: CobrancaService) {}
 
