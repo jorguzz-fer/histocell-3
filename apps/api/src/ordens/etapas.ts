@@ -31,3 +31,21 @@ export const ETAPA_LABEL: Record<EtapaOrdem, string> = {
 
 /** Etapas exibidas como colunas na Fila (todas as de trabalho). */
 export const ETAPAS_FILA: EtapaOrdem[] = [...ETAPAS_ORDEM];
+
+/**
+ * Mapa etapa da OS → departamento do Rastreio (chaves de `rastreio/departamentos.ts`).
+ * Ao avançar a OS na Fila, o Rastreio das etiquetas do pedido é sincronizado por
+ * este mapa, para que a "posição" do material reflita o andamento real mesmo sem
+ * um scan físico de código de barras. `triagem` corresponde à Recepção; as demais
+ * têm o mesmo nome nos dois sistemas.
+ */
+export const ETAPA_PARA_DEPARTAMENTO: Record<EtapaOrdem, string> = {
+  triagem: 'recepcao',
+  macroscopia: 'macroscopia',
+  processamento: 'processamento',
+  microtomia: 'microtomia',
+  coloracao: 'coloracao',
+  laudo: 'laudo',
+  finalizacao: 'finalizacao',
+  expedicao: 'expedicao',
+};

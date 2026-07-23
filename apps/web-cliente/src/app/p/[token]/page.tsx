@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { portalApi } from '@/lib/api'
 
@@ -14,7 +14,8 @@ type Servico = { id: number; codigo: string; nome: string; categoria: string; pr
 type PacoteItem = { servicoId: number; quantidade: number; nome: string; categoria: string; preco: number; desconto: number }
 type Pacote = { id: number; codigo: string; nome: string; itens: PacoteItem[]; precoTotal: number; totalItens: number; categorias: string[] }
 type Catalogo = { servicos: Servico[]; pacotes: Pacote[]; populares: Servico[]; historico: Servico[] }
-type Pedido = { numero: string; status: string; origem: string; createdAt: string; totalItens: number; valorTotal: number }
+type PedidoItem = { codigo: string | null; nome: string; quantidade: number; subtotal: number }
+type Pedido = { numero: string; status: string; origem: string; createdAt: string; totalItens: number; valorTotal: number; itens?: PedidoItem[] }
 type LaudoCliente = { id: number; arquivoNome?: string | null; liberadoEm?: string | null; pedidoNumero?: string | null }
 type FaturaCliente = { numero: string; periodo: string; status: string; valorTotal: number; dataVencimento?: string | null; linhaDigitavel?: string | null; pixQrCode?: string | null; pdfUrl?: string | null }
 type CartItem = { servicoId: number; codigo?: string; nome: string; preco: number; desconto: number; quantidade: number }
@@ -59,6 +60,7 @@ export default function PortalPedidoPage() {
   const [info, setInfo] = useState<Info | null>(null)
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [pedidoAberto, setPedidoAberto] = useState<string | null>(null)
   const [laudos, setLaudos] = useState<LaudoCliente[]>([])
   const [faturas, setFaturas] = useState<FaturaCliente[]>([])
   const [erro, setErro] = useState<string | null>(null)
@@ -447,11 +449,27 @@ export default function PortalPedidoPage() {
                   {pedidos.map((p) => {
                     const st = STATUS[p.status] ?? { label: p.status, cls: 'bg-slate-100 text-slate-600' }
                     const isRascunho = p.status === 'rascunho'
+                    const temItens = (p.itens?.length ?? 0) > 0
+                    const aberto = pedidoAberto === p.numero
                     return (
-                      <tr key={p.numero} className={`text-slate-700 dark:text-slate-200 ${isRascunho ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}`}>
+                      <Fragment key={p.numero}>
+                      <tr className={`text-slate-700 dark:text-slate-200 ${isRascunho ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}`}>
                         <td className="px-4 py-2 font-mono">{p.numero}</td>
                         <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dataFmt(p.createdAt)}</td>
-                        <td className="px-4 py-2 text-center tabular-nums">{p.totalItens}</td>
+                        <td className="px-4 py-2 text-center tabular-nums">
+                          {temItens ? (
+                            <button
+                              onClick={() => setPedidoAberto(aberto ? null : p.numero)}
+                              className="inline-flex items-center gap-1 font-medium text-histocell-600 hover:text-histocell-700"
+                              aria-expanded={aberto}
+                            >
+                              <span className={`transition-transform ${aberto ? 'rotate-90' : ''}`}>▸</span>
+                              {p.totalItens}
+                            </button>
+                          ) : (
+                            p.totalItens
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-right tabular-nums">{brl(p.valorTotal)}</td>
                         <td className="px-4 py-2">
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
@@ -468,11 +486,40 @@ export default function PortalPedidoPage() {
                                 Excluir
                               </button>
                             </div>
+                          ) : temItens ? (
+                            <button
+                              onClick={() => setPedidoAberto(aberto ? null : p.numero)}
+                              className="block ml-auto text-[11px] font-medium px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-500 hover:text-histocell-700"
+                            >
+                              {aberto ? 'Ocultar itens' : 'Ver itens'}
+                            </button>
                           ) : (
                             <span className="block text-right text-slate-300 dark:text-slate-600">—</span>
                           )}
                         </td>
                       </tr>
+                      {aberto && temItens && (
+                        <tr className="bg-slate-50/70 dark:bg-slate-800/30">
+                          <td colSpan={6} className="px-4 py-3">
+                            <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Itens solicitados</p>
+                            <ul className="space-y-1">
+                              {p.itens!.map((it, i) => (
+                                <li key={i} className="flex items-center justify-between gap-3 text-[13px]">
+                                  <span className="text-slate-700 dark:text-slate-200">
+                                    {it.codigo && <span className="font-mono text-slate-400 mr-1.5">{it.codigo}</span>}
+                                    {it.nome}
+                                  </span>
+                                  <span className="flex items-center gap-4 tabular-nums text-slate-500 dark:text-slate-400">
+                                    <span>× {it.quantidade}</span>
+                                    <span className="w-20 text-right">{brl(it.subtotal)}</span>
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     )
                   })}
                 </tbody>

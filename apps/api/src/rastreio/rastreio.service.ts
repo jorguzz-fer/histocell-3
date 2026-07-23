@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { ScanDto } from './dto/scan.dto';
 import { FilterRastreioDto } from './dto/filter-rastreio.dto';
-import { DEPARTAMENTOS, DEPARTAMENTO_FINAL } from './departamentos';
+import { DEPARTAMENTOS, DEPARTAMENTOS_FINAIS } from './departamentos';
 
 const INCLUDE_ETIQUETA = {
   amostra: {
@@ -11,6 +11,7 @@ const INCLUDE_ETIQUETA = {
       numeroInterno: true,
       pedido: {
         select: {
+          id: true,
           numero: true,
           qtdPrevista: true,
           qtdRecebida: true,
@@ -65,7 +66,7 @@ export class RastreioService {
       throw new NotFoundException(`Nenhuma etiqueta encontrada para o código "${dto.codigo.trim()}".`);
     }
 
-    const isFinal = dto.departamento === DEPARTAMENTO_FINAL;
+    const isFinal = DEPARTAMENTOS_FINAIS.includes(dto.departamento as any);
     const rastreioStatus =
       dto.tipo === 'entrada' ? 'em_andamento' : isFinal ? 'concluido' : 'aguardando';
 

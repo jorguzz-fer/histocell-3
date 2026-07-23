@@ -9,7 +9,7 @@ import { AuditService } from '../common/audit.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
-import { ETAPAS_ORDEM, type EtapaOrdem } from './etapas';
+import { ETAPAS_ORDEM, ETAPA_PARA_DEPARTAMENTO, type EtapaOrdem } from './etapas';
 
 // ─── constantes ───────────────────────────────────────────────────────────────
 
@@ -52,6 +52,68 @@ const INCLUDE_OS = {
 @Injectable()
 export class OrdensService {
   constructor(private prisma: PrismaService, private audit: AuditService) {}
+
+  /**
+   * Espelha a etapa atual da OS no Rastreio das etiquetas da amostra, para que a
+   * posição do material no "rastreio do pedido" acompanhe o avanço na Fila mesmo
+   * quando não houve um scan físico de código de barras. Antes deste bridge, a
+   * Fila (OrdemServico.etapaAtual) e o Rastreio (Etiqueta.departamentoAtual)
+   * eram sistemas desacoplados: os itens corriam na Fila mas o rastreio do
+   * pedido não entrava. Best-effort — nunca derruba o avanço da OS.
+   */
+  private async sincronizarRastreio(
+    amostraId: number,
+    etapa: EtapaOrdem,
+    opts: { responsavel?: string; concluir?: boolean } = {},
+  ) {
+    try {
+      const departamento = ETAPA_PARA_DEPARTAMENTO[etapa];
+      if (!departamento) return;
+
+      const etiquetas = await this.prisma.etiqueta.findMany({
+        where: { amostraId },
+        select: { id: true, departamentoAtual: true },
+      });
+      if (etiquetas.length === 0) return;
+
+      const agora = new Date();
+      const rastreioStatus = opts.concluir ? 'concluido' : 'em_andamento';
+      const responsavel = opts.responsavel?.trim() || 'Sistema (Fila)';
+
+      const ops: any[] = [];
+      for (const et of etiquetas) {
+        // Evita evento duplicado quando já está no mesmo departamento (a menos
+        // que seja a conclusão, que registra a saída do fluxo).
+        if (et.departamentoAtual !== departamento || opts.concluir) {
+          ops.push(
+            this.prisma.rastreioEvento.create({
+              data: {
+                etiquetaId: et.id,
+                departamento,
+                tipo: opts.concluir ? 'saida' : 'entrada',
+                scannedPor: responsavel,
+                observacoes: 'Sincronizado pelo avanço da OS na Fila',
+              },
+            }),
+          );
+        }
+        ops.push(
+          this.prisma.etiqueta.update({
+            where: { id: et.id },
+            data: {
+              departamentoAtual: departamento,
+              rastreioStatus,
+              ultimoEventoEm: agora,
+              ultimoResponsavel: responsavel,
+            },
+          }),
+        );
+      }
+      await this.prisma.$transaction(ops);
+    } catch {
+      // Sincronização de rastreio é best-effort: não deve bloquear a OS.
+    }
+  }
 
   // ── número sequencial diário ─────────────────────────────────────────────────
   // Usa o MAIOR sufixo existente + 1 (não count+1): resiste a lacunas deixadas
@@ -119,6 +181,10 @@ export class OrdensService {
     await this.prisma.amostra.update({
       where: { id: amostraId },
       data: { status: 'em_processamento' },
+    });
+    // Espelha a posição inicial no rastreio das etiquetas do pedido.
+    await this.sincronizarRastreio(amostraId, etapaInicial as EtapaOrdem, {
+      responsavel: opts.responsavel,
     });
     if (opts.userId) {
       await this.audit.log(opts.userId, 'CREATE_AUTO', 'OrdemServico', os.id, { amostraId, etapaInicial });
@@ -446,6 +512,11 @@ export class OrdensService {
         where: { id: os.amostraId },
         data: { status: 'concluida' },
       });
+      // Conclui o rastreio das etiquetas (saída do departamento final).
+      await this.sincronizarRastreio(os.amostraId, etapaAtual, {
+        responsavel: os.responsavel ?? undefined,
+        concluir: true,
+      });
       await this.audit.log(userId, 'AVANCO_ETAPA', 'OrdemServico', id, { de: etapaAtual, para: proxima });
       return updated;
     }
@@ -470,6 +541,11 @@ export class OrdensService {
       where: { id },
       data: dataFields,
       include: INCLUDE_OS,
+    });
+
+    // Espelha o novo departamento no rastreio das etiquetas do pedido.
+    await this.sincronizarRastreio(os.amostraId, proxima, {
+      responsavel: os.responsavel ?? undefined,
     });
 
     await this.audit.log(userId, 'AVANCO_ETAPA', 'OrdemServico', id, { de: etapaAtual, para: proxima });

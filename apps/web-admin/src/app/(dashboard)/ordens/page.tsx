@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, ChevronRight, AlertTriangle, RefreshCw, MessageSquare, ScanLine } from 'lucide-react'
+import { Plus, AlertTriangle, RefreshCw, MessageSquare, ScanLine, Printer } from 'lucide-react'
 import { ComunicacaoDrawer } from '@/components/comunicacao/ComunicacaoDrawer'
 import { ConferenciaDrawer } from '@/components/comunicacao/ConferenciaDrawer'
 import { toast } from 'sonner'
@@ -389,11 +389,12 @@ export default function OrdensPage() {
                               </Button>
                             )}
                             <button
-                              title="Detalhes"
+                              title="Ver / imprimir Ordem de Serviço"
+                              onClick={() => window.open(`/imprimir/os/${os.amostra.pedido.id}`, '_blank')}
                               className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100
                                 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
                             >
-                              <ChevronRight className="h-3.5 w-3.5" />
+                              <Printer className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </td>

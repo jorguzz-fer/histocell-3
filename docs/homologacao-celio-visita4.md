@@ -128,5 +128,25 @@ Desejo forte do Célio, tratado como evolução (pré-lançamento pode ficar sem
 
 ---
 
+## ✅ Status de implementação (o que já foi entregue)
+
+Implementado nesta rodada (validar em produção durante o piloto):
+
+- ✅ **Serviços de logística** — motoboy Capital (R$25) e ABCD (R$30), retirada e entrega, categoria Logística, sem etiqueta. Criados via seed idempotente (rodam no deploy).
+- ✅ **Novos departamentos** — Imunofluorescência, Finalização, Arquivamento e Descarte adicionados ao rastreio; Arquivamento e Descarte são **terminais** (concluem o item na saída).
+- ✅ **🐞 Bug fila→rastreio** — ao avançar a OS na Fila, o rastreio das etiquetas do pedido passa a ser sincronizado automaticamente (posição do material acompanha o andamento mesmo sem scan físico).
+- ✅ **Kanban vertical** — alternador de layout na Fila (barras empilhadas × colunas lado a lado), com a preferência salva no navegador.
+- ✅ **Detalhe de itens no portal do cliente** — "Ver itens" abre os serviços solicitados (código, nome, quantidade, subtotal) de cada pedido.
+- ✅ **Impressão / acesso à OS** — botão "Ver / imprimir OS" na lista de Ordens e link "Ver OS / serviços" no quadro do rastreio do departamento, abrindo a OS imprimível (serviços + quantidades, **sem valores**).
+
+Ainda em aberto (precisam de definição com o time / maior escopo):
+
+- ⏳ **Tela da sala técnica** dedicada (nº de pacotes, baixa por etiqueta, instruções) — o Célio pediu para adequar a tela junto com a equipe.
+- ⏳ **Política de correção** do recebimento após o item entrar no fluxo.
+- ⏳ **Histórico do pedido** com 1ª foto + instruções manuscritas.
+- 🔵 **IA/visão** (Fase 2).
+
+---
+
 ## Próximos encontros
 - Continuação **amanhã** (jogo rápido, pode ser com a Laiane) e possivelmente **sábado à noite** (após 18h) para avançar os ajustes de tela.

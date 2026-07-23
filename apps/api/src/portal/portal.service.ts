@@ -224,7 +224,14 @@ export class PortalService {
         status: true,
         origem: true,
         createdAt: true,
-        itens: { select: { preco: true, quantidade: true, desconto: true } },
+        itens: {
+          select: {
+            preco: true,
+            quantidade: true,
+            desconto: true,
+            servico: { select: { codigo: true, nome: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 20,
@@ -235,6 +242,16 @@ export class PortalService {
       origem: p.origem,
       createdAt: p.createdAt,
       totalItens: p.itens.length,
+      // Itens solicitados (serviço + quantidade), para o cliente abrir o detalhe.
+      itens: p.itens.map((i) => ({
+        codigo: i.servico?.codigo ?? null,
+        nome: i.servico?.nome ?? 'Serviço',
+        quantidade: i.quantidade,
+        subtotal:
+          Math.round(
+            Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100) * 100,
+          ) / 100,
+      })),
       valorTotal:
         Math.round(
           p.itens.reduce(
