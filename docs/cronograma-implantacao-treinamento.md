@@ -95,7 +95,7 @@ Pré-requisito de tudo. Sem ambiente no ar, não há treinamento.
 | 0.4 | 🏫 **Visita 1 (presencial, Qui 10/jul):** instalar **impressora Zebra**, montar estações, validar login por máquina, abertura do treinamento com o time | Rod + Jorge | §3 · §2.1 |
 | 0.5 | Criar **usuários** com perfis corretos (gerência × técnico) | Jorge | §6 |
 | 0.6 | **Limpar 5 clientes fictícios**; deixar base pronta para o piloto | Célio + Jorge | `spec-fase-piloto.md` E2 |
-| 0.7 | (Se for ativar cobrança) credenciais **Cora** + webhook | Jorge + Célio | §2 |
+| 0.7 | (Se for ativar cobrança) obter credenciais **Cora** + registrar webhook | Célio (obtém) + Jorge (configura) | **§12** |
 
 **Critério de saída da S0:** todos conseguem **logar**, a recepção **imprime uma
 etiqueta de teste**, e um e-mail de teste chega à caixa do laboratório.
@@ -270,3 +270,59 @@ corretamente.
 - [ ] Financeiro fechou corretamente no sistema novo
 - [ ] Sistema antigo formalmente desligado
 - [ ] Lista de refinos pós-lançamento registrada
+
+---
+
+## 12. Credenciais a obter no Cora (cobrança — opcional, não bloqueia o go-live)
+
+> A cobrança (boleto/Pix/NFS-e) só liga quando essas credenciais chegarem. Sem
+> elas, o sistema **roda normal** — "Gerar cobrança" cria a fatura e o boleto fica
+> pendente. Quem obtém: **Célio** (é o titular da conta Cora PJ). Quem configura
+> como secret no Coolify: **Jorge**. Detalhes técnicos em `integracao-cora.md`.
+
+### 12.1 Passos para habilitar a API na conta Cora
+1. Ter uma **conta Cora PJ ativa** (para NFS-e mais barata, avaliar o **Cora Pro**).
+2. No app/painel: **Conta → Integrações via APIs → Acessar Integração Direta → aceitar os Termos de APIs**.
+3. Gerar as credenciais **primeiro de stage** (teste) e **depois de produção**.
+
+### 12.2 Credenciais a pegar (cada uma em DOIS ambientes: stage e produção)
+
+| # | Credencial | O que é | Onde entra |
+|---|---|---|---|
+| 1 | **`client_id`** | Identificador da Integração Direta | `CORA_CLIENT_ID` |
+| 2 | **Certificado** (arquivo `.pem`/`.crt`) | Certificado do mTLS | `CORA_CERT` |
+| 3 | **Chave privada** (arquivo `.key`/`.pem`) | Chave privada do mTLS | `CORA_KEY` |
+
+> ⚠️ São **dois conjuntos completos** — um de **stage** e um de **produção**. Cada
+> conjunto tem o seu próprio `client_id` + certificado + chave.
+> 🔒 Enviar por **canal seguro** para o Jorge — vão como **secret no Coolify**,
+> nunca no código/repositório.
+
+### 12.3 Como fica no Coolify (referência do Jorge)
+```
+CORA_ENV=stage              # stage (testar) → depois production
+CORA_CLIENT_ID=...          # (1) client_id do ambiente
+CORA_CERT=<PEM ou base64>   # (2) certificado do ambiente
+CORA_KEY=<PEM ou base64>    # (3) chave privada do ambiente
+# opcionais (regras de cobrança):
+CORA_BASE_URL=...           # sobrescreve a URL base, se preciso
+CORA_MULTA_PCT=2            # multa (%) por atraso
+CORA_JUROS_MES_PCT=1        # juros (% a.m.)
+```
+**Webhook a registrar na Cora:** `https://<api-publica>/cobranca/webhook/cora`
+(avisa o sistema quando o boleto é pago).
+
+### 12.4 Se quiser NFS-e automática (configurar no painel da Cora)
+Não são "credenciais" para o sistema, mas o Célio precisa definir na Cora:
+- Cadastro/login no **município** e, se exigido, **certificado digital e-CNPJ**.
+- **Regime tributário**, **código do serviço (item da lista/CNAE)** e **alíquota de ISS**.
+- Emitir a NFS-e **no ato da cobrança** ou **no pagamento**.
+- **Dados do emissor** (razão social, CNPJ, endereço, e-mail) e regras: **vencimento**
+  padrão, **multa/juros/desconto**, e a **discriminação** (pesquisa = linha a linha +
+  nº do projeto FAPESP; rotina = descrição simples).
+
+### 12.5 Ordem sugerida
+1. Célio habilita a API e envia as credenciais de **stage**.
+2. Jorge testa emissão de boleto + webhook em **stage**.
+3. Validam a **NFS-e** (depende da config fiscal no painel Cora).
+4. Trocam para **produção** (credenciais de produção).
