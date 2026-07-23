@@ -9,7 +9,14 @@ import { AuditService } from '../common/audit.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
-import { ETAPAS_ORDEM, ETAPA_PARA_DEPARTAMENTO, type EtapaOrdem } from './etapas';
+import {
+  ETAPAS_ORDEM,
+  ETAPAS_MOVIVEIS,
+  ETAPAS_TERMINAIS,
+  ETAPA_LABEL,
+  ETAPA_PARA_DEPARTAMENTO,
+  type EtapaOrdem,
+} from './etapas';
 
 // ─── constantes ───────────────────────────────────────────────────────────────
 
@@ -549,6 +556,80 @@ export class OrdensService {
     });
 
     await this.audit.log(userId, 'AVANCO_ETAPA', 'OrdemServico', id, { de: etapaAtual, para: proxima });
+
+    return updated;
+  }
+
+  /**
+   * Move a OS para um departamento qualquer (ação "Mover para" da Fila), fora do
+   * avanço linear — para desvios como Imunofluorescência ou destinos de fim de
+   * linha (Arquivamento/Descarte). Mover para um departamento terminal CONCLUI a
+   * OS. É uma ação manual e deliberada: não aplica a trava da conferência fina.
+   */
+  async moverPara(id: number, destino: string, userId: number) {
+    if (!ETAPAS_MOVIVEIS.includes(destino)) {
+      throw new BadRequestException(`Departamento inválido: "${destino}".`);
+    }
+    const os = await this.prisma.ordemServico.findUnique({
+      where: { id },
+      include: { etapas: true },
+    });
+    if (!os) throw new NotFoundException(`OS #${id} não encontrada.`);
+    if (os.status === 'cancelada') {
+      throw new BadRequestException('OS cancelada não pode ser movida.');
+    }
+    if (os.etapaAtual === destino) {
+      throw new BadRequestException(`A OS já está em ${ETAPA_LABEL[destino] ?? destino}.`);
+    }
+
+    const agora = new Date();
+    const etapaOrigem = os.etapaAtual;
+    const terminal = ETAPAS_TERMINAIS.includes(destino);
+
+    const dataFields: any = { etapaAtual: destino };
+    if (terminal) {
+      // Arquivamento / Descarte: fim de linha → conclui a OS.
+      dataFields.status = 'concluida';
+      dataFields.concluidoEm = agora;
+    } else {
+      // Reabre/mantém em andamento (permite tirar um item de um terminal também).
+      dataFields.status = 'em_andamento';
+      dataFields.concluidoEm = null;
+      if (!os.iniciadoEm) dataFields.iniciadoEm = agora;
+    }
+
+    // Se o destino for uma etapa da linha principal (tem EtapaOS), marca-a
+    // como em andamento; departamentos extras não têm EtapaOS.
+    const destinoRecord = os.etapas.find((e) => e.etapa === destino);
+    if (destinoRecord && !terminal) {
+      await this.prisma.etapaOS.update({
+        where: { id: destinoRecord.id },
+        data: { status: 'em_andamento', iniciadoEm: destinoRecord.iniciadoEm ?? agora },
+      });
+    }
+
+    const updated = await this.prisma.ordemServico.update({
+      where: { id },
+      data: dataFields,
+      include: INCLUDE_OS,
+    });
+
+    await this.prisma.amostra.update({
+      where: { id: os.amostraId },
+      data: { status: terminal ? 'concluida' : 'em_processamento' },
+    });
+
+    // Espelha o destino no rastreio das etiquetas do pedido.
+    await this.sincronizarRastreio(os.amostraId, destino as EtapaOrdem, {
+      responsavel: os.responsavel ?? undefined,
+      concluir: terminal,
+    });
+
+    await this.audit.log(userId, 'MOVER_ETAPA', 'OrdemServico', id, {
+      de: etapaOrigem,
+      para: destino,
+      concluiu: terminal,
+    });
 
     return updated;
   }

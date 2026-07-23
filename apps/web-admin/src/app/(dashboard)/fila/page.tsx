@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, Scissors, Palette, PackageCheck, Truck, ClipboardList, ChevronRight, List, LayoutGrid } from 'lucide-react'
+import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, Scissors, Palette, PackageCheck, Truck, ClipboardList, ChevronRight, List, LayoutGrid, FlaskConical, Archive, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/Badge'
@@ -17,10 +17,21 @@ const ETAPA_META: Record<string, { label: string; icon: React.ElementType; color
   processamento: { label: 'Processamento / Inclusão', icon: Layers,     color: 'text-indigo-600' },
   microtomia:    { label: 'Microtomia (Corte)',    icon: Scissors,      color: 'text-cyan-600' },
   coloracao:     { label: 'Coloração / Montagem',  icon: Palette,       color: 'text-fuchsia-600' },
+  imunofluorescencia: { label: 'Imunofluorescência', icon: FlaskConical, color: 'text-violet-600' },
   laudo:         { label: 'Laudo',                 icon: FileCheck,     color: 'text-emerald-600' },
   finalizacao:   { label: 'Finalização',           icon: PackageCheck,  color: 'text-amber-600' },
   expedicao:     { label: 'Expedição / Retirada',  icon: Truck,         color: 'text-green-600' },
+  arquivamento:  { label: 'Arquivamento',          icon: Archive,       color: 'text-slate-500' },
+  descarte:      { label: 'Descarte',              icon: Trash2,        color: 'text-rose-600' },
 }
+
+// Destinos da ação "Mover para", na ordem do fluxo (espelha ETAPAS_FILA do back).
+const MOVER_DESTINOS = [
+  'triagem', 'macroscopia', 'processamento', 'microtomia', 'coloracao',
+  'imunofluorescencia', 'laudo', 'finalizacao', 'expedicao', 'arquivamento', 'descarte',
+]
+// Destinos terminais: mover para eles conclui a OS.
+const ETAPAS_TERMINAIS = ['arquivamento', 'descarte']
 
 function fmtData(iso?: string | null) {
   if (!iso) return '—'
@@ -76,6 +87,19 @@ export default function FilaPage() {
       load()
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao avançar etapa')
+    }
+  }
+
+  async function moverOS(osId: number, etapa: string) {
+    try {
+      await api.patch(`/ordens/${osId}/mover`, { etapa })
+      const terminou = ETAPAS_TERMINAIS.includes(etapa)
+      toast.success(terminou
+        ? `Item enviado para ${ETAPA_META[etapa]?.label ?? etapa} (OS concluída)`
+        : `Item movido para ${ETAPA_META[etapa]?.label ?? etapa}`)
+      load()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao mover item')
     }
   }
 
@@ -143,6 +167,7 @@ export default function FilaPage() {
                   itens={data.secoes[etapa] ?? []}
                   count={data.counts[etapa] ?? 0}
                   onAvancar={avancarOS}
+                  onMover={moverOS}
                 />
               </div>
             ))}
@@ -180,9 +205,12 @@ function SecaoDivergencia({ itens, onAprovar }: { itens: FilaPedidoPendente[]; o
   )
 }
 
-function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: string; itens: FilaOS[]; count: number; onAvancar: (id: number) => void }) {
+function SecaoOS({ etapa, itens, count, onAvancar, onMover }: { etapa: string; itens: FilaOS[]; count: number; onAvancar: (id: number) => void; onMover: (id: number, destino: string) => void }) {
   const meta = ETAPA_META[etapa] ?? { label: etapa, icon: ClipboardList, color: 'text-slate-500' }
   const Icon = meta.icon
+  // Colunas terminais (Arquivamento/Descarte) listam itens já concluídos ali —
+  // sem ações de avançar/mover.
+  const terminal = ETAPAS_TERMINAIS.includes(etapa)
   return (
     <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
       <div className="px-5 py-3 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
@@ -191,7 +219,9 @@ function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: string; itens: Fil
         <Badge variant="slate" className="ml-auto">{count}</Badge>
       </div>
       {itens.length === 0 ? (
-        <p className="px-5 py-6 text-center text-[12px] text-slate-400">Nada nessa etapa.</p>
+        <p className="px-5 py-6 text-center text-[12px] text-slate-400">
+          {terminal ? 'Nada aqui.' : 'Nada nessa etapa.'}
+        </p>
       ) : (
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {itens.map((o) => (
@@ -214,9 +244,36 @@ function SecaoOS({ etapa, itens, count, onAvancar }: { etapa: string; itens: Fil
                   </p>
                 </div>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => onAvancar(o.id)}>
-                Avançar <ChevronRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
+              {!terminal && (
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <Button size="sm" variant="secondary" onClick={() => onAvancar(o.id)}>
+                    Avançar <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                  {/* Mover para: desvios (Imunofluorescência) e terminais (Arquivo/Descarte) */}
+                  <select
+                    aria-label="Mover para"
+                    value=""
+                    onChange={(e) => {
+                      const destino = e.target.value
+                      if (!destino) return
+                      const label = ETAPA_META[destino]?.label ?? destino
+                      if (ETAPAS_TERMINAIS.includes(destino) &&
+                        !window.confirm(`Enviar para ${label}? Isso conclui a OS ${o.numero}.`)) {
+                        e.target.value = ''
+                        return
+                      }
+                      onMover(o.id, destino)
+                      e.target.value = ''
+                    }}
+                    className="text-[11px] rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-500 px-1.5 py-1"
+                  >
+                    <option value="">Mover para…</option>
+                    {MOVER_DESTINOS.filter((d) => d !== etapa).map((d) => (
+                      <option key={d} value={d}>{ETAPA_META[d]?.label ?? d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           ))}
         </div>
