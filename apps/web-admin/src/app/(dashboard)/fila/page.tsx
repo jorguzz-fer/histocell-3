@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, Scissors, Palette, PackageCheck, Truck, ClipboardList, ChevronRight } from 'lucide-react'
+import { Inbox, AlertTriangle, Microscope, Layers, FileCheck, Scissors, Palette, PackageCheck, Truck, ClipboardList, ChevronRight, List, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/Badge'
@@ -34,6 +34,19 @@ export default function FilaPage() {
   const [soMeus, setSoMeus] = useState(false)
   const [data, setData] = useState<FilaResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  // Layout da fila: 'lista' (barras empilhadas) ou 'colunas' (kanban vertical,
+  // lado a lado — pedido do Célio para ver todas as etapas de uma vez).
+  const [layout, setLayout] = useState<'lista' | 'colunas'>('lista')
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('fila-layout') : null
+    if (saved === 'colunas' || saved === 'lista') setLayout(saved)
+  }, [])
+
+  function mudarLayout(l: 'lista' | 'colunas') {
+    setLayout(l)
+    try { window.localStorage.setItem('fila-layout', l) } catch { /* ignora */ }
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -79,15 +92,36 @@ export default function FilaPage() {
             Itens em andamento por etapa do laboratório
           </p>
         </div>
-        <label className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-slate-300">
-          <input
-            type="checkbox"
-            checked={soMeus}
-            onChange={(e) => setSoMeus(e.target.checked)}
-            className="rounded border-slate-300"
-          />
-          Só meus
-        </label>
+        <div className="flex items-center gap-3">
+          {/* Alternador de layout: barras empilhadas × colunas (kanban vertical) */}
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => mudarLayout('lista')}
+              title="Barras empilhadas"
+              className={`p-1.5 ${layout === 'lista' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => mudarLayout('colunas')}
+              title="Colunas (kanban)"
+              className={`p-1.5 ${layout === 'colunas' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          </div>
+          <label className="flex items-center gap-2 text-[13px] text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={soMeus}
+              onChange={(e) => setSoMeus(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            Só meus
+          </label>
+        </div>
       </div>
 
       {loading && <p className="text-sm text-slate-400">Carregando…</p>}
@@ -101,15 +135,18 @@ export default function FilaPage() {
             />
           )}
 
-          {(data.etapas ?? []).map((etapa) => (
-            <SecaoOS
-              key={etapa}
-              etapa={etapa}
-              itens={data.secoes[etapa] ?? []}
-              count={data.counts[etapa] ?? 0}
-              onAvancar={avancarOS}
-            />
-          ))}
+          <div className={layout === 'colunas' ? 'flex gap-4 overflow-x-auto pb-2 items-start' : 'space-y-5'}>
+            {(data.etapas ?? []).map((etapa) => (
+              <div key={etapa} className={layout === 'colunas' ? 'shrink-0 w-72' : ''}>
+                <SecaoOS
+                  etapa={etapa}
+                  itens={data.secoes[etapa] ?? []}
+                  count={data.counts[etapa] ?? 0}
+                  onAvancar={avancarOS}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, LogIn, LogOut, Tv } from 'lucide-react'
+import { ArrowLeft, Clock, LogIn, LogOut, Tv, FileText } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { api } from '@/lib/api'
 import { ScanBox } from '../../ScanBox'
@@ -44,6 +44,15 @@ function Card({ e }: { e: RastreioEtiqueta }) {
           </span>
         )}
       </div>
+      {/* Acesso à OS: serviços solicitados + quantidades (sem valores) para a técnica. */}
+      <a
+        href={`/imprimir/os/${e.amostra.pedido.id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+      >
+        <FileText className="h-3 w-3" /> Ver OS / serviços
+      </a>
     </div>
   )
 }

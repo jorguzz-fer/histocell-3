@@ -209,6 +209,41 @@ async function main() {
   }
   console.log(`   ✅ ${variantesAtualizadas} serviços com variantes atualizadas`);
 
+  // ── Serviços de Logística / Transporte (motoboy) ────────────────────────────
+  // Levantados na visita presencial de validação (docs/homologacao-celio-visita4.md):
+  // transporte é um serviço próprio, separado por sentido (retirada × entrega) e
+  // por região (capital × ABCD). Não gera etiqueta. Rotina = pesquisa no preço.
+  // Idempotente: só cria o que ainda não existe (não sobrescreve edições).
+  console.log('🛵 Cadastrando serviços de Logística (motoboy)...');
+  const SERVICOS_LOGISTICA: Array<{
+    codigo: string
+    nome: string
+    preco: number
+  }> = [
+    { codigo: 'LOG-ENT-CAP', nome: 'Entrega Motoboy — Capital', preco: 25 },
+    { codigo: 'LOG-RET-CAP', nome: 'Retirada Motoboy — Capital', preco: 25 },
+    { codigo: 'LOG-ENT-ABCD', nome: 'Entrega Motoboy — ABCD', preco: 30 },
+    { codigo: 'LOG-RET-ABCD', nome: 'Retirada Motoboy — ABCD', preco: 30 },
+  ];
+  let logCriados = 0;
+  for (const s of SERVICOS_LOGISTICA) {
+    const existing = await prisma.servico.findUnique({ where: { codigo: s.codigo } });
+    if (existing) continue;
+    await prisma.servico.create({
+      data: {
+        codigo: s.codigo,
+        categoria: 'Logística',
+        nome: s.nome,
+        precoBase: s.preco,
+        precoRotina: s.preco,
+        precoPesquisa: s.preco,
+        geraEtiqueta: false,
+      },
+    });
+    logCriados++;
+  }
+  console.log(`   ✅ ${logCriados} serviços de logística criados`);
+
   // ── Clientes do legado ──────────────────────────────────────────────────────
   const encryptKey = getEncryptKey();
   const totalClientes = await prisma.cliente.count();

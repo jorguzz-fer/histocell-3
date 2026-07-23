@@ -15,6 +15,7 @@ export type RastreioEtiqueta = {
     id: number
     numeroInterno: string
     pedido: {
+      id: number
       numero: string
       qtdPrevista?: number | null
       qtdRecebida?: number | null
