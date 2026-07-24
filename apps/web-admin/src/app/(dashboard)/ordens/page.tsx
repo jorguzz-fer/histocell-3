@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { api } from '@/lib/api'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
+import { OSModal } from '@/components/OSModal'
 import { NovaOSDrawer } from './NovaOSDrawer'
 import type { OrdemServico, OrdensListResponse } from './types'
 
@@ -104,6 +105,7 @@ export default function OrdensPage() {
   const [avancandoId, setAvancandoId] = useState<number | null>(null)
   const [comOS, setComOS] = useState<{ pedidoId: number; ordemId: number; numero: string } | null>(null)
   const [confOS, setConfOS] = useState<{ ordemId: number; numero: string } | null>(null)
+  const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -389,8 +391,8 @@ export default function OrdensPage() {
                               </Button>
                             )}
                             <button
-                              title="Ver / imprimir Ordem de Serviço"
-                              onClick={() => window.open(`/imprimir/os/${os.amostra.pedido.id}`, '_blank')}
+                              title="Ver Ordem de Serviço"
+                              onClick={() => setOsModal({ pedidoId: os.amostra.pedido.id, numero: os.numero })}
                               className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100
                                 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
                             >
@@ -500,6 +502,13 @@ export default function OrdensPage() {
           onChange={fetchOrdens}
         />
       )}
+
+      <OSModal
+        open={osModal != null}
+        pedidoId={osModal?.pedidoId ?? null}
+        osNumero={osModal?.numero}
+        onClose={() => setOsModal(null)}
+      />
     </div>
   )
 }
