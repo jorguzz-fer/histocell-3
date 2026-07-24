@@ -96,6 +96,18 @@ export class OrdensController {
     return this.service.avancar(id, userId);
   }
 
+  /** Move a OS para um departamento (desvio/terminal); terminal conclui a OS */
+  @Patch(':id/mover')
+  @Roles('gerencia', 'tecnico')
+  mover(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('etapa') etapa: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.moverPara(id, etapa, userId);
+  }
+
   /** Cancela a OS e reverte a amostra para pendente */
   @Patch(':id/cancelar')
   @Roles('gerencia')

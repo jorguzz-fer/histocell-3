@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
-import { ETAPAS_FILA } from '../ordens/etapas';
+import { ETAPAS_FILA, ETAPAS_TERMINAIS } from '../ordens/etapas';
 
 const ETAPAS = ETAPAS_FILA;
 
@@ -67,14 +67,23 @@ export class FilaService {
     if (userId) baseWhere.OR = [{ responsavelUserId: userId }, { responsavelUserId: null }];
 
     const porEtapa = await Promise.all(
-      ETAPAS.map((etapa) =>
-        this.prisma.ordemServico.findMany({
-          where: { ...baseWhere, etapaAtual: etapa },
+      ETAPAS.map((etapa) => {
+        // Colunas terminais (Arquivamento/Descarte) mostram os itens já
+        // CONCLUÍDOS naquele destino — mover para lá conclui a OS, então ela
+        // sai do filtro "em_andamento". As demais colunas mostram o fluxo ativo.
+        const terminal = ETAPAS_TERMINAIS.includes(etapa);
+        const where = terminal
+          ? { status: 'concluida', etapaAtual: etapa }
+          : { ...baseWhere, etapaAtual: etapa };
+        return this.prisma.ordemServico.findMany({
+          where,
           select: osSelect,
-          orderBy: [{ prioridade: 'desc' }, { iniciadoEm: 'asc' }],
+          orderBy: terminal
+            ? [{ concluidoEm: 'desc' as const }]
+            : [{ prioridade: 'desc' as const }, { iniciadoEm: 'asc' as const }],
           take: 50,
-        }),
-      ),
+        });
+      }),
     );
 
     const secoes: Record<string, any> = { aprovacaoDivergencia };

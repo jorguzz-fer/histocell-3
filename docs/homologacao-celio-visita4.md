@@ -134,6 +134,7 @@ Implementado nesta rodada (validar em produção durante o piloto):
 
 - ✅ **Serviços de logística** — motoboy Capital (R$25) e ABCD (R$30), retirada e entrega, categoria Logística, sem etiqueta. Criados via seed idempotente (rodam no deploy).
 - ✅ **Novos departamentos** — Imunofluorescência, Finalização, Arquivamento e Descarte adicionados ao rastreio; Arquivamento e Descarte são **terminais** (concluem o item na saída).
+- ✅ **Departamentos na Fila + "Mover para"** — a Fila passou a exibir Imunofluorescência, Arquivamento e Descarte como colunas. Cada item ganhou a ação **"Mover para"** (roteia para qualquer departamento, fora do avanço linear); mover para Arquivamento/Descarte **conclui a OS**, e essas colunas mostram os itens já arquivados/descartados.
 - ✅ **🐞 Bug fila→rastreio** — ao avançar a OS na Fila, o rastreio das etiquetas do pedido passa a ser sincronizado automaticamente (posição do material acompanha o andamento mesmo sem scan físico).
 - ✅ **Kanban vertical** — alternador de layout na Fila (barras empilhadas × colunas lado a lado), com a preferência salva no navegador.
 - ✅ **Detalhe de itens no portal do cliente** — "Ver itens" abre os serviços solicitados (código, nome, quantidade, subtotal) de cada pedido.
