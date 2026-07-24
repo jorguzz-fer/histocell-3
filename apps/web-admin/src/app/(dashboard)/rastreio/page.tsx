@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
+import { OSModal } from '@/components/OSModal'
 import { api } from '@/lib/api'
 import { ScanBox } from './ScanBox'
 import { ProgressoDepartamentos } from './ProgressoDepartamentos'
@@ -44,6 +45,7 @@ export default function RastreioPage() {
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
   const [loadingTl, setLoadingTl] = useState(false)
   const [itens, setItens] = useState<RastreioEtiqueta[]>([])
+  const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
 
   useEffect(() => {
     api.get<Departamento[]>('/rastreio/departamentos').then(setDepartamentos).catch(() => {})
@@ -150,7 +152,18 @@ export default function RastreioPage() {
                     onClick={() => { setBusca(e.codigo); consultar(e.codigo) }}
                     className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                   >
-                    <td className="px-4 py-2 font-mono text-slate-700 dark:text-slate-200">{e.codigo}</td>
+                    <td className="px-4 py-2">
+                      <div className="font-mono text-slate-700 dark:text-slate-200">{e.codigo}</div>
+                      <button
+                        onClick={(ev) => {
+                          ev.stopPropagation()
+                          setOsModal({ pedidoId: e.amostra.pedido.id, numero: e.amostra.pedido.numero })
+                        }}
+                        className="text-[11px] font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
+                      >
+                        Ver OS
+                      </button>
+                    </td>
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{e.identificacao ?? '—'}</td>
                     <td className="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[160px]">
                       <div className="flex items-center gap-2">
@@ -276,6 +289,13 @@ export default function RastreioPage() {
           </div>
         )}
       </div>
+
+      <OSModal
+        open={osModal != null}
+        pedidoId={osModal?.pedidoId ?? null}
+        osNumero={osModal?.numero}
+        onClose={() => setOsModal(null)}
+      />
     </div>
   )
 }
