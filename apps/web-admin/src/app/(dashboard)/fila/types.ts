@@ -13,6 +13,7 @@ export type FilaOS = {
     especie: string
     material: string
     pedido: {
+      id: number
       numero: string
       cliente: { id: number; nome: string; nomeFantasia?: string | null }
     }

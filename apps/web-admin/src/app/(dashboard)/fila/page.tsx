@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
+import { OSModal } from '@/components/OSModal'
 import { clienteCor } from '@/lib/clienteVisual'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { FilaResponse, FilaOS, FilaPedidoPendente } from './types'
@@ -48,6 +49,8 @@ export default function FilaPage() {
   // Layout da fila: 'lista' (barras empilhadas) ou 'colunas' (kanban vertical,
   // lado a lado — pedido do Célio para ver todas as etapas de uma vez).
   const [layout, setLayout] = useState<'lista' | 'colunas'>('lista')
+  // OS aberta no modal (a partir do link no item da fila).
+  const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('fila-layout') : null
@@ -168,12 +171,20 @@ export default function FilaPage() {
                   count={data.counts[etapa] ?? 0}
                   onAvancar={avancarOS}
                   onMover={moverOS}
+                  onVerOS={(pedidoId, numero) => setOsModal({ pedidoId, numero })}
                 />
               </div>
             ))}
           </div>
         </div>
       )}
+
+      <OSModal
+        open={osModal != null}
+        pedidoId={osModal?.pedidoId ?? null}
+        osNumero={osModal?.numero}
+        onClose={() => setOsModal(null)}
+      />
     </div>
   )
 }
@@ -205,7 +216,7 @@ function SecaoDivergencia({ itens, onAprovar }: { itens: FilaPedidoPendente[]; o
   )
 }
 
-function SecaoOS({ etapa, itens, count, onAvancar, onMover }: { etapa: string; itens: FilaOS[]; count: number; onAvancar: (id: number) => void; onMover: (id: number, destino: string) => void }) {
+function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: string; itens: FilaOS[]; count: number; onAvancar: (id: number) => void; onMover: (id: number, destino: string) => void; onVerOS: (pedidoId: number, numero: string) => void }) {
   const meta = ETAPA_META[etapa] ?? { label: etapa, icon: ClipboardList, color: 'text-slate-500' }
   const Icon = meta.icon
   // Colunas terminais (Arquivamento/Descarte) listam itens já concluídos ali —
@@ -235,7 +246,14 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover }: { etapa: string; i
                 />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
-                    {o.numero} · Amostra {o.amostra.numeroInterno}
+                    <button
+                      onClick={() => onVerOS(o.amostra.pedido.id, o.numero)}
+                      title="Ver Ordem de Serviço"
+                      className="text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
+                    >
+                      {o.numero}
+                    </button>
+                    {' · '}Amostra {o.amostra.numeroInterno}
                     {o.amostra.numeroCliente ? ` (${o.amostra.numeroCliente})` : ''}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">

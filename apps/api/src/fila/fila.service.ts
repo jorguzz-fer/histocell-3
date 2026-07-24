@@ -52,6 +52,7 @@ export class FilaService {
           material: true,
           pedido: {
             select: {
+              id: true,
               numero: true,
               cliente: { select: { id: true, nome: true, nomeFantasia: true } },
             },
