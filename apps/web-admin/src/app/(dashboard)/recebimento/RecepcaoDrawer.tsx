@@ -18,9 +18,11 @@ interface Props {
   onClose: () => void
   pedido: PedidoFila | null
   onSaved: () => void
+  /** Abre a impressão (etiquetas dos recipientes) num modal, sem nova aba. */
+  onImprimir?: (url: string) => void
 }
 
-export function RecepcaoDrawer({ open, onClose, pedido, onSaved }: Props) {
+export function RecepcaoDrawer({ open, onClose, pedido, onSaved, onImprimir }: Props) {
   const [tipos, setTipos] = useState<TipoRecipiente[]>([])
   const [linhas, setLinhas] = useState<Linha[]>([{ tipo: '', quantidade: '1' }])
   const [recebidoPor, setRecebidoPor] = useState('')
@@ -70,8 +72,8 @@ export function RecepcaoDrawer({ open, onClose, pedido, onSaved }: Props) {
         recipientes,
       })
       toast.success(res.message ?? 'Entrada registrada.')
-      // abre a folha de etiquetas dos recipientes para impressão
-      window.open(`/imprimir/recipientes/${pedido!.id}`, '_blank', 'noopener')
+      // abre a folha de etiquetas dos recipientes num modal (sem nova aba)
+      onImprimir?.(`/imprimir/recipientes/${pedido!.id}`)
       onSaved()
       onClose()
     } catch (err: any) {

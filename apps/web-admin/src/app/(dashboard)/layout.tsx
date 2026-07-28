@@ -9,6 +9,7 @@ import {
   Users,
   FileSpreadsheet,
   Boxes,
+  FlaskConical,
   PackageOpen,
   Inbox,
   Tags,
@@ -45,6 +46,8 @@ const menuItems: MenuItem[] = [
   // Orçamento entre Clientes e Recebimento (ordem do fluxo: cadastra → orça → recebe).
   // Telas com valores: ocultas para o perfil técnico (sem valores).
   { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
+  // Catálogo de serviços (criar/editar/arquivar) — tirado de dentro do Orçamento.
+  { href: '/servicos', label: 'Serviços', icon: FlaskConical, perm: 'orcamento', roles: ['gerencia'] },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
   { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'

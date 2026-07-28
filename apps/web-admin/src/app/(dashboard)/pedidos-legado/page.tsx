@@ -6,7 +6,7 @@ import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollar
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
-import { useOrderCart, fmtBRL } from '@/hooks/useOrderCart'
+import { useOrderCart, fmtBRL, itemSubtotal } from '@/hooks/useOrderCart'
 import { CartItemRow } from '@/components/ui/CartItemRow'
 import { ServicoLegadoTable } from '@/components/legado/ServicoLegadoTable'
 import { CatalogoTabs } from '@/components/pedidos/CatalogoTabs'
@@ -74,7 +74,7 @@ export default function PedidosLegadoPage() {
             onAdd={addServico}
             addItemDireto={addItemDireto}
             addPacote={addPacote}
-            legadoSlot={<ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} onAddPacote={addPacote} />}
+            legadoSlot={<ServicoLegadoTable isPesquisador={isPesquisador} onAdd={addServico} onAddPacote={addPacote} permitirCriar={false} />}
           />
         </div>
 
@@ -189,19 +189,62 @@ export default function PedidosLegadoPage() {
           {confirmarPrazo && (
             <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmarPrazo(false)} />
-              <div className="relative z-10 w-full max-w-sm bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Confirmar prazo de entrega</h2>
+              <div className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                  <Send className="h-5 w-5 text-blue-600" />
+                  <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Prévia do orçamento</h2>
                 </div>
-                <p className="text-[13px] text-slate-600 dark:text-slate-300">
-                  O prazo combinado com o cliente é de <strong>{prazoDias} dia{prazoDias !== 1 ? 's' : ''} útil(eis)</strong>.
-                  Confirma que está correto antes de enviar o orçamento?
-                </p>
-                <div className="flex justify-end gap-2">
-                  <Button variant="secondary" onClick={() => setConfirmarPrazo(false)}>Corrigir prazo</Button>
+
+                <div className="px-5 py-4 overflow-y-auto space-y-4">
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                    Confira como o orçamento vai para <strong className="text-slate-700 dark:text-slate-200">{cliente?.nomeFantasia || cliente?.nome || 'o cliente'}</strong> antes de enviar.
+                  </p>
+
+                  {/* Itens (como o cliente vê) */}
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <table className="w-full text-[12px]">
+                      <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-left">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Serviço</th>
+                          <th className="px-3 py-2 font-medium text-center">Qtd</th>
+                          <th className="px-3 py-2 font-medium text-right">Unit.</th>
+                          <th className="px-3 py-2 font-medium text-right">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {itens.map((it) => {
+                          const subtotal = itemSubtotal(it)
+                          const unit = it.quantidade ? subtotal / it.quantidade : 0
+                          return (
+                            <tr key={it.key} className="text-slate-700 dark:text-slate-200">
+                              <td className="px-3 py-2">{it.nome}</td>
+                              <td className="px-3 py-2 text-center tabular-nums">{it.quantidade}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">{fmtBRL(unit)}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">{fmtBRL(subtotal)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="text-slate-500 dark:text-slate-400">Prazo de entrega</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100">{prazoDias} dia{prazoDias !== 1 ? 's' : ''} útil(eis)</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500">Total</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-white">{fmtBRL(totalGeral)}</span>
+                  </div>
+                  {observacoes.trim() && (
+                    <p className="text-[11px] text-slate-400 italic">Obs. internas (não vão ao cliente): {observacoes}</p>
+                  )}
+                </div>
+
+                <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={() => setConfirmarPrazo(false)}>Voltar e corrigir</Button>
                   <Button onClick={() => { setConfirmarPrazo(false); handleSalvar('enviado') }} loading={saving}>
-                    Confirmar e enviar
+                    <Send className="h-4 w-4 mr-1.5" /> Confirmar e enviar
                   </Button>
                 </div>
               </div>

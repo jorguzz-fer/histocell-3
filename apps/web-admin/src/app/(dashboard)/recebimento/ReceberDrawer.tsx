@@ -28,9 +28,11 @@ interface ReceberDrawerProps {
   onClose: () => void
   pedido: PedidoFila | null
   onSaved: () => void
+  /** Abre a impressão (Ordem de Serviço) num modal, sem nova aba. */
+  onImprimir?: (url: string) => void
 }
 
-export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerProps) {
+export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: ReceberDrawerProps) {
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [recebidoPor, setRecebidoPor] = useState('')
   const [qtdPrevista, setQtdPrevista] = useState('')
@@ -72,8 +74,31 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
   function setLinha(key: string, field: keyof AmostraItemForm, value: string) {
     setLinhas((prev) => prev.map((l) => (l._key === key ? { ...l, [field]: value } : l)))
   }
+  // Sugere o próximo número do cliente a partir da última linha preenchida
+  // (do mesmo recipiente, se houver): incrementa o número final preservando o
+  // prefixo. Ex.: "13" → "14"; "A26/123" → "A26/124"; "PH11" → "PH12".
+  // É só uma sugestão — o campo continua editável (pode pular para 15, etc.).
+  function sugerirNumeroCliente(prev: Linha[], recipienteId: number | null): string {
+    const doRecipiente = prev.filter(
+      (l) => l.numeroCliente.trim() !== '' && (recipienteId == null || l.recipienteId === recipienteId),
+    )
+    const candidatas = doRecipiente.length
+      ? doRecipiente
+      : prev.filter((l) => l.numeroCliente.trim() !== '')
+    const base = candidatas[candidatas.length - 1]
+    if (!base) return ''
+    const m = base.numeroCliente.trim().match(/^(.*?)(\d+)(\D*)$/)
+    if (!m) return ''
+    const [, prefixo, dig, sufixo] = m
+    const prox = String(Number(dig) + 1).padStart(dig.length, '0')
+    return `${prefixo}${prox}${sufixo}`
+  }
   function addLinha(recipienteId: number | null) {
-    setLinhas((prev) => [...prev, novaLinha(recipienteId)])
+    setLinhas((prev) => {
+      const nova = novaLinha(recipienteId)
+      nova.numeroCliente = sugerirNumeroCliente(prev, recipienteId)
+      return [...prev, nova]
+    })
   }
   function removeLinha(key: string) {
     setLinhas((prev) => prev.filter((l) => l._key !== key))
@@ -125,10 +150,10 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved }: ReceberDrawerP
         const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
         toast.success(`Crédito abatido: ${fmt(res.credito.abatido)} · saldo ${fmt(res.credito.saldo)}`)
       }
-      // abre a Ordem de Serviço (folha sem valores) para impressão — só quando
-      // há OS (pedido retido para aprovação ainda não tem OS).
+      // abre a Ordem de Serviço (folha sem valores) num modal — só quando há OS
+      // (pedido retido para aprovação ainda não tem OS).
       if (!res.precisaAprovacao) {
-        window.open(`/imprimir/os/${pedido.id}`, '_blank', 'noopener')
+        onImprimir?.(`/imprimir/os/${pedido.id}`)
       }
       onSaved()
       onClose()

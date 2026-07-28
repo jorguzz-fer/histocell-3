@@ -27,12 +27,15 @@ function variantes(s: Servico) {
 
 interface Props {
   isPesquisador: boolean
-  onAdd: (s: Servico) => void | Promise<void>
+  /** Ação de adicionar ao pedido/orçamento. Ausente = modo gestão (catálogo). */
+  onAdd?: (s: Servico) => void | Promise<void>
   /** Quando informado, a busca também surfaca pacotes com código/nome batendo. */
   onAddPacote?: (p: Pacote) => void
+  /** Permite (ou não) criar serviço aqui. Default: só gerência. Orçamento passa false. */
+  permitirCriar?: boolean
 }
 
-export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props) {
+export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote, permitirCriar }: Props) {
   const [servicos, setServicos]         = useState<ServicoRow[]>([])
   const [pacotes, setPacotes]           = useState<Pacote[]>([])
   const [query, setQuery]               = useState('')
@@ -46,6 +49,8 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
   useEffect(() => {
     try { setPodeCriar(JSON.parse(localStorage.getItem('user') || '{}')?.role === 'gerencia') } catch {}
   }, [])
+  // Criar serviço: só gerência, e só onde for permitido (fora do orçamento).
+  const mostrarCriar = podeCriar && (permitirCriar ?? true)
 
   const load = useCallback(() => {
     const params = new URLSearchParams()
@@ -143,7 +148,7 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
           <input type="checkbox" checked={showInativos} onChange={(e) => setShowInativos(e.target.checked)} />
           Mostrar arquivados
         </label>
-        {podeCriar && (
+        {mostrarCriar && (
           <button
             onClick={() => setCreating(true)}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-3 py-2"
@@ -241,9 +246,11 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
                   <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtBRL(Number(s.precoPesquisa))}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => onAdd(s)} title="Adicionar ao pedido" className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded">
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
+                      {onAdd && (
+                        <button onClick={() => onAdd(s)} title="Adicionar ao pedido" className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded">
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button onClick={() => setEditing(s)} title="Editar" className="p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -261,7 +268,7 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote }: Props)
                 <tr>
                   <td colSpan={7} className="px-3 py-8 text-center text-slate-400">
                     Nenhum serviço encontrado.
-                    {query && podeCriar && (
+                    {query && mostrarCriar && (
                       <button onClick={() => setCreating(true)} className="ml-2 text-blue-600 font-medium hover:underline">
                         Criar &quot;{query}&quot;?
                       </button>
