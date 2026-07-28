@@ -261,6 +261,14 @@ function ConferenciaPedido() {
           <div className="flex items-center justify-between">
             <span className="text-[13px] text-slate-500 dark:text-slate-400">
               Total: <Badge variant="blue">{totalEtiquetas} etiqueta{totalEtiquetas !== 1 ? 's' : ''}</Badge>
+              {(() => {
+                const naoEtiquetam = linhas.filter((l) => l.geraEtiqueta === false).length
+                return naoEtiquetam > 0 ? (
+                  <span className="ml-2 text-[11px] text-slate-400">
+                    ({naoEtiquetam} serviço{naoEtiquetam !== 1 ? 's' : ''} não gera{naoEtiquetam !== 1 ? 'm' : ''} etiqueta)
+                  </span>
+                ) : null
+              })()}
             </span>
             <div className="flex items-center gap-2">
               <Button variant="secondary" onClick={() => gerar(false)} loading={saving} disabled={totalEtiquetas === 0}>
