@@ -11,6 +11,7 @@ import { api } from '@/lib/api'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { ReceberDrawer } from './ReceberDrawer'
 import { RecepcaoDrawer } from './RecepcaoDrawer'
+import { PrintModal } from '@/components/PrintModal'
 import type { PedidoFila, Amostra, AmostraListResponse } from './types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
@@ -173,6 +174,7 @@ export default function RecebimentoPage() {
   const [recepcaoOpen, setRecepcaoOpen] = useState(false)
   const [receberOpen, setReceberOpen]   = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFila | null>(null)
+  const [printUrl, setPrintUrl]         = useState<string | null>(null)
 
   // Amostras
   const [amostras, setAmostras]         = useState<Amostra[]>([])
@@ -528,12 +530,21 @@ export default function RecebimentoPage() {
         onClose={() => setRecepcaoOpen(false)}
         pedido={pedidoSelecionado}
         onSaved={onSaved}
+        onImprimir={setPrintUrl}
       />
       <ReceberDrawer
         open={receberOpen}
         onClose={() => setReceberOpen(false)}
         pedido={pedidoSelecionado}
         onSaved={onSaved}
+        onImprimir={setPrintUrl}
+      />
+
+      <PrintModal
+        open={printUrl != null}
+        url={printUrl}
+        onClose={() => setPrintUrl(null)}
+        title="Impressão"
       />
     </div>
   )
