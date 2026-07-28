@@ -14,7 +14,10 @@ import { AuditService } from '../common/audit.service';
 import { OrdensService } from '../ordens/ordens.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
 
-const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'recebido_pendente_aprovacao', 'cancelado'];
+const STATUS_VALIDOS = ['rascunho', 'enviado', 'recebido', 'recebido_pendente_aprovacao', 'cancelado', 'arquivado'];
+
+// Motivos de arquivamento de orçamento (não virou pedido).
+const MOTIVOS_ARQUIVO = ['especulador', 'desistiu', 'recusado', 'outro'];
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -606,6 +609,49 @@ export class PedidosService {
     });
 
     return this.toShape(pedido);
+  }
+
+  // ── ARQUIVAR ORÇAMENTO ──────────────────────────────────────────────────────
+  // Orçamento que não virou pedido (cliente só especulou, desistiu ou foi
+  // recusado). Sai da fila de recebimento e fica registrado para o relatório.
+  async arquivar(id: number, motivo: string, userId: number) {
+    const mot = MOTIVOS_ARQUIVO.includes(motivo) ? motivo : 'outro';
+    const existing = await this.prisma.pedido.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Pedido #${id} não encontrado.`);
+    if (['recebido', 'recebido_pendente_aprovacao'].includes(existing.status)) {
+      throw new BadRequestException('Pedido já recebido não pode ser arquivado.');
+    }
+    if (existing.status === 'arquivado') {
+      throw new BadRequestException('Orçamento já está arquivado.');
+    }
+    const pedido = await this.prisma.pedido.update({
+      where: { id },
+      data: { status: 'arquivado', motivoArquivo: mot, dataArquivo: new Date() },
+      include: INCLUDE_FULL,
+    });
+    await this.audit.log(userId, 'ARQUIVAR', 'Pedido', id, { motivo: mot });
+    return this.toShape(pedido);
+  }
+
+  /** Resumo de orçamentos arquivados por motivo, num período (relatório). */
+  async resumoArquivados(inicio?: string, fim?: string) {
+    const where: any = { status: 'arquivado' };
+    if (inicio || fim) {
+      where.dataArquivo = {};
+      if (inicio) where.dataArquivo.gte = new Date(inicio);
+      if (fim) where.dataArquivo.lte = new Date(fim);
+    }
+    const grupos = await this.prisma.pedido.groupBy({
+      by: ['motivoArquivo'],
+      where,
+      _count: { _all: true },
+    });
+    const porMotivo = MOTIVOS_ARQUIVO.map((m) => ({
+      motivo: m,
+      total: grupos.find((g) => g.motivoArquivo === m)?._count._all ?? 0,
+    }));
+    const total = porMotivo.reduce((s, g) => s + g.total, 0);
+    return { total, porMotivo };
   }
 
   // ── APROVAR DIVERGÊNCIA ─────────────────────────────────────────────────────

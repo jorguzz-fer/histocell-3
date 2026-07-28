@@ -272,6 +272,9 @@ model Pedido {
   dataRecebimento DateTime?
   observacoes   String?   @db.Text // observação interna (não visível ao cliente)
   contagemDivergente Boolean @default(false) // gate de aprovação quando recebido ≠ orçado
+  // Orçamento arquivado (não virou pedido): especulador, desistiu, recusado…
+  motivoArquivo String?   // motivo do arquivamento (só quando status=arquivado)
+  dataArquivo   DateTime? // quando foi arquivado
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

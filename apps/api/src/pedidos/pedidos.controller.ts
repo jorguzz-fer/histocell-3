@@ -161,6 +161,13 @@ export class PedidosController {
     return this.service.findAll(filter);
   }
 
+  /** Resumo de orçamentos arquivados por motivo (relatório de fim de mês) */
+  @Get('arquivados/resumo')
+  @Roles('gerencia', 'financeiro')
+  resumoArquivados(@Query('inicio') inicio?: string, @Query('fim') fim?: string) {
+    return this.service.resumoArquivados(inicio, fim);
+  }
+
   @Get(':id')
   @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -190,6 +197,18 @@ export class PedidosController {
     @Body('status') status: string,
   ) {
     return this.service.updateStatus(id, status);
+  }
+
+  /** Arquivar orçamento (especulador/desistiu/recusado) — sai da fila */
+  @Patch(':id/arquivar')
+  @Roles('gerencia', 'recepcao')
+  arquivar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('motivo') motivo: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub ?? req.user.userId ?? req.user.id;
+    return this.service.arquivar(id, motivo, userId);
   }
 
   /** Aprovar divergência de contagem (libera o pedido pra cobrança) */
