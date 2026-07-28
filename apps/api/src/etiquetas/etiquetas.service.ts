@@ -46,10 +46,29 @@ export class EtiquetasService {
   }
 
   // ── Coloração sugerida a partir do nome do serviço ────────────────────────────
+  // A coloração precisa sair na etiqueta (pedido do Célio). Reconhece as
+  // colorações mais usadas pelo nome do serviço; se não bater, fica em branco
+  // (editável na conferência).
   private sugerirColoracao(nome: string): string {
     const n = nome.toUpperCase();
-    if (/(^|[^A-Z])HE([^A-Z]|$)/.test(n)) return '.HE';
+    // HE (Hematoxilina-Eosina) — evita casar dentro de outras palavras.
+    if (/(^|[^A-Z])H\.?E([^A-Z]|$)/.test(n)) return '.HE';
     if (n.includes('PAS')) return 'PAS';
+    if (n.includes('ALCIAN') || /(^|[^A-Z])AB([^A-Z]|$)/.test(n)) return 'Alcian Blue';
+    if (n.includes('MASSON') || n.includes('TRICR')) return 'Tricrômico';
+    if (n.includes('GIEMSA')) return 'Giemsa';
+    if (n.includes('GROCOTT') || n.includes('GOMORI')) return 'Grocott';
+    if (n.includes('ZIEHL') || n.includes('BAAR')) return 'Ziehl-Neelsen';
+    if (n.includes('PERLS') || n.includes('FERRO')) return 'Perls';
+    if (n.includes('CONGO')) return 'Vermelho Congo';
+    if (n.includes('RETICUL') || n.includes('GOMORI RET')) return 'Reticulina';
+    if (n.includes('TRICROMICO') || n.includes('GOMORI TRIC')) return 'Tricrômico';
+    if (n.includes('WARTHIN') || n.includes('STARRY')) return 'Warthin-Starry';
+    if (n.includes('FONTANA')) return 'Fontana-Masson';
+    if (n.includes('MUCICARMIN')) return 'Mucicarmin';
+    if (n.includes('GRAM')) return 'Gram';
+    if (n.includes('TOLUIDINA')) return 'Azul de Toluidina';
+    if (n.includes('PICROSIRIUS') || n.includes('SIRIUS')) return 'Picrosirius';
     return '';
   }
 
