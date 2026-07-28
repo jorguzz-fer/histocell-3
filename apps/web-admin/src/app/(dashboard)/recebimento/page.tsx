@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2, Printer } from 'lucide-react'
+import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2, Printer, Archive } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -50,7 +50,7 @@ function labelMaterial(m: string) {
 
 // ─── card + coluna da fila ──────────────────────────────────────────────────
 
-function FilaCard({ p, onReceber, acaoLabel = 'Receber' }: { p: PedidoFila; onReceber: () => void; acaoLabel?: string }) {
+function FilaCard({ p, onReceber, onArquivar, acaoLabel = 'Receber' }: { p: PedidoFila; onReceber: () => void; onArquivar?: () => void; acaoLabel?: string }) {
   const diasNaFila = Math.floor(
     (Date.now() - new Date(p.dataEnvio ?? p.createdAt).getTime()) / 86400000,
   )
@@ -127,19 +127,31 @@ function FilaCard({ p, onReceber, acaoLabel = 'Receber' }: { p: PedidoFila; onRe
 
       <div className="flex items-center justify-between pt-1">
         <span className="text-[11px] text-slate-400">Enviado {fmtDateTime(p.dataEnvio ?? p.createdAt)}</span>
-        <Button size="sm" onClick={onReceber}>{acaoLabel}</Button>
+        <div className="flex items-center gap-1.5">
+          {onArquivar && (
+            <button
+              onClick={onArquivar}
+              title="Arquivar orçamento (não vai virar pedido)"
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px] font-medium text-slate-500 hover:text-rose-600 hover:border-rose-300"
+            >
+              <Archive className="h-3 w-3" /> Arquivar
+            </button>
+          )}
+          <Button size="sm" onClick={onReceber}>{acaoLabel}</Button>
+        </div>
       </div>
     </div>
   )
 }
 
 function FilaColuna({
-  titulo, icon: Icon, itens, onReceber, acaoLabel,
+  titulo, icon: Icon, itens, onReceber, onArquivar, acaoLabel,
 }: {
   titulo: string
   icon: typeof Globe
   itens: PedidoFila[]
   onReceber: (p: PedidoFila) => void
+  onArquivar?: (p: PedidoFila) => void
   acaoLabel?: string
 }) {
   return (
@@ -157,7 +169,15 @@ function FilaColuna({
         </p>
       ) : (
         <div className="space-y-3">
-          {itens.map((p) => <FilaCard key={p.id} p={p} onReceber={() => onReceber(p)} acaoLabel={acaoLabel} />)}
+          {itens.map((p) => (
+            <FilaCard
+              key={p.id}
+              p={p}
+              onReceber={() => onReceber(p)}
+              onArquivar={onArquivar ? () => onArquivar(p) : undefined}
+              acaoLabel={acaoLabel}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -175,6 +195,7 @@ export default function RecebimentoPage() {
   const [receberOpen, setReceberOpen]   = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFila | null>(null)
   const [printUrl, setPrintUrl]         = useState<string | null>(null)
+  const [arquivando, setArquivando]     = useState<PedidoFila | null>(null)
 
   // Amostras
   const [amostras, setAmostras]         = useState<Amostra[]>([])
@@ -244,6 +265,18 @@ export default function RecebimentoPage() {
     setReceberOpen(true)
   }
 
+  async function arquivarPedido(motivo: string) {
+    if (!arquivando) return
+    try {
+      await api.patch(`/pedidos/${arquivando.id}/arquivar`, { motivo })
+      toast.success(`Orçamento ${arquivando.numero} arquivado.`)
+      setArquivando(null)
+      fetchFila()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao arquivar orçamento')
+    }
+  }
+
   function onSaved() {
     fetchFila()
     fetchAmostras()
@@ -278,9 +311,9 @@ export default function RecebimentoPage() {
         ) : (
           <div className="grid gap-5 lg:grid-cols-2 items-start">
             <FilaColuna titulo="Pedidos do Portal (Web)" icon={Globe} acaoLabel="Registrar entrada"
-              itens={filaRecepcao.filter((p) => p.origem === 'web')} onReceber={abrirRecepcao} />
+              itens={filaRecepcao.filter((p) => p.origem === 'web')} onReceber={abrirRecepcao} onArquivar={setArquivando} />
             <FilaColuna titulo="Pedidos locais" icon={Building2} acaoLabel="Registrar entrada"
-              itens={filaRecepcao.filter((p) => p.origem !== 'web')} onReceber={abrirRecepcao} />
+              itens={filaRecepcao.filter((p) => p.origem !== 'web')} onReceber={abrirRecepcao} onArquivar={setArquivando} />
           </div>
         )}
       </section>
@@ -546,6 +579,42 @@ export default function RecebimentoPage() {
         onClose={() => setPrintUrl(null)}
         title="Impressão"
       />
+
+      {arquivando && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setArquivando(null)} />
+          <div className="relative z-10 w-full max-w-sm bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-rose-600" />
+              <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Arquivar orçamento</h2>
+            </div>
+            <p className="text-[13px] text-slate-600 dark:text-slate-300">
+              O orçamento <strong>{arquivando.numero}</strong> não vai virar pedido. Por quê?
+              Ele sai da fila e entra no relatório de arquivados.
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { key: 'especulador', label: 'Só especulou preço', desc: 'Cliente pediu orçamento e não retornou' },
+                { key: 'desistiu', label: 'Cliente desistiu', desc: 'Retornou, mas não vai enviar o material' },
+                { key: 'recusado', label: 'Não vamos atender', desc: 'Decisão do laboratório' },
+                { key: 'outro', label: 'Outro motivo', desc: '' },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => arquivarPedido(m.key)}
+                  className="text-left rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 hover:border-rose-300 hover:bg-rose-50/50 dark:hover:bg-rose-500/5"
+                >
+                  <span className="block text-[13px] font-medium text-slate-800 dark:text-slate-100">{m.label}</span>
+                  {m.desc && <span className="block text-[11px] text-slate-400">{m.desc}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setArquivando(null)}>Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
