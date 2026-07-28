@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock, LogIn, LogOut, Tv, FileText } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
+import { OSModal } from '@/components/OSModal'
 import { api } from '@/lib/api'
 import { ScanBox } from '../../ScanBox'
 import type { Departamento, RastreioEtiqueta } from '../../types'
@@ -20,7 +21,7 @@ function desde(iso?: string | null) {
   return `há ${h}h ${min % 60}min`
 }
 
-function Card({ e }: { e: RastreioEtiqueta }) {
+function Card({ e, onVerOS }: { e: RastreioEtiqueta; onVerOS: (pedidoId: number, numero: string) => void }) {
   const cli = e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome
   const prevista = e.amostra.pedido.qtdPrevista
   return (
@@ -45,14 +46,12 @@ function Card({ e }: { e: RastreioEtiqueta }) {
         )}
       </div>
       {/* Acesso à OS: serviços solicitados + quantidades (sem valores) para a técnica. */}
-      <a
-        href={`/imprimir/os/${e.amostra.pedido.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        onClick={() => onVerOS(e.amostra.pedido.id, e.amostra.pedido.numero)}
         className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
       >
         <FileText className="h-3 w-3" /> Ver OS / serviços
-      </a>
+      </button>
     </div>
   )
 }
@@ -64,6 +63,7 @@ export default function DepartamentoBoardPage() {
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [emProcesso, setEmProcesso] = useState<RastreioEtiqueta[]>([])
   const [prontos, setProntos] = useState<RastreioEtiqueta[]>([])
+  const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
 
   useEffect(() => {
     api.get<Departamento[]>('/rastreio/departamentos').then(setDepartamentos).catch(() => {})
@@ -132,7 +132,7 @@ export default function DepartamentoBoardPage() {
                 Nada em processo.
               </p>
             ) : (
-              emProcesso.map((e) => <Card key={e.id} e={e} />)
+              emProcesso.map((e) => <Card key={e.id} e={e} onVerOS={(pedidoId, numero) => setOsModal({ pedidoId, numero })} />)
             )}
           </div>
         </div>
@@ -151,11 +151,18 @@ export default function DepartamentoBoardPage() {
                 Nada aguardando saída.
               </p>
             ) : (
-              prontos.map((e) => <Card key={e.id} e={e} />)
+              prontos.map((e) => <Card key={e.id} e={e} onVerOS={(pedidoId, numero) => setOsModal({ pedidoId, numero })} />)
             )}
           </div>
         </div>
       </div>
+
+      <OSModal
+        open={osModal != null}
+        pedidoId={osModal?.pedidoId ?? null}
+        osNumero={osModal?.numero}
+        onClose={() => setOsModal(null)}
+      />
     </div>
   )
 }
