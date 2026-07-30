@@ -551,6 +551,26 @@ export class PedidosService {
     return this.toShape(pedido);
   }
 
+  // ── ATUALIZAR QUANTIDADE DE UM ITEM (in-place) ──────────────────────────────
+  // Usado na identificação (Laboratório) para ajustar a quantidade de um serviço
+  // sem recriar os itens (preserva o id e vínculos com amostras/etiquetas).
+  async atualizarItemQuantidade(itemId: number, quantidade: number) {
+    const q = Math.floor(Number(quantidade));
+    if (!Number.isFinite(q) || q < 1) {
+      throw new BadRequestException('Quantidade inválida (mínimo 1).');
+    }
+    const item = await this.prisma.itemPedido.findUnique({
+      where: { id: itemId },
+      include: { pedido: { select: { id: true, status: true } } },
+    });
+    if (!item) throw new NotFoundException(`Item #${itemId} não encontrado.`);
+    if (['cancelado', 'arquivado'].includes(item.pedido.status)) {
+      throw new BadRequestException('Pedido cancelado/arquivado não pode ser editado.');
+    }
+    await this.prisma.itemPedido.update({ where: { id: itemId }, data: { quantidade: q } });
+    return this.findOne(item.pedido.id);
+  }
+
   // ── UPDATE ──────────────────────────────────────────────────────────────────
   async update(id: number, dto: UpdatePedidoDto) {
     const existing = await this.prisma.pedido.findUnique({ where: { id } });

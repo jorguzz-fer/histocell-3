@@ -34,6 +34,10 @@ interface ReceberDrawerProps {
 
 export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: ReceberDrawerProps) {
   const [linhas, setLinhas] = useState<Linha[]>([])
+  // Itens (serviços) editáveis: a quantidade pode ser ajustada aqui na
+  // identificação e é salva no pedido (reflete na conferência/cobrança/etiquetas).
+  const [itens, setItens] = useState<PedidoFila['itens']>([])
+  const [previstaManual, setPrevistaManual] = useState(false)
   const [recebidoPor, setRecebidoPor] = useState('')
   const [qtdPrevista, setQtdPrevista] = useState('')
   const [qtdRecebida, setQtdRecebidaState] = useState('')
@@ -50,6 +54,8 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
         ? recipientes.map((r) => novaLinha(r.id))
         : [novaLinha(null)]
       setLinhas(inicial)
+      setItens(pedido.itens.map((it) => ({ ...it })))
+      setPrevistaManual(false)
       setRecebidoPor('')
       const qtdItens = pedido.itens.reduce((s, it) => s + it.quantidade, 0)
       setQtdPrevista(String(qtdItens))
@@ -65,6 +71,26 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
     if (!recebidaManual) setQtdRecebidaState(String(linhas.length))
   }, [linhas.length, recebidaManual])
   const setQtdRecebida = (v: string) => { setRecebidaManual(true); setQtdRecebidaState(v) }
+
+  // Qtd prevista acompanha a soma dos itens (até o usuário digitar manualmente).
+  useEffect(() => {
+    if (!previstaManual && itens.length) {
+      setQtdPrevista(String(itens.reduce((s, it) => s + it.quantidade, 0)))
+    }
+  }, [itens, previstaManual])
+
+  function setItemQtd(itemId: number, valor: string) {
+    const q = Math.max(1, parseInt(valor, 10) || 1)
+    setItens((prev) => prev.map((it) => (it.id === itemId ? { ...it, quantidade: q } : it)))
+  }
+  async function salvarItemQtd(it: PedidoFila['itens'][number]) {
+    try {
+      await api.patch(`/pedidos/itens/${it.id}`, { quantidade: it.quantidade })
+      onSaved()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao atualizar quantidade do serviço')
+    }
+  }
 
   const previstaNum = parseInt(qtdPrevista, 10)
   const recebidaNum = parseInt(qtdRecebida, 10)
@@ -192,17 +218,28 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
               Serviços solicitados
             </h3>
           </div>
-          <ul className="space-y-1">
-            {pedido.itens.map((it, i) => (
-              <li key={i} className="flex items-center justify-between text-[12px]">
-                <span className="text-slate-700 dark:text-slate-300">
+          <ul className="space-y-1.5">
+            {itens.map((it) => (
+              <li key={it.id} className="flex items-center justify-between gap-3 text-[12px]">
+                <span className="text-slate-700 dark:text-slate-300 min-w-0">
                   <span className="font-mono text-slate-400 mr-1.5">{it.servico.codigo}</span>
                   {it.servico.nome}
                 </span>
-                <span className="text-slate-400 tabular-nums">× {it.quantidade}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-slate-400">×</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={it.quantidade}
+                    onChange={(e) => setItemQtd(it.id, e.target.value)}
+                    onBlur={() => salvarItemQtd(it)}
+                    className="w-14 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[12px] px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </li>
             ))}
           </ul>
+          <p className="text-[11px] text-slate-400">A quantidade é salva no pedido ao sair do campo.</p>
         </section>
 
         <Input
@@ -223,8 +260,8 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
               type="number"
               min="0"
               value={qtdPrevista}
-              onChange={(e) => setQtdPrevista(e.target.value)}
-              hint="Padrão = soma do pedido"
+              onChange={(e) => { setPrevistaManual(true); setQtdPrevista(e.target.value) }}
+              hint="Padrão = soma dos itens"
             />
             <Input
               label="Recebendo"
