@@ -51,6 +51,7 @@ type FormState = {
   idEtiqueta: string
   email: string
   emailFinanceiro: string
+  emailsCobranca: string[]
   emailMacroscopia: string
   telefone: string
   celular: string
@@ -80,6 +81,7 @@ const EMPTY: FormState = {
   idEtiqueta: '',
   email: '',
   emailFinanceiro: '',
+  emailsCobranca: [],
   emailMacroscopia: '',
   telefone: '',
   celular: '',
@@ -110,6 +112,7 @@ function clienteToForm(c: Cliente): FormState {
     idEtiqueta: c.idEtiqueta ?? '',
     email: c.email,
     emailFinanceiro: c.emailFinanceiro ?? '',
+    emailsCobranca: c.emailsCobranca ?? [],
     emailMacroscopia: c.emailMacroscopia ?? '',
     telefone: c.telefone ?? '',
     celular: c.celular ?? '',
@@ -195,6 +198,17 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
   function set(field: keyof FormState, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }))
     setErrors((e) => ({ ...e, [field]: undefined }))
+  }
+
+  // E-mails adicionais de cobrança (lista editável)
+  function addEmailCobranca() {
+    setForm((f) => ({ ...f, emailsCobranca: [...f.emailsCobranca, ''] }))
+  }
+  function updateEmailCobranca(i: number, v: string) {
+    setForm((f) => ({ ...f, emailsCobranca: f.emailsCobranca.map((e, idx) => (idx === i ? v : e)) }))
+  }
+  function removeEmailCobranca(i: number) {
+    setForm((f) => ({ ...f, emailsCobranca: f.emailsCobranca.filter((_, idx) => idx !== i) }))
   }
 
   // ── Preenchimento automático de endereço por CEP (ViaCEP) ───────────────────
@@ -289,6 +303,7 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
         idEtiqueta: form.idEtiqueta.trim() || undefined,
         email: form.email.trim(),
         emailFinanceiro: form.emailFinanceiro.trim() || undefined,
+        emailsCobranca: form.emailsCobranca.map((e) => e.trim()).filter(Boolean),
         emailMacroscopia: form.emailMacroscopia.trim() || undefined,
         telefone: form.telefone.replace(/\D/g, '') || undefined,
         celular: form.celular.replace(/\D/g, '') || undefined,
@@ -550,6 +565,39 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
               error={errors.emailMacroscopia}
               placeholder="macro@empresa.com.br"
             />
+          </div>
+
+          {/* E-mails adicionais de cobrança */}
+          <div className="space-y-1.5">
+            <label className="text-[12px] font-medium text-slate-600 dark:text-slate-300">
+              Outros e-mails de cobrança
+            </label>
+            {form.emailsCobranca.map((em, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="email"
+                  value={em}
+                  onChange={(e) => updateEmailCobranca(i, e.target.value)}
+                  placeholder="cobranca2@empresa.com.br"
+                  className="flex-1 rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2 text-[13px] bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeEmailCobranca(i)}
+                  title="Remover"
+                  className="shrink-0 px-2 py-1 text-[12px] text-slate-400 hover:text-rose-600"
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addEmailCobranca}
+              className="text-[12px] font-medium text-blue-600 hover:text-blue-700"
+            >
+              + adicionar e-mail de cobrança
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -21,6 +21,7 @@ export type Cliente = {
   idEtiqueta?: string
   email: string
   emailFinanceiro?: string
+  emailsCobranca?: string[]
   emailMacroscopia?: string
   telefone?: string
   celular?: string

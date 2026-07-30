@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
@@ -84,6 +85,12 @@ export class CreateClienteDto {
   @IsEmail()
   @IsOptional()
   emailFinanceiro?: string;
+
+  /** E-mails adicionais para cobrança (além do emailFinanceiro). */
+  @IsArray()
+  @IsEmail({}, { each: true })
+  @IsOptional()
+  emailsCobranca?: string[];
 
   @IsEmail()
   @IsOptional()
