@@ -90,7 +90,8 @@ model Cliente {
   inscricaoEstadual String?   // IE (PJ)
   idEtiqueta        String?   // Código curto usado nas etiquetas físicas (cassete/lâmina)
   email             String    // E-mail principal
-  emailFinanceiro   String?   // E-mail para envio de faturas/boletos
+  emailFinanceiro   String?   // E-mail principal para faturas/boletos
+  emailsCobranca    String[]  @default([]) // e-mails adicionais de cobrança
   emailMacroscopia  String?   // E-mail para aprovação de macroscopia
   telefone          String?
   celular           String?

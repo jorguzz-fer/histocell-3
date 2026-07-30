@@ -206,6 +206,7 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
         cliente: {
           select: {
             nome: true, tipo: true, documento: true, email: true, emailFinanceiro: true,
+            emailsCobranca: true,
             enderecos: { where: { principal: true }, take: 1 },
           },
         },
@@ -222,7 +223,7 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
       code: fatura.numero,
       customer: {
         name: c.nome,
-        email: c.emailFinanceiro || c.email,
+        email: c.emailFinanceiro || c.emailsCobranca?.[0] || c.email,
         document: { identity: documento, type: c.tipo === 'PJ' ? 'CNPJ' : 'CPF' },
       },
       services: fatura.itens.map((i) => ({
