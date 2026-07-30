@@ -21,6 +21,7 @@ import {
   Briefcase,
   Wallet,
   LineChart,
+  FileSignature,
   LogOut,
   UserCog,
   KeyRound,
@@ -63,6 +64,7 @@ const menuItems: MenuItem[] = [
   { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck, perm: 'qualidade' },
   // Financeiro por último.
   { href: '/financeiro', label: 'Financeiro', icon: Wallet, perm: 'financeiro', roles: ['gerencia', 'financeiro'] },
+  { href: '/contratos', label: 'Contratos', icon: FileSignature, perm: 'financeiro', roles: ['gerencia', 'financeiro'] },
   // Administração de usuários, papéis e permissões (gerência).
   { href: '/usuarios', label: 'Usuários e Acessos', icon: UserCog, perm: 'usuarios', roles: ['gerencia'] },
 ]

@@ -116,9 +116,34 @@ model Cliente {
   faturas       Fatura[]
   users         User[]
   creditos      CreditoPrePago[]
+  contratos     Contrato[]
 
   @@index([documento])
   @@index([nome])
+}
+
+// Contrato de mensalidade fixa (valor recorrente por mês, independente do
+// consumo). Início + duração definem o vencimento; renovar soma a duração.
+// A cobrança da mensalidade é separada do fechamento por consumo.
+model Contrato {
+  id            Int       @id @default(autoincrement())
+  clienteId     Int
+  valorMensal   Decimal   @db.Decimal(10, 2)
+  dataInicio    DateTime
+  duracaoMeses  Int       // ex.: 12
+  dataFim       DateTime  // = dataInicio + duracaoMeses (recalculado ao renovar)
+  diaCobranca   Int       // dia do mês (1–28) para gerar a cobrança da mensalidade
+  ativo         Boolean   @default(true)
+  observacoes   String?   @db.Text
+  ultimaCobrancaEm DateTime? // controle da geração mensal (fase 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@index([ativo])
+  @@index([dataFim])
 }
 
 model Endereco {
