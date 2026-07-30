@@ -180,6 +180,16 @@ export class PedidosController {
     return this.service.create(dto);
   }
 
+  /** Atualiza a quantidade de um item do pedido (identificação no laboratório) */
+  @Patch('itens/:itemId')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  atualizarItem(
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body('quantidade') quantidade: number,
+  ) {
+    return this.service.atualizarItemQuantidade(itemId, quantidade);
+  }
+
   @Patch(':id')
   @Roles('gerencia', 'recepcao')
   update(
