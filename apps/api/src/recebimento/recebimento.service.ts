@@ -168,6 +168,9 @@ export class RecebimentoService {
             numeroCliente: true,
             recipienteId: true,
             observacoes: true,
+            itemPedidoId: true,
+            // serviço de origem da amostra (quando criada via emissão de etiquetas)
+            itemPedido: { select: { servico: { select: { nome: true, codigo: true } } } },
           },
         },
       },
