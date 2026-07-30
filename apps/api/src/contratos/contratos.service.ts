@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { MailService } from '../common/mail.service';
+import { CobrancaService } from '../cobranca/cobranca.service';
 import { CreateContratoDto } from './dto/create-contrato.dto';
 import { UpdateContratoDto } from './dto/update-contrato.dto';
 
@@ -33,13 +34,19 @@ export class ContratosService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger('ContratosService');
   private timer?: NodeJS.Timeout;
   private ultimoDiaAlerta?: string;
+  private ultimoDiaMensalidade?: string;
 
-  constructor(private prisma: PrismaService, private mail: MailService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mail: MailService,
+    private cobranca: CobrancaService,
+  ) {}
 
   // ── Agendador leve (sem dependência): verifica de hora em hora ───────────────
   onModuleInit() {
     this.timer = setInterval(() => {
       this.rodarAlertas().catch((e) => this.logger.error(`Alerta de contratos: ${e?.message}`));
+      this.rodarMensalidades().catch((e) => this.logger.error(`Mensalidades de contrato: ${e?.message}`));
     }, 60 * 60 * 1000); // a cada 1h
   }
   onModuleDestroy() {
@@ -87,6 +94,68 @@ export class ContratosService implements OnModuleInit, OnModuleDestroy {
       html,
     });
     return { ok: true, avisados: aAvisar.length, email: res.sent };
+  }
+
+  /**
+   * Gera a mensalidade dos contratos ativos no dia de cobrança — como boleto
+   * Cora DIRETO (separado do consumo, sem Fatura interna). Idempotente por mês
+   * (via ultimaCobrancaEm). Sem Cora configurada, não gera nada (fica pendente).
+   */
+  async rodarMensalidades(force = false) {
+    const hoje = new Date();
+    const chaveDia = hoje.toISOString().slice(0, 10);
+    if (!force && this.ultimoDiaMensalidade === chaveDia) return { ok: true, ja_rodou_hoje: true };
+
+    const dia = hoje.getDate();
+    const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    const anoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+
+    const contratos = await this.prisma.contrato.findMany({
+      where: { ativo: true, dataFim: { gte: inicioHoje } },
+      select: { id: true, clienteId: true, valorMensal: true, diaCobranca: true, ultimaCobrancaEm: true },
+    });
+    // Devidos: dia de cobrança (clamp ao fim do mês) já chegou e ainda não
+    // cobrou neste mês (idempotência + recupera se ficou um dia sem rodar).
+    const devidos = contratos.filter((c) => {
+      const diaCob = Math.min(c.diaCobranca, ultimoDiaMes);
+      if (diaCob > dia) return false;
+      if (c.ultimaCobrancaEm) {
+        const u = new Date(c.ultimaCobrancaEm);
+        if (u.getFullYear() === hoje.getFullYear() && u.getMonth() === hoje.getMonth()) return false;
+      }
+      return true;
+    });
+
+    this.ultimoDiaMensalidade = chaveDia;
+    if (devidos.length === 0) return { ok: true, cobrados: 0 };
+
+    const due = new Date(hoje);
+    due.setDate(due.getDate() + 15);
+    const dueDate = due.toISOString().slice(0, 10);
+
+    const resultados: any[] = [];
+    for (const c of devidos) {
+      try {
+        const r: any = await this.cobranca.emitirBoletoAvulso({
+          clienteId: c.clienteId,
+          code: `MENS-${c.id}-${anoMes.replace('-', '')}`,
+          descricao: `Mensalidade contrato — ${anoMes}`,
+          valor: Number(c.valorMensal),
+          dueDate,
+        });
+        if (r.emitido) {
+          await this.prisma.contrato.update({ where: { id: c.id }, data: { ultimaCobrancaEm: hoje } });
+          resultados.push({ contratoId: c.id, ok: true, coraInvoiceId: r.coraInvoiceId });
+        } else {
+          resultados.push({ contratoId: c.id, ok: false, motivo: r.motivo });
+        }
+      } catch (e: any) {
+        this.logger.error(`Mensalidade contrato #${c.id}: ${e?.message}`);
+        resultados.push({ contratoId: c.id, ok: false, motivo: e?.message });
+      }
+    }
+    return { ok: true, cobrados: resultados.filter((r) => r.ok).length, resultados };
   }
 
   private toShape(c: any) {
