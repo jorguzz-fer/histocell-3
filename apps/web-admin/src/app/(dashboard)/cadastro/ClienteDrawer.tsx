@@ -144,6 +144,8 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
   const [form, setForm] = useState<FormState>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [saving, setSaving] = useState(false)
+  const [buscandoCep, setBuscandoCep] = useState(false)
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false)
   const [portalToken, setPortalToken] = useState<string | null>(null)
   const [portalBase, setPortalBase] = useState('')
 
@@ -193,6 +195,60 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
   function set(field: keyof FormState, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }))
     setErrors((e) => ({ ...e, [field]: undefined }))
+  }
+
+  // ── Preenchimento automático de endereço por CEP (ViaCEP) ───────────────────
+  async function buscarCep() {
+    const cep = form.endCep.replace(/\D/g, '')
+    if (cep.length !== 8) return
+    setBuscandoCep(true)
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const d = await r.json()
+      if (d?.erro) { toast.error('CEP não encontrado.'); return }
+      setForm((f) => ({
+        ...f,
+        endLogradouro: d.logradouro || f.endLogradouro,
+        endBairro: d.bairro || f.endBairro,
+        endCidade: d.localidade || f.endCidade,
+        endUf: d.uf || f.endUf,
+      }))
+    } catch {
+      toast.error('Não foi possível consultar o CEP agora.')
+    } finally {
+      setBuscandoCep(false)
+    }
+  }
+
+  // ── Consulta de Razão Social + endereço por CNPJ (BrasilAPI) ────────────────
+  async function buscarCnpj() {
+    const cnpj = form.documento.replace(/\D/g, '')
+    if (form.tipo !== 'PJ' || cnpj.length !== 14) return
+    setBuscandoCnpj(true)
+    try {
+      const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)
+      if (!r.ok) { toast.error('CNPJ não encontrado.'); return }
+      const d = await r.json()
+      setForm((f) => ({
+        ...f,
+        nome: d.razao_social || f.nome,
+        nomeFantasia: d.nome_fantasia || f.nomeFantasia,
+        email: f.email || d.email || '',
+        telefone: f.telefone || (d.ddd_telefone_1 ? maskPhone(d.ddd_telefone_1) : ''),
+        endCep: d.cep ? maskCEP(String(d.cep)) : f.endCep,
+        endLogradouro: [d.descricao_tipo_de_logradouro, d.logradouro].filter(Boolean).join(' ') || f.endLogradouro,
+        endNumero: d.numero || f.endNumero,
+        endComplemento: d.complemento || f.endComplemento,
+        endBairro: d.bairro || f.endBairro,
+        endCidade: d.municipio || f.endCidade,
+        endUf: d.uf || f.endUf,
+      }))
+      toast.success('Dados do CNPJ preenchidos.')
+    } catch {
+      toast.error('Não foi possível consultar o CNPJ agora.')
+    } finally {
+      setBuscandoCnpj(false)
+    }
   }
 
   // ── validação básica ──
@@ -369,15 +425,28 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label={form.tipo === 'PJ' ? 'CNPJ' : 'CPF'}
-              value={form.documento}
-              onChange={(e) => set('documento', docMask(e.target.value))}
-              error={errors.documento}
-              placeholder={form.tipo === 'PJ' ? '00.000.000/0001-00' : '000.000.000-00'}
-              disabled={isEdit}
-              hint={isEdit ? 'Documento não pode ser alterado' : undefined}
-            />
+            <div>
+              <Input
+                label={form.tipo === 'PJ' ? 'CNPJ' : 'CPF'}
+                value={form.documento}
+                onChange={(e) => set('documento', docMask(e.target.value))}
+                onBlur={form.tipo === 'PJ' && !isEdit ? buscarCnpj : undefined}
+                error={errors.documento}
+                placeholder={form.tipo === 'PJ' ? '00.000.000/0001-00' : '000.000.000-00'}
+                disabled={isEdit}
+                hint={isEdit ? 'Documento não pode ser alterado' : undefined}
+              />
+              {form.tipo === 'PJ' && !isEdit && (
+                <button
+                  type="button"
+                  onClick={buscarCnpj}
+                  disabled={buscandoCnpj || form.documento.replace(/\D/g, '').length !== 14}
+                  className="mt-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 disabled:text-slate-300"
+                >
+                  {buscandoCnpj ? 'Consultando…' : 'Buscar razão social e endereço pelo CNPJ'}
+                </button>
+              )}
+            </div>
             {form.tipo === 'PJ' && (
               <Input
                 label="Inscrição Estadual"
@@ -514,7 +583,9 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
                 label="CEP"
                 value={form.endCep}
                 onChange={(e) => set('endCep', maskCEP(e.target.value))}
+                onBlur={buscarCep}
                 placeholder="00000-000"
+                hint={buscandoCep ? 'Buscando endereço…' : 'Preenche o endereço automaticamente'}
               />
             </div>
             <Select
