@@ -1,7 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { MailService } from '../common/mail.service';
 import { CreateContratoDto } from './dto/create-contrato.dto';
 import { UpdateContratoDto } from './dto/update-contrato.dto';
+
+// Limiares (em dias) em que a gerência é avisada da renovação — evita e-mail
+// diário repetido: só dispara quando o contrato cruza um destes marcos.
+const LIMIARES_ALERTA = [30, 15, 7, 3, 1, 0];
 
 /** Soma meses a uma data preservando o dia (ajusta fim de mês). */
 function addMeses(base: Date, meses: number): Date {
@@ -18,8 +29,65 @@ const INCLUDE = {
 } as const;
 
 @Injectable()
-export class ContratosService {
-  constructor(private prisma: PrismaService) {}
+export class ContratosService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger('ContratosService');
+  private timer?: NodeJS.Timeout;
+  private ultimoDiaAlerta?: string;
+
+  constructor(private prisma: PrismaService, private mail: MailService) {}
+
+  // ── Agendador leve (sem dependência): verifica de hora em hora ───────────────
+  onModuleInit() {
+    this.timer = setInterval(() => {
+      this.rodarAlertas().catch((e) => this.logger.error(`Alerta de contratos: ${e?.message}`));
+    }, 60 * 60 * 1000); // a cada 1h
+  }
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /**
+   * Avisa a gerência (e-mail) sobre contratos ativos que cruzaram um limiar de
+   * vencimento (30/15/7/3/1/0 dias). Uma vez por dia, sem repetir.
+   */
+  async rodarAlertas(force = false) {
+    const hoje = new Date();
+    const chaveDia = hoje.toISOString().slice(0, 10);
+    if (!force && this.ultimoDiaAlerta === chaveDia) return { ok: true, ja_rodou_hoje: true };
+
+    const contratos = await this.findAll(true); // só ativos, já com diasParaVencer
+    const aAvisar = contratos.filter((c) => LIMIARES_ALERTA.includes(c.diasParaVencer));
+    this.ultimoDiaAlerta = chaveDia;
+    if (aAvisar.length === 0) return { ok: true, avisados: 0 };
+
+    // Destinatários: gerência + env opcional CONTRATO_ALERTA_EMAIL.
+    const gerentes = await this.prisma.user.findMany({
+      where: { role: 'gerencia', ativo: true },
+      select: { email: true },
+    });
+    const extra = (process.env.CONTRATO_ALERTA_EMAIL || '').split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+    const para = Array.from(new Set([...gerentes.map((g) => g.email), ...extra])).filter(Boolean);
+    if (para.length === 0) {
+      this.logger.warn('Contratos a vencer, mas sem destinatário de alerta (nenhum gerente / CONTRATO_ALERTA_EMAIL).');
+      return { ok: true, avisados: aAvisar.length, semDestinatario: true };
+    }
+
+    const linhas = aAvisar
+      .map((c) => {
+        const nome = c.cliente.nomeFantasia || c.cliente.nome;
+        const quando = c.diasParaVencer <= 0 ? 'vence hoje' : `vence em ${c.diasParaVencer} dia(s)`;
+        return `<li><strong>${nome}</strong> — R$ ${Number(c.valorMensal).toFixed(2)}/mês — ${quando} (${new Date(c.dataFim).toLocaleDateString('pt-BR')})</li>`;
+      })
+      .join('');
+    const html = `<p>Contratos a renovar:</p><ul>${linhas}</ul><p>Abra <em>Contratos</em> no sistema para renovar.</p>`;
+
+    const res = await this.mail.enviar({
+      para,
+      assunto: `Histocell — ${aAvisar.length} contrato(s) a renovar`,
+      html,
+    });
+    return { ok: true, avisados: aAvisar.length, email: res.sent };
+  }
 
   private toShape(c: any) {
     const hoje = new Date();

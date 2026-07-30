@@ -40,6 +40,13 @@ export class ContratosController {
     return this.service.findOne(id);
   }
 
+  /** Dispara agora o alerta de renovação por e-mail (gerência) — teste/forçar */
+  @Post('alertas/rodar')
+  @Roles('gerencia')
+  rodarAlertas() {
+    return this.service.rodarAlertas(true);
+  }
+
   @Post()
   @Roles('gerencia', 'financeiro')
   create(@Body() dto: CreateContratoDto) {
