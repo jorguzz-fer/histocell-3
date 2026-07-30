@@ -46,8 +46,6 @@ const menuItems: MenuItem[] = [
   // Orçamento entre Clientes e Recebimento (ordem do fluxo: cadastra → orça → recebe).
   // Telas com valores: ocultas para o perfil técnico (sem valores).
   { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
-  // Catálogo de serviços (criar/editar/arquivar) — tirado de dentro do Orçamento.
-  { href: '/servicos', label: 'Serviços', icon: FlaskConical, perm: 'orcamento', roles: ['gerencia'] },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
   { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
@@ -56,6 +54,8 @@ const menuItems: MenuItem[] = [
   { href: '/ordens', label: 'Ordem de Serviço', icon: ClipboardList, perm: 'ordens' },
   { href: '/rastreio', label: 'Rastreio', icon: ScanLine, perm: 'rastreio' },
   { href: '/laudos', label: 'Laudos', icon: FileText, perm: 'laudos' },
+  // Cadastro de serviços (criar/editar/arquivar) — tirado de dentro do Orçamento.
+  { href: '/servicos', label: 'Cadastro Serviço', icon: FlaskConical, perm: 'orcamento', roles: ['gerencia'] },
   { href: '/relatorios', label: 'Relatórios', icon: LineChart, perm: 'relatorios', roles: ['gerencia', 'financeiro'] },
   { href: '/motivos', label: 'Motivos', icon: MessageSquare, perm: 'motivos', roles: ['gerencia'] },
   { href: '/comercial', label: 'Comercial', icon: Briefcase, perm: 'comercial', roles: ['gerencia', 'financeiro'] },
