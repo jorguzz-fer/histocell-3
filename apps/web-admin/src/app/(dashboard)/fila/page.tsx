@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { OSModal } from '@/components/OSModal'
 import { clienteCor } from '@/lib/clienteVisual'
-import { codigoCurtoPedido } from '@/lib/pedido'
+import { codigoCurtoPedido, codigoCurtoOS } from '@/lib/pedido'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { FilaResponse, FilaOS, FilaPedidoPendente } from './types'
 
@@ -249,10 +249,10 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: 
                   <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
                     <button
                       onClick={() => onVerOS(o.amostra.pedido.id, o.numero)}
-                      title="Ver Ordem de Serviço"
+                      title={`Ver Ordem de Serviço · ${o.numero}`}
                       className="text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
                     >
-                      {o.numero}
+                      {codigoCurtoOS(o.seq, o.numero)}
                     </button>
                     {' · '}Amostra {o.amostra.numeroInterno}
                     {o.amostra.numeroCliente ? ` (${o.amostra.numeroCliente})` : ''}

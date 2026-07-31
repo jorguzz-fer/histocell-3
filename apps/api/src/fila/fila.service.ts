@@ -40,6 +40,7 @@ export class FilaService {
     const osSelect = {
       id: true,
       numero: true,
+      seq: true,
       etapaAtual: true,
       prioridade: true,
       responsavel: true,

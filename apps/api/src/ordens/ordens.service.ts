@@ -140,6 +140,16 @@ export class OrdensService {
     return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
   }
 
+  // Código curto sequencial (exibição) da OS — global, à prova de buracos.
+  private async gerarSeq(): Promise<number> {
+    const ultimo = await this.prisma.ordemServico.findFirst({
+      where: { seq: { not: null } },
+      orderBy: { seq: 'desc' },
+      select: { seq: true },
+    });
+    return (ultimo?.seq ?? 0) + 1;
+  }
+
   /** Cria OS automaticamente para uma amostra (usado pelo Recebimento). */
   async criarAuto(
     amostraId: number,
@@ -166,11 +176,13 @@ export class OrdensService {
     let os: any;
     for (let tentativa = 0; ; tentativa++) {
       const numero = await this.gerarNumero();
+      const seq = await this.gerarSeq();
       try {
         os = await this.prisma.ordemServico.create({
           data: {
             amostraId,
             numero,
+            seq,
             etapaAtual: etapaInicial,
             status: 'em_andamento',
             prioridade: opts.prioridade ?? 'normal',
@@ -324,11 +336,13 @@ export class OrdensService {
     }
 
     const numero = await this.gerarNumero();
+    const seq = await this.gerarSeq();
 
     const os = await this.prisma.ordemServico.create({
       data: {
         amostraId: dto.amostraId,
         numero,
+        seq,
         status: 'fila',
         etapaAtual: 'triagem',
         prioridade: dto.prioridade ?? 'normal',

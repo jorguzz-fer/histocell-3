@@ -1,6 +1,7 @@
 export type FilaOS = {
   id: number
   numero: string
+  seq?: number | null
   etapaAtual: string
   prioridade: string
   responsavel?: string | null

@@ -12,7 +12,7 @@ import { api } from '@/lib/api'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { OSModal } from '@/components/OSModal'
 import { NovaOSDrawer } from './NovaOSDrawer'
-import { codigoCurtoPedido } from '@/lib/pedido'
+import { codigoCurtoPedido, codigoCurtoOS } from '@/lib/pedido'
 import type { OrdemServico, OrdensListResponse } from './types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
@@ -284,8 +284,8 @@ export default function OrdensPage() {
                             {os.prioridade === 'urgente' && (
                               <AlertTriangle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
                             )}
-                            <span className="text-[12px] font-mono font-semibold text-slate-800 dark:text-slate-200">
-                              {os.numero}
+                            <span className="text-[12px] font-mono font-semibold text-slate-800 dark:text-slate-200" title={os.numero}>
+                              {codigoCurtoOS(os.seq, os.numero)}
                             </span>
                           </div>
                         </td>
