@@ -71,6 +71,17 @@ export class PedidosService {
     return `${prefix}${String(seq + 1).padStart(3, '0')}`;
   }
 
+  // ── código curto sequencial (exibição) ──────────────────────────────────────
+  // Sequencial global e enxuto (ex.: "#0042"), à prova de buracos: usa MAX+1.
+  private async gerarSeq(): Promise<number> {
+    const ultimo = await this.prisma.pedido.findFirst({
+      where: { seq: { not: null } },
+      orderBy: { seq: 'desc' },
+      select: { seq: true },
+    });
+    return (ultimo?.seq ?? 0) + 1;
+  }
+
   // ── shape de resposta com totais ────────────────────────────────────────────
   private toShape(pedido: any) {
     const valorTotal = (pedido.itens ?? []).reduce(
@@ -90,6 +101,8 @@ export class PedidosService {
       totalItens: (pedido.itens ?? []).length,
       clienteNome: pedido.cliente?.nome ?? '',
       clienteNomeFantasia: pedido.cliente?.nomeFantasia ?? null,
+      // Código curto p/ exibição (ex.: "#0042"); cai no número completo se sem seq.
+      codigoCurto: pedido.seq != null ? `#${String(pedido.seq).padStart(4, '0')}` : pedido.numero,
     };
   }
 
@@ -483,10 +496,13 @@ export class PedidosService {
     if (filter.status) where.status = filter.status;
     if (filter.clienteId) where.clienteId = filter.clienteId;
     if (filter.busca) {
+      const termo = filter.busca.trim();
       where.OR = [
-        { numero: { contains: filter.busca, mode: 'insensitive' } },
-        { cliente: { nome: { contains: filter.busca, mode: 'insensitive' } } },
-        { cliente: { nomeFantasia: { contains: filter.busca, mode: 'insensitive' } } },
+        { numero: { contains: termo, mode: 'insensitive' } },
+        { cliente: { nome: { contains: termo, mode: 'insensitive' } } },
+        { cliente: { nomeFantasia: { contains: termo, mode: 'insensitive' } } },
+        // Código curto: "42" ou "0042" acham o pedido seq=42
+        ...(/^\d+$/.test(termo) ? [{ seq: parseInt(termo, 10) }] : []),
       ];
     }
 
@@ -523,12 +539,14 @@ export class PedidosService {
     if (!cliente) throw new NotFoundException(`Cliente #${dto.clienteId} não encontrado.`);
 
     const numero = await this.gerarNumero();
+    const seq = await this.gerarSeq();
     const status = dto.status ?? 'rascunho';
 
     const pedido = await this.prisma.pedido.create({
       data: {
         clienteId: dto.clienteId,
         numero,
+        seq,
         status,
         origem: dto.origem ?? 'local',
         observacoes: dto.observacoes,

@@ -217,10 +217,11 @@ export default function PedidosPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button
                             onClick={() => abrirEditar(p)}
+                            title={p.numero}
                             className="text-[13px] font-mono font-medium text-blue-600 dark:text-blue-400
                               hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
                           >
-                            {p.numero}
+                            {p.codigoCurto ?? p.numero}
                           </button>
                         </td>
 

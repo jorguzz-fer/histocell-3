@@ -180,7 +180,7 @@ export default function RastreioPage() {
                   <th className="px-4 py-2 font-semibold">Código</th>
                   <th className="px-4 py-2 font-semibold">Identificação</th>
                   <th className="px-4 py-2 font-semibold">Cliente</th>
-                  <th className="px-4 py-2 font-semibold text-center">Orçamento</th>
+                  <th className="px-4 py-2 font-semibold text-center" title="Solicitado / Entregue">Solic./Entreg.</th>
                   <th className="px-4 py-2 font-semibold w-44">Progresso</th>
                   <th className="px-4 py-2 font-semibold">Departamento</th>
                   <th className="px-4 py-2 font-semibold">Responsável</th>
@@ -220,11 +220,27 @@ export default function RastreioPage() {
                       </div>
                     </td>
                     <td className="px-4 py-2 text-center">
-                      {e.amostra.pedido.qtdPrevista != null && e.amostra.pedido.qtdPrevista > 0 ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] font-semibold">
-                          {e.amostra.pedido.qtdRecebida ?? '—'}/{e.amostra.pedido.qtdPrevista}
-                        </span>
-                      ) : <span className="text-slate-300">—</span>}
+                      {(() => {
+                        const prev = e.amostra.pedido.qtdPrevista
+                        const rec = e.amostra.pedido.qtdRecebida
+                        if (prev == null || prev <= 0) return <span className="text-slate-300">—</span>
+                        // solicitado × entregue: verde = completo · âmbar = faltando · rosa = excedente
+                        let cls = 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                        let hint = ''
+                        if (rec != null) {
+                          if (rec < prev) { cls = 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300'; hint = `faltam ${prev - rec}` }
+                          else if (rec > prev) { cls = 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300'; hint = `+${rec - prev} excedente` }
+                          else { cls = 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' }
+                        }
+                        return (
+                          <span
+                            title={`Solicitado: ${prev} · Entregue: ${rec ?? '—'}${hint ? ` · ${hint}` : ''}`}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-semibold ${cls}`}
+                          >
+                            {rec ?? '—'}/{prev}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-2">
                       <ProgressoDepartamentos departamentos={departamentos} atual={e.departamentoAtual} status={e.rastreioStatus} compact />

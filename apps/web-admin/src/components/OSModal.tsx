@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 type ServicoRef = { nome: string; codigo: string }
 type Detalhe = {
   numero: string
+  seq?: number | null
   createdAt: string
   dataRecepcao?: string | null
   dataRecebimento?: string | null
@@ -29,6 +30,12 @@ type Detalhe = {
 function fmt(iso?: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+/** Código curto do pedido para exibição (ex.: "#0042"); cai no número completo. */
+function codigoCurto(d?: Detalhe | null) {
+  if (d?.seq != null) return `#${String(d.seq).padStart(4, '0')}`
+  return d?.numero ?? ''
 }
 
 /**
@@ -72,7 +79,7 @@ export function OSModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Ordem de Serviço ${osNumero ?? data?.numero ?? ''}`.trim()}
+      title={`Ordem de Serviço ${data ? codigoCurto(data) : (osNumero ?? '')}`.trim()}
       subtitle={data ? clienteLabel : undefined}
       footer={
         pedidoId != null ? (
@@ -93,7 +100,7 @@ export function OSModal({
           {/* Dados gerais */}
           <div className="grid grid-cols-2 gap-x-6 gap-y-1">
             <div><span className="text-slate-400">Cliente:</span> <strong>{clienteLabel}</strong></div>
-            <div><span className="text-slate-400">Pedido:</span> {data.numero}</div>
+            <div><span className="text-slate-400">Pedido:</span> <strong>{codigoCurto(data)}</strong> <span className="text-[11px] text-slate-400">({data.numero})</span></div>
             <div><span className="text-slate-400">Recepção:</span> {fmt(data.dataRecepcao)}</div>
             <div><span className="text-slate-400">Identificação (lab):</span> {fmt(data.dataRecebimento)}</div>
           </div>

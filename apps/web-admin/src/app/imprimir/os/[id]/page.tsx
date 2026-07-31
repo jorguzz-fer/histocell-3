@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 type ServicoRef = { nome: string; codigo: string }
 type Detalhe = {
   numero: string
+  seq?: number | null
   createdAt: string
   dataRecepcao?: string | null
   dataRecebimento?: string | null
@@ -50,6 +51,7 @@ export default function ImprimirOSPage() {
   if (!data) return <div className="p-8 text-sm text-slate-500">Carregando…</div>
 
   const clienteLabel = data.cliente.nomeFantasia ?? data.cliente.nome
+  const codigoCurto = data.seq != null ? `#${String(data.seq).padStart(4, '0')}` : data.numero
   const recById = new Map(data.recipientes.map((r) => [r.id, r]))
 
   // Serviço de cada amostra: usa o item de origem; se o pedido tiver um único
@@ -71,7 +73,7 @@ export default function ImprimirOSPage() {
     <div className="min-h-screen bg-white text-black">
       <div className="no-print sticky top-0 flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-6 py-3">
         <div className="text-[13px] text-slate-600">
-          Ordem de Serviço · <strong>{data.numero}</strong> · {clienteLabel}
+          Ordem de Serviço · <strong>{codigoCurto}</strong> · {clienteLabel}
         </div>
         <button
           onClick={() => window.print()}
@@ -98,7 +100,10 @@ export default function ImprimirOSPage() {
         <div className="mt-3 flex items-start justify-between">
           <div>
             <div className="text-[14px] font-bold">Cliente: {clienteLabel}</div>
-            <div className="text-[11px] text-slate-600">Ordem de Serviço Nº {data.numero}</div>
+            <div className="text-[11px] text-slate-600">
+              Ordem de Serviço Nº <strong>{codigoCurto}</strong>
+              <span className="text-slate-400"> · ref. {data.numero}</span>
+            </div>
           </div>
           <div className="text-right text-[11px] text-slate-600">
             <div>Recepção: {fmt(data.dataRecepcao)}</div>

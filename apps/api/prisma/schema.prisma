@@ -284,7 +284,8 @@ model ServicoFavorito {
 model Pedido {
   id            Int       @id @default(autoincrement())
   clienteId     Int
-  numero        String    @unique // PED-20260410-001
+  numero        String    @unique // PED-20260410-001 (referência interna completa)
+  seq           Int?      @unique // código curto sequencial p/ exibição (ex.: 42 → "#0042")
   status        String    @default("rascunho")
   origem        String    @default("local") // local (interno) | web (portal do cliente)
   urgente            Boolean  @default(false) // prioridade do pedido

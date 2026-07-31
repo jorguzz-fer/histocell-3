@@ -16,6 +16,8 @@ export type ItemPedido = {
 export type Pedido = {
   id: number
   numero: string
+  seq?: number | null
+  codigoCurto?: string
   clienteId: number
   clienteNome: string
   clienteNomeFantasia?: string | null
