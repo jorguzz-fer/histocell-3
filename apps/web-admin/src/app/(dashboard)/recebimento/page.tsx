@@ -50,7 +50,7 @@ function labelMaterial(m: string) {
 
 // ─── card + coluna da fila ──────────────────────────────────────────────────
 
-function FilaCard({ p, onReceber, onArquivar, acaoLabel = 'Receber' }: { p: PedidoFila; onReceber: () => void; onArquivar?: () => void; acaoLabel?: string }) {
+function FilaCard({ p, onReceber, onArquivar, onIdentificar, acaoLabel = 'Receber' }: { p: PedidoFila; onReceber: () => void; onArquivar?: () => void; onIdentificar?: () => void; acaoLabel?: string }) {
   const diasNaFila = Math.floor(
     (Date.now() - new Date(p.dataEnvio ?? p.createdAt).getTime()) / 86400000,
   )
@@ -137,6 +137,15 @@ function FilaCard({ p, onReceber, onArquivar, acaoLabel = 'Receber' }: { p: Pedi
               <Archive className="h-3 w-3" /> Arquivar
             </button>
           )}
+          {onIdentificar && (
+            <button
+              onClick={onIdentificar}
+              title="Identificar aqui mesmo (material seco: lâmina/bloco não se abre)"
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px] font-medium text-slate-500 hover:text-blue-600 hover:border-blue-300"
+            >
+              <FlaskConical className="h-3 w-3" /> Identificar
+            </button>
+          )}
           <Button size="sm" onClick={onReceber}>{acaoLabel}</Button>
         </div>
       </div>
@@ -145,13 +154,14 @@ function FilaCard({ p, onReceber, onArquivar, acaoLabel = 'Receber' }: { p: Pedi
 }
 
 function FilaColuna({
-  titulo, icon: Icon, itens, onReceber, onArquivar, acaoLabel,
+  titulo, icon: Icon, itens, onReceber, onArquivar, onIdentificar, acaoLabel,
 }: {
   titulo: string
   icon: typeof Globe
   itens: PedidoFila[]
   onReceber: (p: PedidoFila) => void
   onArquivar?: (p: PedidoFila) => void
+  onIdentificar?: (p: PedidoFila) => void
   acaoLabel?: string
 }) {
   return (
@@ -175,6 +185,7 @@ function FilaColuna({
               p={p}
               onReceber={() => onReceber(p)}
               onArquivar={onArquivar ? () => onArquivar(p) : undefined}
+              onIdentificar={onIdentificar ? () => onIdentificar(p) : undefined}
               acaoLabel={acaoLabel}
             />
           ))}
@@ -304,16 +315,16 @@ export default function RecebimentoPage() {
           <h2 className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
             Etapa 1 — Recepção (entrada)
           </h2>
-          <span className="text-[11px] text-slate-400">registre o que chegou (recipientes)</span>
+          <span className="text-[11px] text-slate-400">registre o que chegou (recipientes) · material seco pode ser identificado aqui mesmo</span>
         </div>
         {loadingFila ? (
           <p className="text-[12px] text-slate-400 py-6 text-center">Carregando…</p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2 items-start">
             <FilaColuna titulo="Pedidos do Portal (Web)" icon={Globe} acaoLabel="Registrar entrada"
-              itens={filaRecepcao.filter((p) => p.origem === 'web')} onReceber={abrirRecepcao} onArquivar={setArquivando} />
+              itens={filaRecepcao.filter((p) => p.origem === 'web')} onReceber={abrirRecepcao} onArquivar={setArquivando} onIdentificar={abrirReceber} />
             <FilaColuna titulo="Pedidos locais" icon={Building2} acaoLabel="Registrar entrada"
-              itens={filaRecepcao.filter((p) => p.origem !== 'web')} onReceber={abrirRecepcao} onArquivar={setArquivando} />
+              itens={filaRecepcao.filter((p) => p.origem !== 'web')} onReceber={abrirRecepcao} onArquivar={setArquivando} onIdentificar={abrirReceber} />
           </div>
         )}
       </section>
