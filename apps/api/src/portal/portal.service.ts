@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { PedidosService } from '../pedidos/pedidos.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
@@ -221,8 +221,10 @@ export class PortalService {
       where: { clienteId: cliente.id },
       select: {
         numero: true,
+        seq: true,
         status: true,
         origem: true,
+        aprovacaoCliente: true,
         createdAt: true,
         itens: {
           select: {
@@ -238,8 +240,11 @@ export class PortalService {
     });
     return pedidos.map((p) => ({
       numero: p.numero,
+      codigoCurto: p.seq != null ? `#${String(p.seq).padStart(4, '0')}` : p.numero,
       status: p.status,
       origem: p.origem,
+      // Trilha de aprovação: "pendente" = orçamento aguardando o cliente decidir.
+      aprovacaoCliente: p.aprovacaoCliente,
       createdAt: p.createdAt,
       totalItens: p.itens.length,
       // Itens solicitados (serviço + quantidade), para o cliente abrir o detalhe.
@@ -260,6 +265,21 @@ export class PortalService {
           ) * 100,
         ) / 100,
     }));
+  }
+
+  /** Cliente aprova/recusa o próprio orçamento pelo portal (via token). */
+  async decidirOrcamento(token: string, numero: string, decisao: 'aprovado' | 'recusado') {
+    const cliente = await this.resolverCliente(token);
+    const pedido = await this.prisma.pedido.findFirst({
+      where: { numero, clienteId: cliente.id },
+      select: { id: true, aprovacaoCliente: true },
+    });
+    if (!pedido) throw new NotFoundException('Orçamento não encontrado.');
+    if (pedido.aprovacaoCliente !== 'pendente') {
+      throw new BadRequestException('Este orçamento não está aguardando aprovação.');
+    }
+    await this.pedidos.decidirOrcamento(pedido.id, decisao);
+    return { numero, aprovacaoCliente: decisao };
   }
 
   private async precificar(clienteId: number, itensDto: { servicoId: number; quantidade: number }[]) {

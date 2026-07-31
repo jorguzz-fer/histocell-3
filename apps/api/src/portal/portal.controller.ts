@@ -80,4 +80,14 @@ export class PortalController {
   excluirRascunho(@Param('token') token: string, @Param('numero') numero: string) {
     return this.service.excluirRascunho(token, numero);
   }
+
+  /** Cliente aprova/recusa o próprio orçamento pelo portal */
+  @Patch(':token/pedido/:numero/orcamento-decisao')
+  decidirOrcamento(
+    @Param('token') token: string,
+    @Param('numero') numero: string,
+    @Body('decisao') decisao: 'aprovado' | 'recusado',
+  ) {
+    return this.service.decidirOrcamento(token, numero, decisao);
+  }
 }

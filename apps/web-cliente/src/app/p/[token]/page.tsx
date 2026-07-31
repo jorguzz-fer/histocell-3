@@ -15,7 +15,7 @@ type PacoteItem = { servicoId: number; quantidade: number; nome: string; categor
 type Pacote = { id: number; codigo: string; nome: string; itens: PacoteItem[]; precoTotal: number; totalItens: number; categorias: string[] }
 type Catalogo = { servicos: Servico[]; pacotes: Pacote[]; populares: Servico[]; historico: Servico[] }
 type PedidoItem = { codigo: string | null; nome: string; quantidade: number; subtotal: number }
-type Pedido = { numero: string; status: string; origem: string; createdAt: string; totalItens: number; valorTotal: number; itens?: PedidoItem[] }
+type Pedido = { numero: string; codigoCurto?: string; status: string; origem: string; aprovacaoCliente?: string; createdAt: string; totalItens: number; valorTotal: number; itens?: PedidoItem[] }
 type LaudoCliente = { id: number; arquivoNome?: string | null; liberadoEm?: string | null; pedidoNumero?: string | null }
 type FaturaCliente = { numero: string; periodo: string; status: string; valorTotal: number; dataVencimento?: string | null; linhaDigitavel?: string | null; pixQrCode?: string | null; pdfUrl?: string | null }
 type CartItem = { servicoId: number; codigo?: string; nome: string; preco: number; desconto: number; quantidade: number }
@@ -217,6 +217,21 @@ export default function PortalPedidoPage() {
       fetchPedidos()
     } catch (e: any) {
       setErro(e.message ?? 'Erro ao excluir rascunho')
+    }
+  }
+
+  // Cliente aprova/recusa o próprio orçamento pelo portal.
+  const [decidindo, setDecidindo] = useState<string | null>(null)
+  async function decidirOrcamento(numero: string, decisao: 'aprovado' | 'recusado') {
+    if (decisao === 'recusado' && !confirm(`Recusar o orçamento ${numero}?`)) return
+    setDecidindo(numero)
+    try {
+      await portalApi.patch(`/portal/${token}/pedido/${numero}/orcamento-decisao`, { decisao })
+      fetchPedidos()
+    } catch (e: any) {
+      setErro(e.message ?? 'Erro ao registrar a decisão')
+    } finally {
+      setDecidindo(null)
     }
   }
 
@@ -447,14 +462,20 @@ export default function PortalPedidoPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {pedidos.map((p) => {
-                    const st = STATUS[p.status] ?? { label: p.status, cls: 'bg-slate-100 text-slate-600' }
+                    const isOrcPendente = p.aprovacaoCliente === 'pendente'
+                    const isOrcRecusado = p.aprovacaoCliente === 'recusado'
+                    const st = isOrcPendente
+                      ? { label: 'Orçamento — aguardando sua aprovação', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' }
+                      : isOrcRecusado
+                        ? { label: 'Orçamento recusado', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' }
+                        : STATUS[p.status] ?? { label: p.status, cls: 'bg-slate-100 text-slate-600' }
                     const isRascunho = p.status === 'rascunho'
                     const temItens = (p.itens?.length ?? 0) > 0
                     const aberto = pedidoAberto === p.numero
                     return (
                       <Fragment key={p.numero}>
-                      <tr className={`text-slate-700 dark:text-slate-200 ${isRascunho ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}`}>
-                        <td className="px-4 py-2 font-mono">{p.numero}</td>
+                      <tr className={`text-slate-700 dark:text-slate-200 ${isRascunho ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''} ${isOrcPendente ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}`}>
+                        <td className="px-4 py-2 font-mono" title={p.numero}>{p.codigoCurto ?? p.numero}</td>
                         <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{dataFmt(p.createdAt)}</td>
                         <td className="px-4 py-2 text-center tabular-nums">
                           {temItens ? (
@@ -475,7 +496,24 @@ export default function PortalPedidoPage() {
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                         </td>
                         <td className="px-4 py-2">
-                          {isRascunho ? (
+                          {isOrcPendente ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                disabled={decidindo === p.numero}
+                                onClick={() => decidirOrcamento(p.numero, 'aprovado')}
+                                className="text-[11px] font-medium px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                              >
+                                Aprovar
+                              </button>
+                              <button
+                                disabled={decidindo === p.numero}
+                                onClick={() => decidirOrcamento(p.numero, 'recusado')}
+                                className="text-[11px] font-medium px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-500 hover:text-rose-600 disabled:opacity-50"
+                              >
+                                Recusar
+                              </button>
+                            </div>
+                          ) : isRascunho ? (
                             <div className="flex items-center justify-end gap-1.5">
                               <button onClick={() => continuarRascunho(p.numero)}
                                 className="text-[11px] font-medium px-2 py-1 rounded-md bg-histocell-600 hover:bg-histocell-700 text-white">
