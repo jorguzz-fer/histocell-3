@@ -74,6 +74,8 @@ export class RecebimentoService {
    *    poluem a recepção). */
   async filaRecepcao() {
     return this.filaPorWhere({
+      // Orçamento aguardando o cliente aprovar não entra na Recepção.
+      aprovacaoCliente: { not: 'pendente' },
       OR: [{ status: 'enviado' }, { status: 'rascunho', origem: 'local' }],
     });
   }

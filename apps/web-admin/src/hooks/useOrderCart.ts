@@ -249,7 +249,10 @@ export function useOrderCart() {
     }
   }, [editId, limpar, carregarRascunhos])
 
-  async function handleSalvar(finalStatus: 'rascunho' | 'enviado') {
+  async function handleSalvar(
+    finalStatus: 'rascunho' | 'enviado',
+    aprovacaoCliente: 'dispensado' | 'pendente' = 'dispensado',
+  ) {
     if (!clienteId) { toast.error('Selecione um cliente.'); return }
     if (itens.length === 0) { toast.error('Adicione pelo menos um serviço.'); return }
     setSaving(true)
@@ -261,6 +264,7 @@ export function useOrderCart() {
         pagamentoAdiantado,
         prazoDias,
         status: finalStatus,
+        aprovacaoCliente,
         itens: itens.map((i) => ({ servicoId: i.servicoId, quantidade: i.quantidade, preco: i.preco, desconto: descontoComoPct(i) })),
       }
       // Editando um rascunho existente → atualiza; senão cria novo.

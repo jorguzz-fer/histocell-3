@@ -523,6 +523,40 @@ export class PedidosService {
     };
   }
 
+  // ── ORÇAMENTOS (Onda 4) ───────────────────────────────────────────────────────
+  // Orçamento = Pedido na trilha de aprovação (aprovacaoCliente != dispensado).
+  // Área interna: lista os que aguardam/foram decididos pelo cliente.
+  async listarOrcamentos(filtro?: string) {
+    const where: any = {
+      aprovacaoCliente: { not: 'dispensado' },
+      status: { notIn: ['arquivado', 'cancelado'] },
+    };
+    if (filtro && ['pendente', 'aprovado', 'recusado'].includes(filtro)) {
+      where.aprovacaoCliente = filtro;
+    }
+    const pedidos = await this.prisma.pedido.findMany({
+      where,
+      include: INCLUDE_FULL,
+      orderBy: [{ aprovacaoCliente: 'asc' }, { createdAt: 'desc' }],
+    });
+    return pedidos.map((p) => this.toShape(p));
+  }
+
+  /** Cliente aprova/recusa o orçamento (interno ou portal). */
+  async decidirOrcamento(id: number, decisao: 'aprovado' | 'recusado') {
+    const pedido = await this.prisma.pedido.findUnique({ where: { id }, select: { id: true, aprovacaoCliente: true } });
+    if (!pedido) throw new NotFoundException(`Pedido #${id} não encontrado.`);
+    if (pedido.aprovacaoCliente === 'dispensado') {
+      throw new BadRequestException('Este pedido não passa por aprovação de orçamento.');
+    }
+    const updated = await this.prisma.pedido.update({
+      where: { id },
+      data: { aprovacaoCliente: decisao, aprovadoClienteEm: new Date() },
+      include: INCLUDE_FULL,
+    });
+    return this.toShape(updated);
+  }
+
   // ── GET ONE ─────────────────────────────────────────────────────────────────
   async findOne(id: number) {
     const pedido = await this.prisma.pedido.findUnique({
@@ -548,6 +582,7 @@ export class PedidosService {
         numero,
         seq,
         status,
+        aprovacaoCliente: dto.aprovacaoCliente ?? 'dispensado',
         origem: dto.origem ?? 'local',
         observacoes: dto.observacoes,
         urgente: dto.urgente ?? false,

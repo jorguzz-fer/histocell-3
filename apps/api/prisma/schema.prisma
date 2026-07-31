@@ -288,6 +288,11 @@ model Pedido {
   numero        String    @unique // PED-20260410-001 (referência interna completa)
   seq           Int?      @unique // código curto sequencial p/ exibição (ex.: 42 → "#0042")
   status        String    @default("rascunho")
+  // Trilha de aprovação do orçamento (Onda 4). "dispensado" = pedido direto
+  // (contrato, sem aprovação); "pendente" = orçamento aguardando o cliente;
+  // "aprovado"/"recusado" = decisão do cliente. Pendente não entra na Recepção.
+  aprovacaoCliente String @default("dispensado")
+  aprovadoClienteEm DateTime?
   origem        String    @default("local") // local (interno) | web (portal do cliente)
   urgente            Boolean  @default(false) // prioridade do pedido
   pagamentoAdiantado Boolean  @default(false) // já pago/adiantado (não cobrar no fechamento)
@@ -317,6 +322,7 @@ model Pedido {
   @@index([clienteId])
   @@index([numero])
   @@index([status])
+  @@index([aprovacaoCliente])
 }
 
 // ── Recebimento etapa 1 (Recepção): recipientes que chegaram, sem contar amostras
