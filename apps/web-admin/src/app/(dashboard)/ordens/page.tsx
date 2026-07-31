@@ -12,6 +12,7 @@ import { api } from '@/lib/api'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { OSModal } from '@/components/OSModal'
 import { NovaOSDrawer } from './NovaOSDrawer'
+import { codigoCurtoPedido } from '@/lib/pedido'
 import type { OrdemServico, OrdensListResponse } from './types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
@@ -310,8 +311,8 @@ export default function OrdensPage() {
                               <div className="text-[13px] text-slate-700 dark:text-slate-300 leading-tight truncate">
                                 {os.amostra.pedido.cliente.nomeFantasia ?? os.amostra.pedido.cliente.nome}
                               </div>
-                              <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                                {os.amostra.pedido.numero}
+                              <div className="text-[11px] font-mono text-slate-400 mt-0.5" title={os.amostra.pedido.numero}>
+                                {codigoCurtoPedido(os.amostra.pedido.seq, os.amostra.pedido.numero)}
                               </div>
                             </div>
                           </div>

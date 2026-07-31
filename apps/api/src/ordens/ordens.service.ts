@@ -46,6 +46,7 @@ const INCLUDE_OS = {
         select: {
           id: true,
           numero: true,
+          seq: true,
           cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         },
       },

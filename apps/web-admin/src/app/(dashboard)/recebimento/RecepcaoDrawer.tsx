@@ -87,7 +87,7 @@ export function RecepcaoDrawer({ open, onClose, pedido, onSaved, onImprimir }: P
   const clienteLabel = pedido.clienteNomeFantasia ?? pedido.clienteNome
 
   return (
-    <Drawer open={open} onClose={onClose} title="Registrar entrada (Recepção)" subtitle={`${pedido.numero} · ${clienteLabel}`} width="max-w-lg">
+    <Drawer open={open} onClose={onClose} title="Registrar entrada (Recepção)" subtitle={`${pedido.codigoCurto ?? pedido.numero} · ${clienteLabel}`} width="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-5">
         <section className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 text-[12px] text-slate-500 dark:text-slate-400">
           Registre <strong>o que chegou</strong> (recipientes), sem abrir nem contar amostras. Cada recipiente recebe

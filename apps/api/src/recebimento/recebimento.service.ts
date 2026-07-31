@@ -20,6 +20,7 @@ const INCLUDE_AMOSTRA = {
     select: {
       id: true,
       numero: true,
+      seq: true,
       cliente: { select: { id: true, nome: true, nomeFantasia: true } },
     },
   },
@@ -64,6 +65,8 @@ export class RecebimentoService {
       clienteNome: p.cliente?.nome ?? '',
       clienteNomeFantasia: p.cliente?.nomeFantasia ?? null,
       totalAmostras: p.amostras.length,
+      // Código curto p/ exibição (ex.: "#0042"); cai no número completo se sem seq.
+      codigoCurto: p.seq != null ? `#${String(p.seq).padStart(4, '0')}` : p.numero,
     }));
   }
 

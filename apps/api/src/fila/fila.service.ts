@@ -15,6 +15,7 @@ export class FilaService {
       select: {
         id: true,
         numero: true,
+        seq: true,
         dataRecebimento: true,
         contagemDivergente: true,
         cliente: { select: { id: true, nome: true, nomeFantasia: true } },
@@ -28,6 +29,7 @@ export class FilaService {
     const aprovacaoDivergencia = pedidosPendentes.map((p) => ({
       id: p.id,
       numero: p.numero,
+      codigoCurto: p.seq != null ? `#${String(p.seq).padStart(4, '0')}` : p.numero,
       clienteNome: p.cliente?.nomeFantasia || p.cliente?.nome || '',
       totalOrcado: p.itens.reduce((s, i) => s + i.quantidade, 0),
       totalRecebido: p.amostras.length,
@@ -54,6 +56,7 @@ export class FilaService {
             select: {
               id: true,
               numero: true,
+              seq: true,
               cliente: { select: { id: true, nome: true, nomeFantasia: true } },
             },
           },

@@ -1,6 +1,8 @@
 export type PedidoFila = {
   id: number
   numero: string
+  seq?: number | null
+  codigoCurto?: string
   clienteId: number
   clienteNome: string
   clienteNomeFantasia?: string | null
@@ -41,6 +43,7 @@ export type Amostra = {
   pedido: {
     id: number
     numero: string
+    seq?: number | null
     cliente: { id: number; nome: string; nomeFantasia?: string | null }
   }
 }

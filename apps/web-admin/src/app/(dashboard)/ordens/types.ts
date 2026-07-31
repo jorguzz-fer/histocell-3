@@ -35,6 +35,7 @@ export type OrdemServico = {
     pedido: {
       id: number
       numero: string
+      seq?: number | null
       cliente: { id: number; nome: string; nomeFantasia?: string | null }
     }
   }
