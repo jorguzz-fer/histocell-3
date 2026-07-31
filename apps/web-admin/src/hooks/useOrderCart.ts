@@ -9,6 +9,7 @@ export type ClienteOpt = {
   id: number
   nome: string
   nomeFantasia?: string | null
+  idEtiqueta?: string | null
   segmento: string
 }
 

@@ -140,7 +140,19 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote, permitir
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por código ou nome…"
+            onKeyDown={(e) => {
+              // Enter adiciona o melhor resultado e limpa a busca — digitar código
+              // + Enter em sequência, sem tirar a mão do teclado.
+              if (e.key === 'Enter' && onAdd) {
+                e.preventDefault()
+                const best = rows[0]
+                if (best) {
+                  onAdd(best)
+                  setQuery('')
+                }
+              }
+            }}
+            placeholder={onAdd ? 'Buscar por código ou nome… (Enter adiciona)' : 'Buscar por código ou nome…'}
             className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[13px] pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
           />
         </div>
@@ -233,7 +245,12 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote, permitir
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.map((s) => (
-                <tr key={s.id} className={`align-top hover:bg-slate-50 dark:hover:bg-slate-800/50 ${s.ativo === false ? 'opacity-40' : ''}`}>
+                <tr
+                  key={s.id}
+                  onClick={onAdd ? () => onAdd(s) : undefined}
+                  title={onAdd ? 'Clicar para adicionar ao pedido' : undefined}
+                  className={`align-top hover:bg-slate-50 dark:hover:bg-slate-800/50 ${onAdd ? 'cursor-pointer' : ''} ${s.ativo === false ? 'opacity-40' : ''}`}
+                >
                   <td className="px-3 py-2 font-mono text-slate-500 break-words">{s.codigo}</td>
                   <td className="px-3 py-2 text-slate-500 dark:text-slate-400 break-words">{s.categoria}</td>
                   <td className="px-3 py-2 text-slate-800 dark:text-slate-100">
@@ -247,17 +264,17 @@ export function ServicoLegadoTable({ isPesquisador, onAdd, onAddPacote, permitir
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-1">
                       {onAdd && (
-                        <button onClick={() => onAdd(s)} title="Adicionar ao pedido" className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded">
+                        <button onClick={(e) => { e.stopPropagation(); onAdd(s) }} title="Adicionar ao pedido" className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded">
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button onClick={() => setEditing(s)} title="Editar" className="p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
+                      <button onClick={(e) => { e.stopPropagation(); setEditing(s) }} title="Editar" className="p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => arquivar(s)} title={s.ativo === false ? 'Desarquivar' : 'Arquivar'} className="p-1 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded">
+                      <button onClick={(e) => { e.stopPropagation(); arquivar(s) }} title={s.ativo === false ? 'Desarquivar' : 'Arquivar'} className="p-1 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded">
                         {s.ativo === false ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
                       </button>
-                      <button onClick={() => deletar(s)} title="Deletar" className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded">
+                      <button onClick={(e) => { e.stopPropagation(); deletar(s) }} title="Deletar" className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>

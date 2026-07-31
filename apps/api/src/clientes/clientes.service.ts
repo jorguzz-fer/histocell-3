@@ -99,10 +99,15 @@ export class ClientesService {
     if (filter.segmento) where.segmento = filter.segmento;
 
     if (filter.busca) {
+      const termo = filter.busca.trim();
       where.OR = [
-        { nome: { contains: filter.busca, mode: 'insensitive' } },
-        { nomeFantasia: { contains: filter.busca, mode: 'insensitive' } },
-        { email: { contains: filter.busca, mode: 'insensitive' } },
+        { nome: { contains: termo, mode: 'insensitive' } },
+        { nomeFantasia: { contains: termo, mode: 'insensitive' } },
+        { email: { contains: termo, mode: 'insensitive' } },
+        // Código de etiqueta do cliente (ex.: "021")
+        { idEtiqueta: { contains: termo, mode: 'insensitive' } },
+        // Código = id do cliente (busca "21" acha o cliente #21)
+        ...(/^\d+$/.test(termo) ? [{ id: parseInt(termo, 10) }] : []),
       ];
     }
 
