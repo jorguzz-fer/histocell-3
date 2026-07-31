@@ -13,6 +13,11 @@ export class AmostraItemDto {
   @IsInt()
   recipienteId?: number;
 
+  /** Serviço solicitado ao qual esta amostra/cassete pertence (macroscopia). */
+  @IsOptional()
+  @IsInt()
+  servicoId?: number;
+
   @IsOptional()
   @IsString()
   numeroCliente?: string;

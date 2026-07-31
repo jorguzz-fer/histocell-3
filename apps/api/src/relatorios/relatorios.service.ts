@@ -39,7 +39,7 @@ export class RelatoriosService {
         createdAt: true,
         dataRecepcao: true,
         dataRecebimento: true,
-        cliente: { select: { nome: true, nomeFantasia: true } },
+        cliente: { select: { id: true, nome: true, nomeFantasia: true, idEtiqueta: true } },
         amostras: {
           select: {
             etiquetas: {
@@ -72,6 +72,7 @@ export class RelatoriosService {
       return {
         numero: p.numero,
         cliente: p.cliente.nomeFantasia ?? p.cliente.nome,
+        clienteCodigo: p.cliente.idEtiqueta ?? String(p.cliente.id),
         urgente: p.urgente,
         criado: p.createdAt,
         recepcao: p.dataRecepcao,

@@ -10,6 +10,7 @@ import { api } from '@/lib/api'
 type Row = {
   numero: string
   cliente: string
+  clienteCodigo?: string
   urgente: boolean
   criado: string | null
   recepcao: string | null
@@ -62,6 +63,13 @@ export default function RelatoriosPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [resumo, setResumo] = useState<Resumo | null>(null)
   const [loading, setLoading] = useState(false)
+  const [filtroCliente, setFiltroCliente] = useState('')
+
+  const rowsFiltradas = rows.filter((r) => {
+    const q = filtroCliente.trim().toLowerCase()
+    if (!q) return true
+    return r.cliente.toLowerCase().includes(q) || (r.clienteCodigo ?? '').toLowerCase().includes(q)
+  })
 
   const carregar = useCallback(() => {
     setLoading(true)
@@ -106,8 +114,17 @@ export default function RelatoriosPage() {
             className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[13px] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <Button onClick={carregar} loading={loading}>Aplicar</Button>
+        <div className="flex flex-col gap-1">
+          <label className="text-[12px] font-medium text-slate-600 dark:text-slate-300">Cliente</label>
+          <input
+            value={filtroCliente}
+            onChange={(e) => setFiltroCliente(e.target.value)}
+            placeholder="Filtrar por cliente/código…"
+            className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[13px] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <span className="text-[12px] text-slate-400 ml-auto self-center">
-          {resumo?.totalPedidos ?? 0} pedido(s) no período
+          {filtroCliente ? `${rowsFiltradas.length} de ` : ''}{resumo?.totalPedidos ?? 0} pedido(s) no período
         </span>
       </div>
 
@@ -129,9 +146,13 @@ export default function RelatoriosPage() {
 
       {/* Tabela por pedido */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card overflow-hidden">
-        {rows.length === 0 ? (
+        {rowsFiltradas.length === 0 ? (
           <p className="py-12 text-center text-[13px] text-slate-400">
-            {loading ? 'Carregando…' : 'Nenhum pedido que entrou no fluxo neste período.'}
+            {loading
+              ? 'Carregando…'
+              : filtroCliente
+                ? `Nenhum pedido para “${filtroCliente}” neste período.`
+                : 'Nenhum pedido que entrou no fluxo neste período.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -149,7 +170,7 @@ export default function RelatoriosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {rows.map((r) => (
+                {rowsFiltradas.map((r) => (
                   <tr key={r.numero}>
                     <td className="px-3 py-2 font-mono text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
@@ -157,7 +178,12 @@ export default function RelatoriosPage() {
                         {r.urgente && <Badge variant="rose">Urg</Badge>}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{r.cliente}</td>
+                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300 max-w-[180px] truncate">
+                      {r.clienteCodigo && (
+                        <span className="font-mono text-[11px] text-slate-400 mr-1.5">{r.clienteCodigo}</span>
+                      )}
+                      {r.cliente}
+                    </td>
                     <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{fmtData(r.criado)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtDur(r.durRecepcao)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtDur(r.durLaboratorio)}</td>

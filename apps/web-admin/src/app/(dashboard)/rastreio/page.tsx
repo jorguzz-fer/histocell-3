@@ -30,6 +30,19 @@ function fmtData(iso?: string | null) {
   })
 }
 
+/**
+ * Rótulo de status refinado: quando concluído, diferencia o destino final
+ * (Pronto p/ retirar = verde, evita confundir com "em processo" azul).
+ */
+function statusInfo(e: RastreioEtiqueta): { label: string; variant: 'slate' | 'blue' | 'amber' | 'green' } {
+  if (e.rastreioStatus === 'concluido') {
+    if (e.departamentoAtual === 'arquivamento') return { label: 'Arquivado', variant: 'slate' }
+    if (e.departamentoAtual === 'descarte') return { label: 'Descartado', variant: 'slate' }
+    return { label: 'Pronto p/ retirar', variant: 'green' }
+  }
+  return STATUS_LABEL[e.rastreioStatus] ?? { label: e.rastreioStatus, variant: 'slate' }
+}
+
 function fmtDuracao(min: number | null) {
   if (min == null) return '—'
   if (min < 60) return `${min} min`
@@ -45,7 +58,20 @@ export default function RastreioPage() {
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
   const [loadingTl, setLoadingTl] = useState(false)
   const [itens, setItens] = useState<RastreioEtiqueta[]>([])
+  const [filtroCliente, setFiltroCliente] = useState('')
   const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
+
+  // Filtro por cliente/clínica (nome, apelido ou código) sobre os itens no fluxo.
+  const itensFiltrados = itens.filter((e) => {
+    const q = filtroCliente.trim().toLowerCase()
+    if (!q) return true
+    const cl = e.amostra.pedido.cliente
+    return (
+      cl.nome.toLowerCase().includes(q) ||
+      (cl.nomeFantasia ?? '').toLowerCase().includes(q) ||
+      String(cl.id) === q
+    )
+  })
 
   useEffect(() => {
     api.get<Departamento[]>('/rastreio/departamentos').then(setDepartamentos).catch(() => {})
@@ -125,11 +151,27 @@ export default function RastreioPage() {
 
       {/* Itens no fluxo (com barra de progresso + responsável) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Itens no fluxo</h2>
+          <div className="relative ml-auto w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              value={filtroCliente}
+              onChange={(e) => setFiltroCliente(e.target.value)}
+              placeholder="Filtrar por cliente/clínica…"
+              className="w-full rounded-md border border-slate-200 dark:border-slate-700 pl-8 pr-3 py-1.5 text-[12px]
+                bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400
+                focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {filtroCliente && (
+            <span className="text-[11px] text-slate-400">{itensFiltrados.length} item(ns)</span>
+          )}
         </div>
         {itens.length === 0 ? (
           <p className="py-8 text-center text-[13px] text-slate-400">Nenhum item movimentado ainda.</p>
+        ) : itensFiltrados.length === 0 ? (
+          <p className="py-8 text-center text-[13px] text-slate-400">Nenhum item para “{filtroCliente}”.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
@@ -138,7 +180,7 @@ export default function RastreioPage() {
                   <th className="px-4 py-2 font-semibold">Código</th>
                   <th className="px-4 py-2 font-semibold">Identificação</th>
                   <th className="px-4 py-2 font-semibold">Cliente</th>
-                  <th className="px-4 py-2 font-semibold text-center">Orçamento</th>
+                  <th className="px-4 py-2 font-semibold text-center" title="Solicitado / Entregue">Solic./Entreg.</th>
                   <th className="px-4 py-2 font-semibold w-44">Progresso</th>
                   <th className="px-4 py-2 font-semibold">Departamento</th>
                   <th className="px-4 py-2 font-semibold">Responsável</th>
@@ -146,7 +188,7 @@ export default function RastreioPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {itens.map((e) => (
+                {itensFiltrados.map((e) => (
                   <tr
                     key={e.id}
                     onClick={() => { setBusca(e.codigo); consultar(e.codigo) }}
@@ -178,21 +220,35 @@ export default function RastreioPage() {
                       </div>
                     </td>
                     <td className="px-4 py-2 text-center">
-                      {e.amostra.pedido.qtdPrevista != null && e.amostra.pedido.qtdPrevista > 0 ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] font-semibold">
-                          {e.amostra.pedido.qtdRecebida ?? '—'}/{e.amostra.pedido.qtdPrevista}
-                        </span>
-                      ) : <span className="text-slate-300">—</span>}
+                      {(() => {
+                        const prev = e.amostra.pedido.qtdPrevista
+                        const rec = e.amostra.pedido.qtdRecebida
+                        if (prev == null || prev <= 0) return <span className="text-slate-300">—</span>
+                        // solicitado × entregue: verde = completo · âmbar = faltando · rosa = excedente
+                        let cls = 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                        let hint = ''
+                        if (rec != null) {
+                          if (rec < prev) { cls = 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300'; hint = `faltam ${prev - rec}` }
+                          else if (rec > prev) { cls = 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300'; hint = `+${rec - prev} excedente` }
+                          else { cls = 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' }
+                        }
+                        return (
+                          <span
+                            title={`Solicitado: ${prev} · Entregue: ${rec ?? '—'}${hint ? ` · ${hint}` : ''}`}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-semibold ${cls}`}
+                          >
+                            {rec ?? '—'}/{prev}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-2">
-                      <ProgressoDepartamentos departamentos={departamentos} atual={e.departamentoAtual} status={e.rastreioStatus} />
+                      <ProgressoDepartamentos departamentos={departamentos} atual={e.departamentoAtual} status={e.rastreioStatus} compact />
                     </td>
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{labelDep(e.departamentoAtual)}</td>
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{e.ultimoResponsavel ?? '—'}</td>
                     <td className="px-4 py-2">
-                      <Badge variant={STATUS_LABEL[e.rastreioStatus]?.variant ?? 'slate'}>
-                        {STATUS_LABEL[e.rastreioStatus]?.label ?? e.rastreioStatus}
-                      </Badge>
+                      {(() => { const s = statusInfo(e); return <Badge variant={s.variant}>{s.label}</Badge> })()}
                     </td>
                   </tr>
                 ))}

@@ -47,6 +47,13 @@ export class ContratosController {
     return this.service.rodarAlertas(true);
   }
 
+  /** Gera agora as mensalidades devidas (boleto Cora) — teste/forçar */
+  @Post('mensalidades/rodar')
+  @Roles('gerencia')
+  rodarMensalidades() {
+    return this.service.rodarMensalidades(true);
+  }
+
   @Post()
   @Roles('gerencia', 'financeiro')
   create(@Body() dto: CreateContratoDto) {

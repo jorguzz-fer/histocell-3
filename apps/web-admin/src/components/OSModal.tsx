@@ -5,26 +5,38 @@ import { Printer } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Modal } from '@/components/ui/Modal'
 
+type ServicoRef = { nome: string; codigo: string }
 type Detalhe = {
   numero: string
+  seq?: number | null
   createdAt: string
   dataRecepcao?: string | null
   dataRecebimento?: string | null
   observacoes?: string | null
   cliente: { nome: string; nomeFantasia?: string | null }
-  itens: { quantidade: number; servico: { nome: string; codigo: string } }[]
+  itens: { id: number; quantidade: number; servico: ServicoRef }[]
   recipientes: { id: number; tipo: string; codigo: string | null }[]
   amostras: {
     id: number
     numeroInterno: string
     numeroCliente?: string | null
     recipienteId?: number | null
+    observacoes?: string | null
+    itemPedidoId?: number | null
+    servico?: ServicoRef | null
+    itemPedido?: { servico: ServicoRef } | null
   }[]
 }
 
 function fmt(iso?: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+/** Código curto do pedido para exibição (ex.: "#0042"); cai no número completo. */
+function codigoCurto(d?: Detalhe | null) {
+  if (d?.seq != null) return `#${String(d.seq).padStart(4, '0')}`
+  return d?.numero ?? ''
 }
 
 /**
@@ -61,12 +73,14 @@ export function OSModal({
 
   const clienteLabel = data ? (data.cliente.nomeFantasia ?? data.cliente.nome) : ''
   const recById = new Map((data?.recipientes ?? []).map((r) => [r.id, r]))
+  // Se o pedido tem um único serviço, aplica-o a todas as amostras (caso comum).
+  const servicoUnico = data && data.itens.length === 1 ? data.itens[0].servico : null
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={`Ordem de Serviço ${osNumero ?? data?.numero ?? ''}`.trim()}
+      title={`Ordem de Serviço ${data ? codigoCurto(data) : (osNumero ?? '')}`.trim()}
       subtitle={data ? clienteLabel : undefined}
       footer={
         pedidoId != null ? (
@@ -87,7 +101,7 @@ export function OSModal({
           {/* Dados gerais */}
           <div className="grid grid-cols-2 gap-x-6 gap-y-1">
             <div><span className="text-slate-400">Cliente:</span> <strong>{clienteLabel}</strong></div>
-            <div><span className="text-slate-400">Pedido:</span> {data.numero}</div>
+            <div><span className="text-slate-400">Pedido:</span> <strong>{codigoCurto(data)}</strong> <span className="text-[11px] text-slate-400">({data.numero})</span></div>
             <div><span className="text-slate-400">Recepção:</span> {fmt(data.dataRecepcao)}</div>
             <div><span className="text-slate-400">Identificação (lab):</span> {fmt(data.dataRecebimento)}</div>
           </div>
@@ -108,41 +122,48 @@ export function OSModal({
             )}
           </div>
 
-          {/* Amostras */}
+          {/* Amostras — com o serviço de cada item (modelo da OS antiga) */}
           <div>
             <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">
-              Amostras designadas ({data.amostras.length})
+              Amostras / itens ({data.amostras.length})
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="text-left text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                    <th className="py-1 pr-2 font-medium">Nº Histocell</th>
-                    <th className="py-1 pr-2 font-medium">Nº Cliente</th>
+                    <th className="py-1 pr-2 font-medium">Cód.</th>
+                    <th className="py-1 pr-2 font-medium">Serviço</th>
+                    <th className="py-1 pr-2 font-medium">Nº Histo</th>
+                    <th className="py-1 pr-2 font-medium">Identificação</th>
                     <th className="py-1 pr-2 font-medium">Recipiente</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.amostras.map((a) => (
-                    <tr key={a.id} className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="py-1 pr-2 font-mono font-semibold">{a.numeroInterno}</td>
-                      <td className="py-1 pr-2">{a.numeroCliente ?? '—'}</td>
-                      <td className="py-1 pr-2">{a.recipienteId != null ? recById.get(a.recipienteId)?.tipo ?? '—' : '—'}</td>
-                    </tr>
-                  ))}
+                  {data.amostras.map((a) => {
+                    const s = a.servico ?? a.itemPedido?.servico ?? servicoUnico
+                    return (
+                      <tr key={a.id} className="border-b border-slate-100 dark:border-slate-800">
+                        <td className="py-1 pr-2 font-mono text-slate-400">{s?.codigo ?? '—'}</td>
+                        <td className="py-1 pr-2">{s?.nome ?? '—'}</td>
+                        <td className="py-1 pr-2 font-mono font-semibold">{a.numeroInterno}</td>
+                        <td className="py-1 pr-2">{a.numeroCliente ?? '—'}</td>
+                        <td className="py-1 pr-2">{a.recipienteId != null ? recById.get(a.recipienteId)?.tipo ?? '—' : '—'}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Serviços (sem valores) */}
+          {/* Serviços solicitados (com código e descrição) */}
           <div>
             <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">
               Serviços solicitados ({data.itens.length})
             </h3>
             <ul className="space-y-0.5">
-              {data.itens.map((it, i) => (
-                <li key={i} className="flex justify-between gap-3">
+              {data.itens.map((it) => (
+                <li key={it.id} className="flex justify-between gap-3">
                   <span><span className="font-mono text-slate-400">{it.servico.codigo}</span> {it.servico.nome}</span>
                   <span className="text-slate-400 tabular-nums">× {it.quantidade}</span>
                 </li>

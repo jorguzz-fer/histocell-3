@@ -221,6 +221,7 @@ model Servico {
   itensOrcamento ItemOrcamento[]
   favoritos      ServicoFavorito[]
   pacoteItens    PacoteItem[]
+  amostras       Amostra[]
 
   @@index([codigo])
   @@index([categoria])
@@ -284,7 +285,8 @@ model ServicoFavorito {
 model Pedido {
   id            Int       @id @default(autoincrement())
   clienteId     Int
-  numero        String    @unique // PED-20260410-001
+  numero        String    @unique // PED-20260410-001 (referência interna completa)
+  seq           Int?      @unique // código curto sequencial p/ exibição (ex.: 42 → "#0042")
   status        String    @default("rascunho")
   origem        String    @default("local") // local (interno) | web (portal do cliente)
   urgente            Boolean  @default(false) // prioridade do pedido
@@ -365,6 +367,7 @@ model Amostra {
   pedidoId        Int
   recipienteId    Int?      // recipiente de origem (Pote/Caixa/Saco) designado no Laboratório
   itemPedidoId    Int?      @unique // item de origem (quando criada via emissão de etiquetas)
+  servicoId       Int?      // serviço solicitado ao qual esta amostra/cassete pertence (macroscopia)
   numeroInterno   String    @unique // Numeração diária Histocell
   numeroCliente   String?   // Número do cliente (ex: Alquimipet)
   especie         String    // canino, felino, bovino, humano, etc
@@ -380,11 +383,13 @@ model Amostra {
   pedido          Pedido    @relation(fields: [pedidoId], references: [id])
   recipiente      Recipiente? @relation(fields: [recipienteId], references: [id])
   itemPedido      ItemPedido? @relation(fields: [itemPedidoId], references: [id])
+  servico         Servico?  @relation(fields: [servicoId], references: [id])
   ordemServico    OrdemServico?
   etiquetas       Etiqueta[]
 
   @@index([pedidoId])
   @@index([recipienteId])
+  @@index([servicoId])
   @@index([numeroInterno])
   @@index([status])
 }

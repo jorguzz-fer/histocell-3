@@ -173,7 +173,7 @@ export class EtiquetasService {
         itens: {
           include: {
             servico: { select: { nome: true, codigo: true, geraEtiqueta: true } },
-            amostra: { select: { id: true, numeroInterno: true } },
+            amostra: { select: { id: true, numeroInterno: true, numeroCliente: true } },
           },
           orderBy: { id: 'asc' },
         },
@@ -202,7 +202,7 @@ export class EtiquetasService {
             dataRecebimento: agora,
             observacoes: `Serviço: ${item.servico.nome} — amostra criada na emissão de etiquetas.`,
           },
-          select: { id: true, numeroInterno: true },
+          select: { id: true, numeroInterno: true, numeroCliente: true },
         });
       }
 
@@ -225,7 +225,10 @@ export class EtiquetasService {
         // serviço que não etiqueta entra com 0 sugerido (mas continua editável)
         quantidade: geraEtiqueta ? Math.max(0, item.quantidade - jaGeradas) : 0,
         coloracao: this.sugerirColoracao(item.servico.nome),
-        identificacao: clienteLabel,
+        // Identificação da etiqueta = rótulo do cliente + código interno do
+        // cliente para a amostra (numeroCliente), quando já informado. Ex.: a
+        // guia/código que a Alkm Pet mandou para aquele cassete.
+        identificacao: [clienteLabel, amostra.numeroCliente].filter(Boolean).join(' '),
       });
     }
 

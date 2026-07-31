@@ -4,26 +4,36 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { api } from '@/lib/api'
 
+type ServicoRef = { nome: string; codigo: string }
 type Detalhe = {
   numero: string
+  seq?: number | null
   createdAt: string
   dataRecepcao?: string | null
   dataRecebimento?: string | null
   observacoes?: string | null
   cliente: { nome: string; nomeFantasia?: string | null }
-  itens: { quantidade: number; servico: { nome: string; codigo: string } }[]
+  itens: { id: number; quantidade: number; servico: ServicoRef }[]
   recipientes: { id: number; tipo: string; codigo: string | null }[]
   amostras: {
     id: number
     numeroInterno: string
     numeroCliente?: string | null
     recipienteId?: number | null
+    observacoes?: string | null
+    itemPedidoId?: number | null
+    servico?: ServicoRef | null
+    itemPedido?: { servico: ServicoRef } | null
   }[]
 }
 
 function fmt(iso?: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+function fmtData(iso?: string | null) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('pt-BR')
 }
 
 export default function ImprimirOSPage() {
@@ -42,13 +52,29 @@ export default function ImprimirOSPage() {
   if (!data) return <div className="p-8 text-sm text-slate-500">Carregando…</div>
 
   const clienteLabel = data.cliente.nomeFantasia ?? data.cliente.nome
+  const codigoCurto = data.seq != null ? `#${String(data.seq).padStart(4, '0')}` : data.numero
   const recById = new Map(data.recipientes.map((r) => [r.id, r]))
+
+  // Serviço de cada amostra: usa o item de origem; se o pedido tiver um único
+  // serviço, aplica-o a todas as amostras (caso comum de um serviço só).
+  const servicoUnico = data.itens.length === 1 ? data.itens[0].servico : null
+  const servicoDaAmostra = (a: Detalhe['amostras'][number]): ServicoRef | null =>
+    a.servico ?? a.itemPedido?.servico ?? servicoUnico
+
+  // Serviços que NÃO estão amarrados a nenhuma amostra (ex.: caixa porta-lâmina)
+  // entram como linhas próprias, com a quantidade.
+  const itensComAmostra = new Set(
+    data.amostras.map((a) => a.itemPedidoId).filter((x): x is number => x != null),
+  )
+  const servicosAvulsos = data.itens.filter((i) => !itensComAmostra.has(i.id))
+
+  const qtdeServicos = data.amostras.length + servicosAvulsos.reduce((s, i) => s + i.quantidade, 0)
 
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="no-print sticky top-0 flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-6 py-3">
         <div className="text-[13px] text-slate-600">
-          Ordem de Serviço · <strong>{data.numero}</strong> · {clienteLabel}
+          Ordem de Serviço · <strong>{codigoCurto}</strong> · {clienteLabel}
         </div>
         <button
           onClick={() => window.print()}
@@ -59,93 +85,104 @@ export default function ImprimirOSPage() {
       </div>
 
       <div className="mx-auto max-w-3xl p-8 text-[12px] leading-relaxed">
-        {/* Cabeçalho */}
-        <div className="flex items-start justify-between border-b-2 border-black pb-3">
+        {/* Cabeçalho (modelo Histocell) */}
+        <div className="flex items-start justify-between border-b-2 border-black pb-2">
           <div>
-            <div className="text-lg font-bold">HISTOCELL</div>
-            <div className="text-[11px] text-slate-600">Soluções em Anatomia Patológica</div>
+            <div className="text-[15px] font-bold">Histocell Soluções em Anatomia Patológica</div>
+            <div className="text-[11px] text-slate-700">Rua Teodoro Sampaio, 417 Cj. 112 — Pinheiros — São Paulo</div>
+            <div className="text-[11px] text-slate-700">Tel: (11) 3060-9190 · www.histocell.com.br</div>
           </div>
-          <div className="text-right">
-            <div className="text-base font-bold">ORDEM DE SERVIÇO</div>
-            <div className="font-mono">{data.numero}</div>
+          <div className="text-right text-[11px]">
+            <div>Data: {fmtData(data.createdAt)}</div>
+            <div>Folha: 001</div>
           </div>
         </div>
 
-        {/* Dados gerais */}
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1">
-          <div><span className="text-slate-500">Cliente:</span> <strong>{clienteLabel}</strong></div>
-          <div><span className="text-slate-500">Pedido:</span> {data.numero}</div>
-          <div><span className="text-slate-500">Recepção:</span> {fmt(data.dataRecepcao)}</div>
-          <div><span className="text-slate-500">Identificação (lab):</span> {fmt(data.dataRecebimento)}</div>
+        <div className="mt-3 flex items-start justify-between">
+          <div>
+            <div className="text-[14px] font-bold">Cliente: {clienteLabel}</div>
+            <div className="text-[11px] text-slate-600">
+              Ordem de Serviço Nº <strong>{codigoCurto}</strong>
+              <span className="text-slate-400"> · ref. {data.numero}</span>
+            </div>
+          </div>
+          <div className="text-right text-[11px] text-slate-600">
+            <div>Recepção: {fmt(data.dataRecepcao)}</div>
+            <div>Identificação (lab): {fmt(data.dataRecebimento)}</div>
+          </div>
         </div>
 
-        {/* Recipientes */}
-        <h2 className="mt-5 border-b border-black pb-1 text-[11px] font-bold uppercase tracking-wider">
-          Recipientes recebidos ({data.recipientes.length})
-        </h2>
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-          {data.recipientes.map((r, i) => (
-            <span key={r.id}>
-              {i + 1}. {r.tipo} <span className="font-mono text-slate-500">{r.codigo}</span>
-            </span>
-          ))}
-        </div>
+        {data.observacoes && (
+          <div className="mt-2 text-[11px]">
+            <span className="text-slate-500">Observações:</span> {data.observacoes}
+          </div>
+        )}
 
-        {/* Amostras */}
-        <h2 className="mt-5 border-b border-black pb-1 text-[11px] font-bold uppercase tracking-wider">
-          Amostras designadas ({data.amostras.length})
-        </h2>
-        <table className="mt-1 w-full border-collapse">
+        {/* Tabela principal — serviço em cada item (modelo antigo) */}
+        <table className="mt-4 w-full border-collapse">
           <thead>
-            <tr className="border-b border-slate-300 text-left">
-              <th className="py-1 pr-2 font-semibold">Nº Histocell</th>
-              <th className="py-1 pr-2 font-semibold">Nº Cliente</th>
-              <th className="py-1 pr-2 font-semibold">Recipiente</th>
-              <th className="py-1 pr-2 font-semibold">Resultado / Obs.</th>
+            <tr className="border-y border-black text-left">
+              <th className="py-1 pr-2 font-semibold">C.S.</th>
+              <th className="py-1 pr-2 font-semibold">Serviço</th>
+              <th className="py-1 pr-2 font-semibold">Nº Histo</th>
+              <th className="py-1 pr-2 font-semibold">Identificação</th>
+              <th className="py-1 pr-2 font-semibold">Obs.</th>
+              <th className="py-1 pr-2 font-semibold text-right">Qtd</th>
             </tr>
           </thead>
           <tbody>
-            {data.amostras.map((a) => (
-              <tr key={a.id} className="border-b border-slate-200">
-                <td className="py-1 pr-2 font-mono font-semibold">{a.numeroInterno}</td>
-                <td className="py-1 pr-2">{a.numeroCliente ?? '—'}</td>
-                <td className="py-1 pr-2">
-                  {a.recipienteId != null ? recById.get(a.recipienteId)?.tipo ?? '—' : '—'}
-                </td>
+            {data.amostras.map((a) => {
+              const s = servicoDaAmostra(a)
+              return (
+                <tr key={`am-${a.id}`} className="border-b border-slate-200">
+                  <td className="py-1 pr-2 font-mono">{s?.codigo ?? '—'}</td>
+                  <td className="py-1 pr-2">{s?.nome ?? '—'}</td>
+                  <td className="py-1 pr-2 font-mono font-semibold">{a.numeroInterno}</td>
+                  <td className="py-1 pr-2">{a.numeroCliente ?? '—'}</td>
+                  <td className="py-1 pr-2">{a.observacoes ?? ''}</td>
+                  <td className="py-1 pr-2 text-right">1</td>
+                </tr>
+              )
+            })}
+            {servicosAvulsos.map((i) => (
+              <tr key={`sv-${i.id}`} className="border-b border-slate-200">
+                <td className="py-1 pr-2 font-mono">{i.servico.codigo}</td>
+                <td className="py-1 pr-2">{i.servico.nome}</td>
+                <td className="py-1 pr-2 text-slate-400">—</td>
+                <td className="py-1 pr-2 text-slate-400">—</td>
                 <td className="py-1 pr-2" />
+                <td className="py-1 pr-2 text-right">{i.quantidade}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Serviços (sem valores) */}
-        <h2 className="mt-5 border-b border-black pb-1 text-[11px] font-bold uppercase tracking-wider">
-          Serviços solicitados
-        </h2>
-        <ul className="mt-1 space-y-0.5">
-          {data.itens.map((it, i) => (
-            <li key={i} className="flex justify-between">
-              <span>
-                <span className="font-mono text-slate-500">{it.servico.codigo}</span> {it.servico.nome}
-              </span>
-              <span className="text-slate-500">× {it.quantidade}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-2 text-[12px] font-semibold">Qtde de serviços: {qtdeServicos}</div>
 
-        {data.observacoes && (
-          <>
-            <h2 className="mt-5 border-b border-black pb-1 text-[11px] font-bold uppercase tracking-wider">
-              Observações
-            </h2>
-            <p className="mt-1 whitespace-pre-line">{data.observacoes}</p>
-          </>
+        {/* Recipientes */}
+        {data.recipientes.length > 0 && (
+          <div className="mt-3 text-[11px] text-slate-600">
+            <span className="font-semibold">Recipientes recebidos ({data.recipientes.length}):</span>{' '}
+            {data.recipientes.map((r, i) => `${i + 1}. ${r.tipo}`).join('  ')}
+          </div>
         )}
 
-        {/* Assinaturas */}
-        <div className="mt-12 grid grid-cols-2 gap-8">
-          <div className="border-t border-black pt-1 text-center text-[11px]">Responsável (lab)</div>
-          <div className="border-t border-black pt-1 text-center text-[11px]">Conferência</div>
+        {/* Assinaturas (modelo antigo) */}
+        <div className="mt-14 space-y-10 text-[11px]">
+          <div>
+            <div className="flex items-end gap-4">
+              <div className="flex-1 border-b border-black">Recebido por:</div>
+              <div className="w-56 border-b border-black">em: ____ / ____ / ______</div>
+            </div>
+            <div className="mt-4 border-b border-black">Nome completo:</div>
+          </div>
+          <div>
+            <div className="flex items-end gap-4">
+              <div className="flex-1 border-b border-black">Recebido por:</div>
+              <div className="w-56 border-b border-black">em: ____ / ____ / ______</div>
+            </div>
+            <div className="mt-4 border-b border-black">Nome completo:</div>
+          </div>
         </div>
       </div>
 

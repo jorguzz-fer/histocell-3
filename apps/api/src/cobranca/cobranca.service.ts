@@ -293,6 +293,58 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
     return this.emitirBoleto(fatura.id);
   }
 
+  /**
+   * Emite um boleto Cora "avulso" — sem Fatura interna — para uma cobrança que
+   * roda por fora do fechamento por consumo (ex.: mensalidade de contrato,
+   * separada do consumo). Só age com a Cora configurada.
+   */
+  async emitirBoletoAvulso(input: {
+    clienteId: number;
+    code: string;
+    descricao: string;
+    valor: number;
+    dueDate: string;
+  }) {
+    if (!this.cora.isConfigured()) return { emitido: false, motivo: 'Cora não configurada' };
+
+    const c = await this.prisma.cliente.findUnique({
+      where: { id: input.clienteId },
+      select: {
+        nome: true, tipo: true, documento: true, email: true,
+        emailFinanceiro: true, emailsCobranca: true,
+        enderecos: { where: { principal: true }, take: 1 },
+      },
+    });
+    if (!c) throw new NotFoundException(`Cliente #${input.clienteId} não encontrado.`);
+
+    const documento = soDigitos(this.crypto.decrypt(c.documento));
+    const end = c.enderecos[0];
+    const payload: any = {
+      code: input.code,
+      customer: {
+        name: c.nome,
+        email: c.emailFinanceiro || c.emailsCobranca?.[0] || c.email,
+        document: { identity: documento, type: c.tipo === 'PJ' ? 'CNPJ' : 'CPF' },
+      },
+      services: [{ name: input.descricao, amount: cents(input.valor) }],
+      payment_terms: { due_date: input.dueDate },
+    };
+    if (end) {
+      payload.customer.address = {
+        street: end.logradouro, number: end.numero, district: end.bairro,
+        city: end.cidade, state: end.uf, complement: end.complemento || undefined,
+        zip_code: soDigitos(end.cep),
+      };
+    }
+    const multa = Number(process.env.CORA_MULTA_PCT);
+    const juros = Number(process.env.CORA_JUROS_MES_PCT);
+    if (Number.isFinite(multa) && multa > 0) payload.payment_terms.fine = { rate: multa };
+    if (Number.isFinite(juros) && juros > 0) payload.payment_terms.interest = { rate: juros };
+
+    const inv = await this.cora.createInvoice(payload);
+    return { emitido: true, coraInvoiceId: String(inv.id ?? inv.invoice_id ?? ''), status: inv.status ?? null };
+  }
+
   /** Webhook da Cora: marca a fatura como paga quando o boleto é liquidado. */
   async webhook(body: any, token?: string) {
     // Endpoint público: exige o segredo registrado na URL do webhook da Cora.

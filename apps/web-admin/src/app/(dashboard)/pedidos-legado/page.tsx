@@ -51,7 +51,11 @@ export default function PedidosLegadoPage() {
               onChange={(e) => setClienteId(e.target.value)}
               options={[
                 { value: '', label: 'Selecione o cliente…' },
-                ...clientes.map((c) => ({ value: String(c.id), label: c.nomeFantasia ? `${c.nomeFantasia} — ${c.nome}` : c.nome })),
+                ...clientes.map((c) => {
+                  const cod = c.idEtiqueta || `#${c.id}`
+                  const nome = c.nomeFantasia ? `${c.nomeFantasia} — ${c.nome}` : c.nome
+                  return { value: String(c.id), label: `${cod} · ${nome}` }
+                }),
               ]}
             />
             {cliente && (

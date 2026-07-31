@@ -147,7 +147,7 @@ export default function CadastroPage() {
           <input
             value={buscaInput}
             onChange={(e) => setBuscaInput(e.target.value)}
-            placeholder="Buscar por nome, apelido ou e-mail..."
+            placeholder="Buscar por código, nome, apelido ou e-mail..."
             className="w-full pl-8 pr-3 py-1.5 text-[13px] rounded-md border border-slate-200 dark:border-slate-700
               bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
@@ -222,7 +222,7 @@ export default function CadastroPage() {
               <table className="w-full">
                 <thead className="bg-slate-50/50 dark:bg-slate-800/30">
                   <tr>
-                    {['#', 'Nome / Apelido', 'Documento', 'Contato', 'Segmento', 'Status', ''].map((h) => (
+                    {['Código', 'Nome / Apelido', 'Documento', 'Contato', 'Segmento', 'Status', ''].map((h) => (
                       <th
                         key={h}
                         className="text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-4 py-3 whitespace-nowrap"
@@ -243,9 +243,14 @@ export default function CadastroPage() {
                           !c.ativo ? 'opacity-50' : ''
                         }`}
                       >
-                        {/* # */}
-                        <td className="px-4 py-3 text-[12px] font-mono text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap">
-                          #{c.id}
+                        {/* Código do cliente (idEtiqueta quando houver; senão o #id) */}
+                        <td className="px-4 py-3 text-[12px] font-mono tabular-nums whitespace-nowrap">
+                          <span className="font-semibold text-slate-600 dark:text-slate-300">
+                            {c.idEtiqueta || `#${c.id}`}
+                          </span>
+                          {c.idEtiqueta && (
+                            <span className="block text-[10px] text-slate-400">#{c.id}</span>
+                          )}
                         </td>
 
                         {/* Nome / Apelido — clicável pra editar */}
