@@ -59,7 +59,7 @@ const menuItems: MenuItem[] = [
   { href: '/servicos', label: 'Cadastro Serviço', icon: FlaskConical, perm: 'orcamento', roles: ['gerencia'] },
   { href: '/relatorios', label: 'Relatórios', icon: LineChart, perm: 'relatorios', roles: ['gerencia', 'financeiro'] },
   { href: '/motivos', label: 'Motivos', icon: MessageSquare, perm: 'motivos', roles: ['gerencia'] },
-  { href: '/comercial', label: 'Comercial', icon: Briefcase, perm: 'comercial', roles: ['gerencia', 'financeiro'] },
+  { href: '/comercial', label: 'Orçamentos', icon: Briefcase, perm: 'comercial', roles: ['gerencia', 'financeiro'] },
   // Qualidade: não usado hoje — fica no rodapé do menu (implementar depois).
   { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck, perm: 'qualidade' },
   // Financeiro por último.

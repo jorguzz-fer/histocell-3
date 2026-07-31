@@ -66,6 +66,14 @@ export class CreatePedidoDto {
   @IsIn(['local', 'web'])
   origem?: 'local' | 'web';
 
+  /**
+   * Trilha de aprovação. "dispensado" = pedido direto (contrato, sem aprovação);
+   * "pendente" = orçamento aguardando o cliente aprovar. Default: dispensado.
+   */
+  @IsOptional()
+  @IsIn(['dispensado', 'pendente'])
+  aprovacaoCliente?: 'dispensado' | 'pendente';
+
   @ValidateNested({ each: true })
   @Type(() => CreateItemPedidoDto)
   @ArrayMinSize(1)

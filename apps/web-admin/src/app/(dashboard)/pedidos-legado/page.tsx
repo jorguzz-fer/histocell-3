@@ -292,7 +292,7 @@ export default function PedidosLegadoPage() {
 
                 <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                   <Button variant="secondary" onClick={() => setConfirmarPrazo(false)}>Voltar e corrigir</Button>
-                  <Button onClick={() => { setConfirmarPrazo(false); handleSalvar('enviado') }} loading={saving}>
+                  <Button onClick={() => { setConfirmarPrazo(false); handleSalvar('enviado', 'pendente') }} loading={saving}>
                     <Send className="h-4 w-4 mr-1.5" /> Confirmar e enviar
                   </Button>
                 </div>

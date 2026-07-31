@@ -168,6 +168,23 @@ export class PedidosController {
     return this.service.resumoArquivados(inicio, fim);
   }
 
+  /** Área de Orçamentos (Onda 4): pedidos na trilha de aprovação do cliente */
+  @Get('orcamentos/lista')
+  @Roles('gerencia', 'recepcao', 'financeiro')
+  listarOrcamentos(@Query('status') status?: string) {
+    return this.service.listarOrcamentos(status);
+  }
+
+  /** Cliente decide o orçamento (aprovar/recusar) — uso interno */
+  @Patch(':id/orcamento-decisao')
+  @Roles('gerencia', 'recepcao', 'financeiro')
+  decidirOrcamento(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('decisao') decisao: 'aprovado' | 'recusado',
+  ) {
+    return this.service.decidirOrcamento(id, decisao);
+  }
+
   @Get(':id')
   @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
   findOne(@Param('id', ParseIntPipe) id: number) {
