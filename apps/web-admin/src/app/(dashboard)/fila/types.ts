@@ -1,6 +1,7 @@
 export type FilaOS = {
   id: number
   numero: string
+  seq?: number | null
   etapaAtual: string
   prioridade: string
   responsavel?: string | null
@@ -15,6 +16,7 @@ export type FilaOS = {
     pedido: {
       id: number
       numero: string
+      seq?: number | null
       cliente: { id: number; nome: string; nomeFantasia?: string | null }
     }
   }
@@ -23,6 +25,8 @@ export type FilaOS = {
 export type FilaPedidoPendente = {
   id: number
   numero: string
+  seq?: number | null
+  codigoCurto?: string
   clienteNome: string
   totalOrcado: number
   totalRecebido: number

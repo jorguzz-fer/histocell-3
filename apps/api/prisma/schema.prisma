@@ -406,7 +406,8 @@ model Amostra {
 model OrdemServico {
   id          Int       @id @default(autoincrement())
   amostraId   Int       @unique
-  numero      String    @unique // OS-20260410-001
+  numero      String    @unique // OS-20260410-001 (referência interna completa)
+  seq         Int?      @unique // código curto sequencial p/ exibição (ex.: 42 → "#0042")
   status      String    @default("fila")
   etapaAtual  String    @default("triagem") // triagem, macroscopia, processamento, laudo
   prioridade  String    @default("normal") // urgente, normal

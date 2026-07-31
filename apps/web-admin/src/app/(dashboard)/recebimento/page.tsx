@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
+import { codigoCurtoPedido } from '@/lib/pedido'
 import { ReceberDrawer } from './ReceberDrawer'
 import { RecepcaoDrawer } from './RecepcaoDrawer'
 import { PrintModal } from '@/components/PrintModal'
@@ -60,7 +61,7 @@ function FilaCard({ p, onReceber, onArquivar, onIdentificar, acaoLabel = 'Recebe
         <div className="flex items-start gap-2.5">
           <ClienteAvatar nome={p.clienteNomeFantasia ?? p.clienteNome} seed={p.clienteId} size={32} />
           <div>
-            <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-slate-200">{p.numero}</p>
+            <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-slate-200" title={p.numero}>{p.codigoCurto ?? codigoCurtoPedido(p.seq, p.numero)}</p>
             <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
               {p.clienteNomeFantasia ?? p.clienteNome}
             </p>
@@ -430,8 +431,8 @@ export default function RecebimentoPage() {
 
                           {/* Pedido */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-[12px] font-mono text-slate-600 dark:text-slate-400">
-                              {a.pedido.numero}
+                            <span className="text-[12px] font-mono text-slate-600 dark:text-slate-400" title={a.pedido.numero}>
+                              {codigoCurtoPedido(a.pedido.seq, a.pedido.numero)}
                             </span>
                           </td>
 

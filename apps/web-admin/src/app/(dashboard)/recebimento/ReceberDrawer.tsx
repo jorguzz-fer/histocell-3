@@ -237,7 +237,7 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
       open={open}
       onClose={onClose}
       title="Identificar amostras (Laboratório)"
-      subtitle={`${pedido.numero} · ${clienteLabel}`}
+      subtitle={`${pedido.codigoCurto ?? pedido.numero} · ${clienteLabel}`}
       width="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">

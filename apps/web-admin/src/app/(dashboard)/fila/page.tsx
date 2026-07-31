@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { OSModal } from '@/components/OSModal'
 import { clienteCor } from '@/lib/clienteVisual'
+import { codigoCurtoPedido, codigoCurtoOS } from '@/lib/pedido'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { FilaResponse, FilaOS, FilaPedidoPendente } from './types'
 
@@ -203,7 +204,7 @@ function SecaoDivergencia({ itens, onAprovar }: { itens: FilaPedidoPendente[]; o
         {itens.map((p) => (
           <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{p.numero}</p>
+              <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100" title={p.numero}>{p.codigoCurto ?? codigoCurtoPedido(p.seq, p.numero)}</p>
               <p className="text-[12px] text-slate-500 dark:text-slate-400">
                 {p.clienteNome} · Orçado <strong>{p.totalOrcado}</strong> · Recebido <strong>{p.totalRecebido}</strong> · {fmtData(p.dataRecebimento)}
               </p>
@@ -248,16 +249,16 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: 
                   <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
                     <button
                       onClick={() => onVerOS(o.amostra.pedido.id, o.numero)}
-                      title="Ver Ordem de Serviço"
+                      title={`Ver Ordem de Serviço · ${o.numero}`}
                       className="text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
                     >
-                      {o.numero}
+                      {codigoCurtoOS(o.seq, o.numero)}
                     </button>
                     {' · '}Amostra {o.amostra.numeroInterno}
                     {o.amostra.numeroCliente ? ` (${o.amostra.numeroCliente})` : ''}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {o.amostra.pedido.numero} · {o.amostra.pedido.cliente.nomeFantasia || o.amostra.pedido.cliente.nome} · {o.amostra.especie} · {o.amostra.material}
+                    <span title={o.amostra.pedido.numero}>{codigoCurtoPedido(o.amostra.pedido.seq, o.amostra.pedido.numero)}</span> · {o.amostra.pedido.cliente.nomeFantasia || o.amostra.pedido.cliente.nome} · {o.amostra.especie} · {o.amostra.material}
                     {o.responsavel ? ` · ${o.responsavel}` : ''}
                   </p>
                 </div>
