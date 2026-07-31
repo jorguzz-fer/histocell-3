@@ -40,6 +40,42 @@ function maskCEP(v: string) {
   return d.replace(/(\d{5})(\d{0,3})/, '$1-$2')
 }
 
+// Valida CPF pelos dígitos verificadores (rejeita sequências repetidas)
+function isValidCPF(v: string) {
+  const cpf = v.replace(/\D/g, '')
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false
+  const digit = (base: string, start: number) => {
+    let sum = 0
+    for (let i = 0; i < base.length; i++) sum += parseInt(base[i], 10) * (start - i)
+    const rest = (sum * 10) % 11
+    return rest === 10 ? 0 : rest
+  }
+  return (
+    digit(cpf.slice(0, 9), 10) === parseInt(cpf[9], 10) &&
+    digit(cpf.slice(0, 10), 11) === parseInt(cpf[10], 10)
+  )
+}
+
+// Valida CNPJ pelos dígitos verificadores (rejeita sequências repetidas)
+function isValidCNPJ(v: string) {
+  const cnpj = v.replace(/\D/g, '')
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false
+  const digit = (base: string) => {
+    let factor = base.length - 7
+    let sum = 0
+    for (let i = 0; i < base.length; i++) {
+      sum += parseInt(base[i], 10) * factor
+      factor = factor - 1 < 2 ? 9 : factor - 1
+    }
+    const rest = sum % 11
+    return rest < 2 ? 0 : 11 - rest
+  }
+  return (
+    digit(cnpj.slice(0, 12)) === parseInt(cnpj[12], 10) &&
+    digit(cnpj.slice(0, 13)) === parseInt(cnpj[13], 10)
+  )
+}
+
 // ─── form state ──────────────────────────────────────────────────────────────
 
 type FormState = {
@@ -277,10 +313,10 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
       e.emailMacroscopia = 'E-mail inválido'
 
     const docDigits = form.documento.replace(/\D/g, '')
-    if (!isEdit && form.tipo === 'PF' && docDigits.length !== 11)
-      e.documento = 'CPF deve ter 11 dígitos'
-    if (!isEdit && form.tipo === 'PJ' && docDigits.length !== 14)
-      e.documento = 'CNPJ deve ter 14 dígitos'
+    if (!isEdit && form.tipo === 'PF' && !isValidCPF(docDigits))
+      e.documento = docDigits.length !== 11 ? 'CPF deve ter 11 dígitos' : 'CPF inválido'
+    if (!isEdit && form.tipo === 'PJ' && !isValidCNPJ(docDigits))
+      e.documento = docDigits.length !== 14 ? 'CNPJ deve ter 14 dígitos' : 'CNPJ inválido'
 
     setErrors(e)
     return Object.keys(e).length === 0

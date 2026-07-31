@@ -15,6 +15,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsCpfOuCnpj } from '../../common/is-cpf-cnpj.validator';
 
 export class CreateEnderecoDto {
   @IsEnum(['entrega', 'cobranca', 'sede'])
@@ -65,9 +66,10 @@ export class CreateClienteDto {
   @MaxLength(100)
   nomeFantasia?: string;
 
-  /** CPF (11 dígitos) ou CNPJ (14 dígitos) — só dígitos */
+  /** CPF (11 dígitos) ou CNPJ (14 dígitos) — só dígitos, com dígitos verificadores válidos */
   @IsString()
   @IsNotEmpty()
+  @IsCpfOuCnpj()
   documento: string;
 
   @IsString()
