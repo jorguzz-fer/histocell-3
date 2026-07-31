@@ -22,6 +22,7 @@ type Detalhe = {
     recipienteId?: number | null
     observacoes?: string | null
     itemPedidoId?: number | null
+    servico?: ServicoRef | null
     itemPedido?: { servico: ServicoRef } | null
   }[]
 }
@@ -58,7 +59,7 @@ export default function ImprimirOSPage() {
   // serviço, aplica-o a todas as amostras (caso comum de um serviço só).
   const servicoUnico = data.itens.length === 1 ? data.itens[0].servico : null
   const servicoDaAmostra = (a: Detalhe['amostras'][number]): ServicoRef | null =>
-    a.itemPedido?.servico ?? servicoUnico
+    a.servico ?? a.itemPedido?.servico ?? servicoUnico
 
   // Serviços que NÃO estão amarrados a nenhuma amostra (ex.: caixa porta-lâmina)
   // entram como linhas próprias, com a quantidade.

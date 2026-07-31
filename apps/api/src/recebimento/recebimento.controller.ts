@@ -93,4 +93,14 @@ export class RecebimentoController {
   ) {
     return this.service.updateAmostra(id, dto);
   }
+
+  /** Reclassifica o recipiente na macroscopia (ex.: "Pote" → "Cassete") */
+  @Patch('recipiente/:id')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  atualizarRecipiente(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: { tipo?: string; observacoes?: string },
+  ) {
+    return this.service.atualizarRecipiente(id, dto);
+  }
 }

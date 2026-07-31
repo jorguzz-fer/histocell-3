@@ -244,6 +244,22 @@ async function main() {
   }
   console.log(`   ✅ ${logCriados} serviços de logística criados`);
 
+  // ── Tipos de recipiente (recepção / macroscopia) ─────────────────────────────
+  // Molhados (Pote/Frasco) e secos (Cassete/Lâmina/Bloco) que a macroscopia
+  // usa para trocar "Pote → Cassete" ao abrir. Idempotente.
+  console.log('📦 Cadastrando tipos de recipiente...');
+  const tiposRecipiente = ['Pote', 'Frasco', 'Caixa', 'Saco', 'Cassete', 'Lâmina', 'Bloco'];
+  let tiposCriados = 0;
+  for (let i = 0; i < tiposRecipiente.length; i++) {
+    const nome = tiposRecipiente[i];
+    const existing = await prisma.tipoRecipiente.findUnique({ where: { nome } });
+    if (!existing) {
+      await prisma.tipoRecipiente.create({ data: { nome, ordem: i } });
+      tiposCriados++;
+    }
+  }
+  console.log(`   ✅ ${tiposCriados} tipo(s) de recipiente criado(s)`);
+
   // ── Clientes do legado ──────────────────────────────────────────────────────
   const encryptKey = getEncryptKey();
   const totalClientes = await prisma.cliente.count();

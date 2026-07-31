@@ -169,6 +169,8 @@ export class RecebimentoService {
             recipienteId: true,
             observacoes: true,
             itemPedidoId: true,
+            // serviço vinculado diretamente à amostra (macroscopia: pote → cassetes)
+            servico: { select: { nome: true, codigo: true } },
             // serviço de origem da amostra (quando criada via emissão de etiquetas)
             itemPedido: { select: { servico: { select: { nome: true, codigo: true } } } },
           },
@@ -259,6 +261,7 @@ export class RecebimentoService {
         data: {
           pedidoId: dto.pedidoId,
           recipienteId: item.recipienteId,
+          servicoId: item.servicoId,
           numeroInterno,
           numeroCliente: item.numeroCliente,
           especie: item.especie ?? 'A definir',
@@ -426,5 +429,17 @@ export class RecebimentoService {
       include: INCLUDE_AMOSTRA,
     });
     return updated;
+  }
+
+  // ── Trocar o tipo do recipiente (macroscopia: "Pote" → "Cassete") ───────────────
+  // A recepção registra só o recipiente externo (ex.: 1 pote); ao abrir, a
+  // macroscopia pode reclassificá-lo antes de identificar as amostras.
+  async atualizarRecipiente(id: number, dto: { tipo?: string; observacoes?: string }) {
+    const rec = await this.prisma.recipiente.findUnique({ where: { id }, select: { id: true } });
+    if (!rec) throw new NotFoundException(`Recipiente #${id} não encontrado.`);
+    const data: { tipo?: string; observacoes?: string } = {};
+    if (dto.tipo != null && dto.tipo.trim()) data.tipo = dto.tipo.trim();
+    if (dto.observacoes != null) data.observacoes = dto.observacoes;
+    return this.prisma.recipiente.update({ where: { id }, data });
   }
 }

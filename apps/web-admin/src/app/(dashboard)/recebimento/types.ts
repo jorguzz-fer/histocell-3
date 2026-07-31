@@ -57,6 +57,7 @@ export type AmostraListResponse = {
 
 export type AmostraItemForm = {
   recipienteId?: number | null
+  servicoId?: number | null
   numeroCliente: string
   especie: string
   material: string

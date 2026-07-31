@@ -23,6 +23,7 @@ type Detalhe = {
     recipienteId?: number | null
     observacoes?: string | null
     itemPedidoId?: number | null
+    servico?: ServicoRef | null
     itemPedido?: { servico: ServicoRef } | null
   }[]
 }
@@ -139,7 +140,7 @@ export function OSModal({
                 </thead>
                 <tbody>
                   {data.amostras.map((a) => {
-                    const s = a.itemPedido?.servico ?? servicoUnico
+                    const s = a.servico ?? a.itemPedido?.servico ?? servicoUnico
                     return (
                       <tr key={a.id} className="border-b border-slate-100 dark:border-slate-800">
                         <td className="py-1 pr-2 font-mono text-slate-400">{s?.codigo ?? '—'}</td>

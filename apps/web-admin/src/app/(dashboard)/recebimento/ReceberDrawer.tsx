@@ -6,15 +6,17 @@ import { toast } from 'sonner'
 import { Drawer } from '@/components/ui/Drawer'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { api } from '@/lib/api'
 import type { PedidoFila, AmostraItemForm } from './types'
 
 type Linha = AmostraItemForm & { _key: string }
 
-function novaLinha(recipienteId: number | null): Linha {
+function novaLinha(recipienteId: number | null, servicoId: number | null = null): Linha {
   return {
     _key: Math.random().toString(36).slice(2),
     recipienteId,
+    servicoId,
     numeroCliente: '',
     especie: '',
     material: '',
@@ -44,16 +46,28 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
   const [recebidaManual, setRecebidaManual] = useState(false) // true quando o usuário digita a qtd recebida
   const [obsConferencia, setObsConferencia] = useState('')
   const [saving, setSaving] = useState(false)
+  // Tipos de recipiente disponíveis (p/ reclassificar "Pote" → "Cassete").
+  const [tiposRecipiente, setTiposRecipiente] = useState<{ id: number; nome: string }[]>([])
+  // Tipo corrente de cada recipiente (permite editar sem depender de refetch).
+  const [tipoPorRecipiente, setTipoPorRecipiente] = useState<Record<number, string>>({})
 
   const recipientes = useMemo(() => pedido?.recipientes ?? [], [pedido])
+  // Serviço padrão das amostras: se o pedido tem 1 só serviço, já vem escolhido.
+  const servicoUnicoId = pedido && pedido.itens.length === 1 ? pedido.itens[0].servicoId : null
+
+  useEffect(() => {
+    if (open) api.get<{ id: number; nome: string }[]>('/recebimento/tipos-recipiente').then(setTiposRecipiente).catch(() => {})
+  }, [open])
 
   useEffect(() => {
     if (open && pedido) {
       // 1 amostra inicial por recipiente (ou 1 avulsa, se não houver recipientes)
+      const servDefault = pedido.itens.length === 1 ? pedido.itens[0].servicoId : null
       const inicial = recipientes.length
-        ? recipientes.map((r) => novaLinha(r.id))
-        : [novaLinha(null)]
+        ? recipientes.map((r) => novaLinha(r.id, servDefault))
+        : [novaLinha(null, servDefault)]
       setLinhas(inicial)
+      setTipoPorRecipiente(Object.fromEntries(recipientes.map((r) => [r.id, r.tipo])))
       setItens(pedido.itens.map((it) => ({ ...it })))
       setPrevistaManual(false)
       setRecebidoPor('')
@@ -121,13 +135,29 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
   }
   function addLinha(recipienteId: number | null) {
     setLinhas((prev) => {
-      const nova = novaLinha(recipienteId)
+      // herda o serviço da última amostra do mesmo recipiente (ou o serviço único)
+      const doGrupo = prev.filter((l) => l.recipienteId === recipienteId)
+      const servHerdado = doGrupo.length ? doGrupo[doGrupo.length - 1].servicoId ?? null : servicoUnicoId
+      const nova = novaLinha(recipienteId, servHerdado)
       nova.numeroCliente = sugerirNumeroCliente(prev, recipienteId)
       return [...prev, nova]
     })
   }
   function removeLinha(key: string) {
     setLinhas((prev) => prev.filter((l) => l._key !== key))
+  }
+
+  // Reclassifica o recipiente (ex.: "Pote" → "Cassete") — persiste no pedido.
+  async function mudarTipoRecipiente(recipienteId: number, tipo: string) {
+    setTipoPorRecipiente((prev) => ({ ...prev, [recipienteId]: tipo }))
+    try {
+      await api.patch(`/recebimento/recipiente/${recipienteId}`, { tipo })
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao mudar o tipo do recipiente')
+    }
+  }
+  function setLinhaServico(key: string, servicoId: number | null) {
+    setLinhas((prev) => prev.map((l) => (l._key === key ? { ...l, servicoId } : l)))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -153,6 +183,7 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
         observacaoConferencia: obsConferencia.trim() || undefined,
         amostras: linhas.map((a) => ({
           recipienteId: a.recipienteId ?? undefined,
+          servicoId: a.servicoId ?? undefined,
           numeroCliente: a.numeroCliente.trim() || undefined,
           observacoes: a.observacoes.trim() || undefined,
         })),
@@ -314,9 +345,28 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-3 py-2">
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700 dark:text-slate-300">
                   <Package className="h-3.5 w-3.5 text-slate-400" />
-                  {g.recipiente ? g.recipiente.tipo : 'Sem recipiente'}
-                  {g.recipiente?.codigo && (
-                    <span className="font-mono text-[11px] text-slate-400">{g.recipiente.codigo}</span>
+                  {g.recipiente ? (
+                    <>
+                      {/* Reclassificar o recipiente ao abrir (ex.: Pote → Cassete) */}
+                      <select
+                        value={tipoPorRecipiente[g.recipiente.id] ?? g.recipiente.tipo}
+                        onChange={(e) => mudarTipoRecipiente(g.recipiente!.id, e.target.value)}
+                        title="Tipo do recipiente (reclassificar ao abrir)"
+                        className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[12px] font-semibold px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {(() => {
+                          const atual = tipoPorRecipiente[g.recipiente.id] ?? g.recipiente.tipo
+                          const nomes = tiposRecipiente.map((t) => t.nome)
+                          const opts = nomes.includes(atual) ? nomes : [atual, ...nomes]
+                          return opts.map((n) => <option key={n} value={n}>{n}</option>)
+                        })()}
+                      </select>
+                      {g.recipiente.codigo && (
+                        <span className="font-mono text-[11px] text-slate-400">{g.recipiente.codigo}</span>
+                      )}
+                    </>
+                  ) : (
+                    'Sem recipiente'
                   )}
                 </div>
                 <button
@@ -336,6 +386,20 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
                     <span className="w-8 shrink-0 pb-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
                       {String(i + 1).padStart(2, '0')}
                     </span>
+                    {/* Serviço da amostra — só quando há mais de um serviço no pedido */}
+                    {pedido.itens.length > 1 && (
+                      <div className="w-40 shrink-0">
+                        <Select
+                          label=""
+                          value={l.servicoId != null ? String(l.servicoId) : ''}
+                          onChange={(e) => setLinhaServico(l._key, e.target.value ? Number(e.target.value) : null)}
+                          options={[
+                            { value: '', label: 'Serviço…' },
+                            ...pedido.itens.map((it) => ({ value: String(it.servicoId), label: `${it.servico.codigo} · ${it.servico.nome}` })),
+                          ]}
+                        />
+                      </div>
+                    )}
                     <div className="flex-1">
                       <Input
                         label=""
