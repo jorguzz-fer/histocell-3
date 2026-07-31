@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollarSign, FileEdit, Trash2, Pencil, Clock } from 'lucide-react'
+import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollarSign, FileEdit, Trash2, Pencil, Clock, ClipboardCheck, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
@@ -24,20 +24,57 @@ export default function PedidosLegadoPage() {
 
   const [confirmarPrazo, setConfirmarPrazo] = useState(false)
 
+  // Modo da tela: "pedido" (direto, sem aprovação — cliente de contrato) ou
+  // "orcamento" (prévia + envio p/ aprovação — cliente esporádico/especulador).
+  // Default vem do segmento do cliente; o usuário pode alternar.
+  const [modo, setModo] = useState<'pedido' | 'orcamento'>('pedido')
+  const [modoTocado, setModoTocado] = useState(false)
+  useEffect(() => {
+    if (cliente && !modoTocado) {
+      setModo(cliente.segmento === 'esporadico' ? 'orcamento' : 'pedido')
+    }
+  }, [cliente, modoTocado])
+  const isOrcamento = modo === 'orcamento'
+
   function fmtDraftData(iso: string) {
     return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
 
   return (
     <div className="min-h-screen space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Orçamento</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            {isOrcamento ? 'Novo Orçamento' : 'Novo Pedido'}
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Catálogo no formato da planilha — busque pelo código, edite, arquive ou crie serviços
+            {isOrcamento
+              ? 'Monta a prévia e envia para o cliente aprovar (especulador/esporádico)'
+              : 'Vai direto para a Recepção, sem aprovação (cliente de contrato/tabela fechada)'}
           </p>
         </div>
         {isPesquisador && <Badge variant="amber">Preço Pesquisa</Badge>}
+      </div>
+
+      {/* Alternador Pedido × Orçamento (default pelo segmento do cliente) */}
+      <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 text-[13px]">
+        {([
+          { key: 'pedido', label: 'Pedido direto', Icon: ClipboardCheck },
+          { key: 'orcamento', label: 'Orçamento (aprovação)', Icon: FileText },
+        ] as const).map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => { setModo(key); setModoTocado(true) }}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors ${
+              modo === key
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" /> {label}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
@@ -89,7 +126,9 @@ export default function PedidosLegadoPage() {
               <div className="px-5 py-4 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 <div>
-                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Orçamento gerado!</p>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                    {isOrcamento ? 'Orçamento gerado!' : 'Pedido gerado!'}
+                  </p>
                   <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70">{pedidoCriado.numero}</p>
                 </div>
               </div>
@@ -104,7 +143,7 @@ export default function PedidosLegadoPage() {
                   <Tags className="h-4 w-4 mr-2" /> Gerar Etiquetas
                 </Button>
                 <Button variant="secondary" className="w-full" onClick={limparPedidoCriado}>
-                  <Plus className="h-4 w-4 mr-2" /> Novo orçamento
+                  <Plus className="h-4 w-4 mr-2" /> {isOrcamento ? 'Novo orçamento' : 'Novo pedido'}
                 </Button>
               </div>
             </div>
@@ -112,7 +151,7 @@ export default function PedidosLegadoPage() {
 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Itens do Orçamento</h2>
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{isOrcamento ? 'Itens do Orçamento' : 'Itens do Pedido'}</h2>
               {itens.length > 0 && <Badge variant="blue">{itens.length} item{itens.length !== 1 ? 's' : ''}</Badge>}
             </div>
 
@@ -178,9 +217,15 @@ export default function PedidosLegadoPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Button className="w-full" onClick={() => setConfirmarPrazo(true)} loading={saving}>
-                      <Send className="h-4 w-4 mr-2" /> Enviar Orçamento
-                    </Button>
+                    {isOrcamento ? (
+                      <Button className="w-full" onClick={() => setConfirmarPrazo(true)} loading={saving}>
+                        <Send className="h-4 w-4 mr-2" /> Enviar Orçamento
+                      </Button>
+                    ) : (
+                      <Button className="w-full" onClick={() => handleSalvar('enviado')} loading={saving}>
+                        <ClipboardCheck className="h-4 w-4 mr-2" /> Registrar Pedido
+                      </Button>
+                    )}
                     <Button variant="secondary" className="w-full" onClick={() => handleSalvar('rascunho')} loading={saving}>
                       {editId ? 'Atualizar rascunho' : 'Salvar como Rascunho'}
                     </Button>

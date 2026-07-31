@@ -46,7 +46,7 @@ const menuItems: MenuItem[] = [
   { href: '/cadastro', label: 'Clientes', icon: Users, perm: 'clientes' },
   // Orçamento entre Clientes e Recebimento (ordem do fluxo: cadastra → orça → recebe).
   // Telas com valores: ocultas para o perfil técnico (sem valores).
-  { href: '/pedidos-legado', label: 'Orçamento', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
+  { href: '/pedidos-legado', label: 'Novo Pedido', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
   { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
