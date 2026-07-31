@@ -90,8 +90,9 @@ export class RecebimentoController {
   updateAmostra(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAmostraDto,
+    @Request() req: any,
   ) {
-    return this.service.updateAmostra(id, dto);
+    return this.service.updateAmostra(id, dto, req.user?.role);
   }
 
   /** Reclassifica o recipiente na macroscopia (ex.: "Pote" → "Cassete") */
@@ -100,7 +101,8 @@ export class RecebimentoController {
   atualizarRecipiente(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: { tipo?: string; observacoes?: string },
+    @Request() req: any,
   ) {
-    return this.service.atualizarRecipiente(id, dto);
+    return this.service.atualizarRecipiente(id, dto, req.user?.role);
   }
 }

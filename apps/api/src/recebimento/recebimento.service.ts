@@ -420,9 +420,27 @@ export class RecebimentoService {
     };
   }
 
+  // Enquanto a triagem está aberta (antes de identificar/gerar OS), amostras e
+  // recipientes podem ser editados. Depois de finalizada, ficam travados — só a
+  // gerência reabre (evita outro setor mudar tipo/serviço com a OS já emitida).
+  private garantirTriagemAberta(status: string, role?: string) {
+    const TRIAGEM_ABERTA = ['rascunho', 'enviado', 'recepcao'];
+    if (role === 'gerencia') return;
+    if (!TRIAGEM_ABERTA.includes(status)) {
+      throw new BadRequestException(
+        'Triagem já finalizada — o pedido saiu da recepção/laboratório. Só a gerência pode alterar agora.',
+      );
+    }
+  }
+
   // ── Atualizar amostra ──────────────────────────────────────────────────────────
-  async updateAmostra(id: number, dto: UpdateAmostraDto) {
-    await this.findOneAmostra(id);
+  async updateAmostra(id: number, dto: UpdateAmostraDto, role?: string) {
+    const amostra = await this.prisma.amostra.findUnique({
+      where: { id },
+      select: { id: true, pedido: { select: { status: true } } },
+    });
+    if (!amostra) throw new NotFoundException(`Amostra #${id} não encontrada.`);
+    this.garantirTriagemAberta(amostra.pedido.status, role);
     const updated = await this.prisma.amostra.update({
       where: { id },
       data: { ...dto },
@@ -434,9 +452,13 @@ export class RecebimentoService {
   // ── Trocar o tipo do recipiente (macroscopia: "Pote" → "Cassete") ───────────────
   // A recepção registra só o recipiente externo (ex.: 1 pote); ao abrir, a
   // macroscopia pode reclassificá-lo antes de identificar as amostras.
-  async atualizarRecipiente(id: number, dto: { tipo?: string; observacoes?: string }) {
-    const rec = await this.prisma.recipiente.findUnique({ where: { id }, select: { id: true } });
+  async atualizarRecipiente(id: number, dto: { tipo?: string; observacoes?: string }, role?: string) {
+    const rec = await this.prisma.recipiente.findUnique({
+      where: { id },
+      select: { id: true, pedido: { select: { status: true } } },
+    });
     if (!rec) throw new NotFoundException(`Recipiente #${id} não encontrado.`);
+    this.garantirTriagemAberta(rec.pedido.status, role);
     const data: { tipo?: string; observacoes?: string } = {};
     if (dto.tipo != null && dto.tipo.trim()) data.tipo = dto.tipo.trim();
     if (dto.observacoes != null) data.observacoes = dto.observacoes;
