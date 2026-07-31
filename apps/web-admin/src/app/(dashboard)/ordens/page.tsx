@@ -37,6 +37,18 @@ const etapaLabel: Record<string, string> = {
   expedicao:     'Expedição',
 }
 
+// Inicial curta exibida no quadradinho de cada fase (Ma/Mi evitam a colisão do "M")
+const etapaInicial: Record<string, string> = {
+  triagem:       'T',
+  macroscopia:   'Ma',
+  processamento: 'P',
+  microtomia:    'Mi',
+  coloracao:     'C',
+  laudo:         'L',
+  finalizacao:   'F',
+  expedicao:     'E',
+}
+
 function labelMaterial(m: string) {
   const MAP: Record<string, string> = {
     biopsia_incisional: 'Biópsia Incisional',
@@ -62,27 +74,25 @@ function EtapaProgress({ etapas, etapaAtual, status }: {
   status: string
 }) {
   return (
-    <div className="flex items-center gap-0.5">
-      {ETAPAS.map((e, i) => {
+    <div className="flex items-center gap-1">
+      {ETAPAS.map((e) => {
         const record = etapas.find((et) => et.etapa === e)
-        const concluida = record?.status === 'concluida'
+        const concluida = record?.status === 'concluida' || status === 'concluida'
         const atual     = e === etapaAtual && status !== 'concluida' && status !== 'cancelada'
-        const futura    = !concluida && !atual
 
         return (
-          <div key={e} className="flex items-center gap-0.5">
-            <div
-              title={etapaLabel[e]}
-              className={`h-1.5 w-6 rounded-full transition-colors ${
-                concluida  ? 'bg-emerald-500' :
-                atual      ? 'bg-blue-500' :
-                status === 'concluida' ? 'bg-emerald-500' :
-                'bg-slate-200 dark:bg-slate-700'
-              }`}
-            />
-            {i < ETAPAS.length - 1 && (
-              <div className="w-px h-1.5 bg-slate-200 dark:bg-slate-700" />
-            )}
+          <div
+            key={e}
+            title={etapaLabel[e]}
+            className={`flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold leading-none transition-colors ${
+              concluida
+                ? 'bg-emerald-500 text-white'
+                : atual
+                ? 'bg-blue-500 text-white ring-2 ring-blue-500/30'
+                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+            }`}
+          >
+            {etapaInicial[e]}
           </div>
         )
       })}
