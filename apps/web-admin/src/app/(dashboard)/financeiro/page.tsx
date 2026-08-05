@@ -14,10 +14,10 @@ type ClienteOpt = { id: number; nome: string; nomeFantasia?: string | null }
 type SaldoCliente = { clienteId: number; nome: string; nomeFantasia?: string | null; saldo: number }
 type Movimento = { id: number; tipo: string; valor: number; descricao: string; saldo: number; createdAt: string }
 type Extrato = { cliente: ClienteOpt; saldoAtual: number; movimentos: Movimento[] }
-type FechLinha = { clienteId: number; nome: string; nomeFantasia?: string | null; qtdPedidos: number; totalBruto: number; adiantado: number; aFaturar: number; creditoSaldo: number }
-type Fechamento = { ano: number; mes: number; linhas: FechLinha[]; totais: { clientes: number; pedidos: number; totalBruto: number; aFaturar: number } }
+type FechLinha = { clienteId: number; nome: string; nomeFantasia?: string | null; qtdOrdens: number; totalBruto: number; adiantado: number; aFaturar: number; creditoSaldo: number; ordensSemServico: string[] }
+type Fechamento = { ano: number; mes: number; linhas: FechLinha[]; totais: { clientes: number; ordens: number; totalBruto: number; aFaturar: number; ordensSemServico: number } }
 type DetLinha = { servico: string; codigo: string; quantidade: number; valorUnit: number; valorTotal: number }
-type Detalhe = { cliente: string; segmento: string; projeto?: string | null; periodo: string; pedidos: string[]; linhas: DetLinha[]; total: number }
+type Detalhe = { cliente: string; segmento: string; projeto?: string | null; periodo: string; ordens: string[]; ordensSemServico: string[]; linhas: DetLinha[]; total: number }
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -201,20 +201,25 @@ export default function FinanceiroPage() {
           />
           {fechamento && (
             <span className="ml-auto text-[12px] text-slate-400">
-              {fechamento.totais.clientes} cliente(s) · {fechamento.totais.pedidos} pedido(s) ·
+              {fechamento.totais.clientes} cliente(s) · {fechamento.totais.ordens} OS ·
               a faturar: <strong className="text-slate-700 dark:text-slate-200">{fmtBRL(fechamento.totais.aFaturar)}</strong>
+              {fechamento.totais.ordensSemServico > 0 && (
+                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+                  {fechamento.totais.ordensSemServico} OS sem serviço definido
+                </span>
+              )}
             </span>
           )}
         </div>
         {!fechamento || fechamento.linhas.length === 0 ? (
-          <p className="py-10 text-center text-[13px] text-slate-400">Nenhum pedido recebido neste mês.</p>
+          <p className="py-10 text-center text-[13px] text-slate-400">Nenhuma OS neste mês.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-left">
                 <tr>
                   <th className="px-4 py-2 font-semibold">Cliente</th>
-                  <th className="px-4 py-2 font-semibold text-center">Pedidos</th>
+                  <th className="px-4 py-2 font-semibold text-center">OS</th>
                   <th className="px-4 py-2 font-semibold text-right">Bruto</th>
                   <th className="px-4 py-2 font-semibold text-right">Adiantado</th>
                   <th className="px-4 py-2 font-semibold text-right">A faturar</th>
@@ -231,7 +236,17 @@ export default function FinanceiroPage() {
                         <span className="truncate">{l.nomeFantasia ?? l.nome}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-center tabular-nums">{l.qtdPedidos}</td>
+                    <td className="px-4 py-2 text-center tabular-nums">
+                      {l.qtdOrdens}
+                      {l.ordensSemServico.length > 0 && (
+                        <span
+                          title={`Sem serviço definido: ${l.ordensSemServico.join(', ')}`}
+                          className="ml-1 rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                        >
+                          +{l.ordensSemServico.length}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-right tabular-nums">{fmtBRL(l.totalBruto)}</td>
                     <td className="px-4 py-2 text-right tabular-nums text-slate-400">{l.adiantado ? fmtBRL(l.adiantado) : '—'}</td>
                     <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100">{fmtBRL(l.aFaturar)}</td>
@@ -354,7 +369,7 @@ export default function FinanceiroPage() {
             <div>
               <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Discriminação — {detalhe.cliente}</h2>
               <p className="text-[12px] text-slate-500 dark:text-slate-400">
-                {detalhe.periodo} · {detalhe.pedidos.length} pedido(s)
+                {detalhe.periodo} · {detalhe.ordens.length} OS
                 {detalhe.segmento === 'pesquisador' && detalhe.projeto ? ` · Projeto ${detalhe.projeto}` : ''}
               </p>
             </div>
