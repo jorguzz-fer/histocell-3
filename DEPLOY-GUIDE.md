@@ -153,15 +153,19 @@ Toda a numeração volta ao início: etiqueta #1, amostra `00001`, pedido `#0001
 2. **Pare a API** (ou rode fora do horário de uso) para nada gravar no meio da limpeza.
 3. Avise que todos os usuários serão deslogados (os refresh tokens são apagados).
 
-**Opção A — via script Node (container da API):**
+**Opção A — no container da API (recomendado).** Requer que o deploy com o script já tenha subido: o terminal do Coolify roda a imagem buildada, então um `Missing script: "db:reset-producao"` significa que a imagem é anterior a este commit — basta redeployar.
+
 ```bash
-npm run db:reset-producao            # simulação: só mostra o que seria apagado
-npm run db:reset-producao -- --apply # executa
+npm run db:reset-producao:prod            # simulação: só mostra o que seria apagado
+npm run db:reset-producao:prod -- --apply # executa
 ```
 
-**Opção B — via psql (container do Postgres):**
+> Use a variante `:prod` dentro do container. Ela roda o JS já compilado (`dist/prisma/reset-producao.js`) com `node` puro — o mesmo caminho que o entrypoint usa para o seed. O `npm run db:reset-producao` (sem `:prod`) é para a máquina de dev: ele chama `npx tsx`, que na produção tentaria baixar o `tsx` da npm em runtime.
+
+**Opção B — via psql (container do Postgres).** Não depende de deploy: cole o conteúdo de `apps/api/prisma/reset-producao.sql` no psql, ou rode o arquivo se ele estiver acessível.
+
 ```bash
-psql -U histocell -d histocell -f apps/api/prisma/reset-producao.sql
+psql -U histocell -d histocell -f reset-producao.sql
 ```
 
 Depois é só subir a API de volta. O seed do boot é idempotente: recria os 3 usuários admin se faltarem e completa o catálogo de serviços, sem recriar clientes de teste (ele só semeia clientes quando a tabela está vazia).
