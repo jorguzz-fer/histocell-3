@@ -3,6 +3,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -10,6 +11,26 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { RecipienteItemDto } from './entrada-recepcao.dto';
+
+/** Estados possíveis do material que chega. Cada um segue para um departamento. */
+export const CONDICOES = ['molhado', 'seco'] as const;
+export type Condicao = (typeof CONDICOES)[number];
+
+/**
+ * Departamento de destino por condição do material:
+ *  - molhado (pote com formol) precisa ser aberto e clivado na Macroscopia;
+ *  - seco (cassete, bloco, lâmina) já vem preparado e vai direto ao corte.
+ */
+export const CONDICAO_ETAPA: Record<Condicao, string> = {
+  molhado: 'macroscopia',
+  seco: 'microtomia',
+};
+
+/** Objeto recebido na Entrada: como o recipiente, mais a condição do material. */
+export class ObjetoEntradaDto extends RecipienteItemDto {
+  @IsIn([...CONDICOES])
+  condicao: Condicao;
+}
 
 /**
  * Tela "Entrada": a recepção registra só quem é o cliente e o que chegou. Não
@@ -25,9 +46,9 @@ export class EntradaAvulsaDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => RecipienteItemDto)
+  @Type(() => ObjetoEntradaDto)
   @ArrayMinSize(1)
-  recipientes: RecipienteItemDto[];
+  recipientes: ObjetoEntradaDto[];
 }
 
 /** Vincula entradas avulsas já registradas a um pedido/orçamento do cliente. */

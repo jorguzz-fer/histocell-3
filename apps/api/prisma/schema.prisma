@@ -118,6 +118,7 @@ model Cliente {
   creditos      CreditoPrePago[]
   contratos     Contrato[]
   recipientes   Recipiente[] // entradas avulsas ainda sem pedido
+  ordensServico OrdemServico[] // OS abertas na entrada
 
   @@index([documento])
   @@index([nome])
@@ -223,6 +224,7 @@ model Servico {
   favoritos      ServicoFavorito[]
   pacoteItens    PacoteItem[]
   amostras       Amostra[]
+  itensOrdem     ItemOrdemServico[]
 
   @@index([codigo])
   @@index([categoria])
@@ -341,7 +343,12 @@ model Recipiente {
   // vinculação. Um dos dois é sempre obrigatório (CHECK no banco).
   pedidoId    Int?
   clienteId   Int?
+  // Ordem de Serviço aberta na entrada — o volume já nasce dentro dela.
+  ordemServicoId Int?
   tipo        String   // Pote, Caixa, Saco, Outro, …
+  // 'molhado' (pote com formol → Macroscopia) ou 'seco' (cassete/bloco/lâmina
+  // → Microtomia). Define o departamento de destino do material.
+  condicao    String?
   quantidade  Int      @default(1)
   codigo      String?  @unique // conteúdo do código de barras da etiqueta do recipiente (Recepção)
   etiquetaImpressa Boolean @default(false)
@@ -351,10 +358,12 @@ model Recipiente {
 
   pedido   Pedido?   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   cliente  Cliente?  @relation(fields: [clienteId], references: [id])
+  ordemServico OrdemServico? @relation(fields: [ordemServicoId], references: [id])
   amostras Amostra[] // amostras designadas dentro do recipiente (Laboratório)
 
   @@index([pedidoId])
   @@index([clienteId])
+  @@index([ordemServicoId])
 }
 
 model ItemPedido {
@@ -412,7 +421,13 @@ model Amostra {
 // ==========================================
 model OrdemServico {
   id          Int       @id @default(autoincrement())
-  amostraId   Int       @unique
+  // Origem da OS. 'entrada' = aberta na recepção, quando o material chegou:
+  // nasce sem amostra, ligada ao cliente e aos volumes recebidos, e é nela que
+  // se decide o serviço a executar. 'amostra' = fluxo antigo, uma OS por
+  // amostra identificada no laboratório.
+  origem      String    @default("amostra")
+  amostraId   Int?      @unique
+  clienteId   Int?
   numero      String    @unique // OS-20260410-001 (referência interna completa)
   seq         Int?      @unique // código curto sequencial p/ exibição (ex.: 42 → "#0042")
   status      String    @default("fila")
@@ -430,13 +445,37 @@ model OrdemServico {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  amostra       Amostra        @relation(fields: [amostraId], references: [id])
+  amostra       Amostra?       @relation(fields: [amostraId], references: [id])
+  cliente       Cliente?       @relation(fields: [clienteId], references: [id])
+  volumes       Recipiente[]   // volumes recebidos na entrada que compõem esta OS
+  itens         ItemOrdemServico[]
   etapas        EtapaOS[]
   laudo         Laudo?
 
   @@index([status])
   @@index([etapaAtual])
   @@index([responsavelUserId])
+  @@index([clienteId])
+  @@index([origem])
+}
+
+// Serviço que a OS vai efetivamente executar. Diferente do ItemPedido, que é a
+// estimativa do orçamento: aqui fica o que a equipe confirmou na conferência do
+// material — é esta lista que vale para a execução.
+model ItemOrdemServico {
+  id             Int     @id @default(autoincrement())
+  ordemServicoId Int
+  servicoId      Int
+  quantidade     Int     @default(1)
+  preco          Decimal @db.Decimal(10, 2)
+  desconto       Decimal @default(0) @db.Decimal(5, 2)
+  observacoes    String?
+
+  ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  servico      Servico      @relation(fields: [servicoId], references: [id])
+
+  @@index([ordemServicoId])
+  @@index([servicoId])
 }
 
 model EtapaOS {

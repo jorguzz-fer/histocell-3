@@ -33,6 +33,7 @@ const TABELAS_MOVIMENTO = [
   'Etiqueta',
   'Laudo',
   'EtapaOS',
+  'ItemOrdemServico',
   'OrdemServico',
   'Amostra',
   'Recipiente',

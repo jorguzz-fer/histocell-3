@@ -14,11 +14,11 @@ import { PrintModal } from '@/components/PrintModal'
 import { ClienteDrawer } from '@/app/(dashboard)/cadastro/ClienteDrawer'
 import { api } from '@/lib/api'
 import type { Cliente } from '@/app/(dashboard)/cadastro/types'
-import type { EntradaAvulsa, TipoRecipiente } from './types'
+import { CONDICOES, type EntradaAvulsa, type TipoRecipiente } from './types'
 
-type Linha = { tipo: string; quantidade: string; observacoes: string }
+type Linha = { tipo: string; condicao: string; quantidade: string; observacoes: string }
 
-const LINHA_VAZIA: Linha = { tipo: '', quantidade: '1', observacoes: '' }
+const LINHA_VAZIA: Linha = { tipo: '', condicao: '', quantidade: '1', observacoes: '' }
 
 function fmtHora(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -84,21 +84,31 @@ export default function EntradaPage() {
       toast.error('Identifique o cliente antes de registrar.')
       return
     }
-    const recipientes = linhas
-      .filter((l) => l.tipo && parseInt(l.quantidade, 10) > 0)
-      .map((l) => ({
-        tipo: l.tipo,
-        quantidade: parseInt(l.quantidade, 10),
-        observacoes: l.observacoes.trim() || undefined,
-      }))
-    if (recipientes.length === 0) {
+    const preenchidas = linhas.filter((l) => l.tipo && parseInt(l.quantidade, 10) > 0)
+    if (preenchidas.length === 0) {
       toast.error('Informe ao menos um objeto (tipo + quantidade).')
       return
     }
+    // A condição decide o departamento de destino — sem ela a OS não sabe onde
+    // começar, então é obrigatória.
+    if (preenchidas.some((l) => !l.condicao)) {
+      toast.error('Diga se cada objeto é seco ou molhado.')
+      return
+    }
+    const recipientes = preenchidas.map((l) => ({
+      tipo: l.tipo,
+      condicao: l.condicao,
+      quantidade: parseInt(l.quantidade, 10),
+      observacoes: l.observacoes.trim() || undefined,
+    }))
 
     setSalvando(true)
     try {
-      const res = await api.post<{ message: string; ids: number[] }>(
+      const res = await api.post<{
+        message: string
+        ids: number[]
+        ordemServico: { id: number; numero: string }
+      }>(
         '/recebimento/entrada-avulsa',
         { clienteId: cliente.id, recebidoPor: recebidoPor.trim() || undefined, recipientes },
       )
@@ -195,6 +205,28 @@ export default function EntradaPage() {
                     </button>
                   )}
                 </div>
+                {/* Seco ou molhado decide o departamento de destino, então é
+                    escolha explícita — não um select que se erra sem perceber. */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {CONDICOES.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      title={c.ajuda}
+                      onClick={() => setLinha(i, 'condicao', c.value)}
+                      className={`rounded-md border px-2 py-1.5 text-[12px] font-medium transition-colors ${
+                        l.condicao === c.value
+                          ? c.value === 'molhado'
+                            ? 'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-300'
+                            : 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-300'
+                          : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+
                 <Input
                   label=""
                   value={l.observacoes}
@@ -267,9 +299,16 @@ export default function EntradaPage() {
                       {e.clienteNomeFantasia ?? e.clienteNome}
                     </p>
                     <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
-                      {e.tipo} · <span className="font-mono">{e.codigo}</span> · {fmtHora(e.createdAt)}
+                      {e.tipo}
+                      {e.condicao ? ` (${e.condicao})` : ''} ·{' '}
+                      <span className="font-mono">{e.codigo}</span> · {fmtHora(e.createdAt)}
                       {e.recebidoPor ? ` · ${e.recebidoPor}` : ''}
                     </p>
+                    {e.osCodigoCurto && (
+                      <p className="truncate text-[11px] text-slate-400">
+                        OS {e.osCodigoCurto}
+                      </p>
+                    )}
                     {e.observacoes && (
                       <p className="truncate text-[11px] text-slate-400">{e.observacoes}</p>
                     )}

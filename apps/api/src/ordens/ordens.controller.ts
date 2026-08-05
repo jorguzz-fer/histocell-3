@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -16,6 +17,7 @@ import { OrdensService } from './ordens.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
+import { AddItemOSDto } from './dto/item-os.dto';
 
 @Controller('ordens')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -114,5 +116,33 @@ export class OrdensController {
   cancelar(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     const userId = req.user.sub ?? req.user.userId ?? req.user.id;
     return this.service.cancelar(id, userId);
+  }
+
+  // ── Serviços que a OS vai executar ──────────────────────────────────────────
+  // O orçamento é estimativa; esta lista é o que a equipe confirmou ao conferir
+  // o material.
+
+  @Get(':id/itens')
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  listarItens(@Param('id', ParseIntPipe) id: number) {
+    return this.service.listarItens(id);
+  }
+
+  @Post(':id/itens')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  adicionarItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AddItemOSDto,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.adicionarItem(id, dto, userId);
+  }
+
+  @Delete('itens/:itemId')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  removerItem(@Param('itemId', ParseIntPipe) itemId: number, @Request() req: any) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.removerItem(itemId, userId);
   }
 }

@@ -6,6 +6,7 @@ import { OrdensService } from '../ordens/ordens.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import {
+  CONDICAO_ETAPA,
   EntradaAvulsaDto,
   FilterEntradaDto,
   VincularEntradaDto,
@@ -175,7 +176,7 @@ export class RecebimentoService {
     return `ENT-${String(Number(rows[0].nextval)).padStart(6, '0')}`;
   }
 
-  async registrarEntradaAvulsa(dto: EntradaAvulsaDto) {
+  async registrarEntradaAvulsa(dto: EntradaAvulsaDto, userId?: number) {
     const cliente = await this.prisma.cliente.findUnique({
       where: { id: dto.clienteId },
       select: { id: true, nome: true, nomeFantasia: true, ativo: true },
@@ -186,6 +187,7 @@ export class RecebimentoService {
     const novos: {
       clienteId: number;
       tipo: string;
+      condicao: string;
       quantidade: number;
       codigo: string;
       observacoes?: string;
@@ -196,6 +198,7 @@ export class RecebimentoService {
         novos.push({
           clienteId: cliente.id,
           tipo: r.tipo,
+          condicao: r.condicao,
           quantidade: 1,
           codigo: await this.gerarCodigoEntrada(),
           observacoes: r.observacoes,
@@ -210,10 +213,23 @@ export class RecebimentoService {
       novos.map((data) => this.prisma.recipiente.create({ data, select: { id: true } })),
     );
 
+    // A entrada abre a OS: é dela que o trabalho parte. Uma OS por entrada,
+    // então quando chega material molhado E seco junto, a OS começa na etapa
+    // mais atrasada do fluxo (Macroscopia) — nenhum volume pode pular uma etapa
+    // que ainda precisa acontecer com ele.
+    const temMolhado = dto.recipientes.some((r) => r.condicao === 'molhado');
+    const etapaInicial = temMolhado ? CONDICAO_ETAPA.molhado : CONDICAO_ETAPA.seco;
+    const os = await this.ordens.criarDaEntrada(cliente.id, etapaInicial, {
+      recipienteIds: criados.map((c) => c.id),
+      responsavel: dto.recebidoPor,
+      userId,
+    });
+
     return {
-      message: `Entrada registrada (${criados.length} volume(s)).`,
+      message: `Entrada registrada (${criados.length} volume(s)). OS ${os.numero} aberta.`,
       total: criados.length,
       ids: criados.map((c) => c.id),
+      ordemServico: { id: os.id, numero: os.numero, seq: os.seq, etapaAtual: os.etapaAtual },
     };
   }
 
@@ -235,6 +251,7 @@ export class RecebimentoService {
       include: {
         cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         pedido: { select: { id: true, numero: true, seq: true } },
+        ordemServico: { select: { id: true, numero: true, seq: true } },
         amostras: { select: { id: true } },
       },
     });
@@ -242,6 +259,7 @@ export class RecebimentoService {
     return recipientes.map((r) => ({
       id: r.id,
       tipo: r.tipo,
+      condicao: r.condicao,
       codigo: r.codigo,
       observacoes: r.observacoes,
       recebidoPor: r.recebidoPor,
@@ -259,6 +277,12 @@ export class RecebimentoService {
             ? `#${String(r.pedido.seq).padStart(4, '0')}`
             : r.pedido.numero,
       totalAmostras: r.amostras.length,
+      ordemServicoId: r.ordemServicoId,
+      osNumero: r.ordemServico?.numero ?? null,
+      osCodigoCurto:
+        r.ordemServico?.seq != null
+          ? `#${String(r.ordemServico.seq).padStart(4, '0')}`
+          : (r.ordemServico?.numero ?? null),
     }));
   }
 

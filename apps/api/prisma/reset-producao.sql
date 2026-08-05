@@ -36,7 +36,7 @@ DECLARE
   -- Ordem irrelevante: o TRUNCATE de todas juntas satisfaz as FKs entre elas.
   alvos text[] := ARRAY[
     'RastreioEvento', 'Etiqueta',
-    'Laudo', 'EtapaOS', 'OrdemServico',
+    'Laudo', 'EtapaOS', 'ItemOrdemServico', 'OrdemServico',
     'Amostra', 'Recipiente', 'ItemPedido', 'CreditoPrePago', 'Comunicacao', 'Pedido',
     'ItemFatura', 'Fatura',
     'FollowUp', 'ItemOrcamento', 'Orcamento',
