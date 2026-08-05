@@ -133,7 +133,40 @@ Ou seja: **cada deploy aplica o schema sozinho via migrations**. Não se usa mai
 >
 > **Novas mudanças de schema:** gere a migration localmente com `npx prisma migrate dev --name <descricao>` e commite a pasta gerada em `apps/api/prisma/migrations/`. O deploy aplica sozinho.
 
+### 3.2 Limpeza da base para o go-live
 
+Antes de abrir a plataforma para uso real, zere o movimento gerado em testes/homologação. O reset **preserva os cadastros** e apaga só o operacional/financeiro:
+
+| Preservado | Apagado |
+|---|---|
+| `Cliente`, `Endereco`, `Contato`, `TabelaPreco`, `Contrato` | `Pedido`, `ItemPedido`, `Recipiente`, `Amostra` |
+| `User`, `Papel`, `PapelPermissao`, `ServicoFavorito` | `OrdemServico`, `EtapaOS`, `Laudo` |
+| `Servico`, `Pacote`, `PacoteItem` | `Etiqueta`, `RastreioEvento` |
+| `TipoRecipiente`, `Motivo` | `Orcamento`, `ItemOrcamento`, `FollowUp` |
+| | `Fatura`, `ItemFatura`, `CreditoPrePago` |
+| | `Comunicacao`, `RegistroQualidade`, `AuditLog`, `RefreshToken` |
+
+Toda a numeração volta ao início: etiqueta #1, amostra `00001`, pedido `#0001`, OS `#0001`, e os ids das tabelas apagadas. `Contrato.ultimaCobrancaEm` é limpo para a cobrança programada não pular o primeiro mês.
+
+**Antes de rodar:**
+1. Faça **backup/snapshot** do banco no Coolify — o reset é irreversível.
+2. **Pare a API** (ou rode fora do horário de uso) para nada gravar no meio da limpeza.
+3. Avise que todos os usuários serão deslogados (os refresh tokens são apagados).
+
+**Opção A — via script Node (container da API):**
+```bash
+npm run db:reset-producao            # simulação: só mostra o que seria apagado
+npm run db:reset-producao -- --apply # executa
+```
+
+**Opção B — via psql (container do Postgres):**
+```bash
+psql -U histocell -d histocell -f apps/api/prisma/reset-producao.sql
+```
+
+Depois é só subir a API de volta. O seed do boot é idempotente: recria os 3 usuários admin se faltarem e completa o catálogo de serviços, sem recriar clientes de teste (ele só semeia clientes quando a tabela está vazia).
+
+### 4. Deploy do Web Cliente (Next.js)
 
 No Coolify:
 1. **Resources → New → Application**
