@@ -175,10 +175,14 @@ interface ClienteDrawerProps {
   open: boolean
   onClose: () => void
   cliente: Cliente | null   // null = criar novo
-  onSaved: () => void
+  /** Recebe o cliente criado/atualizado quando a API o devolve (ex.: tela Entrada,
+   *  que já seleciona o cliente novo). Chamadas antigas podem ignorar o argumento. */
+  onSaved: (cliente?: Cliente) => void
+  /** Pré-preenche o nome ao criar — vem do que foi digitado na busca. */
+  nomeInicial?: string
 }
 
-export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawerProps) {
+export function ClienteDrawer({ open, onClose, cliente, onSaved, nomeInicial }: ClienteDrawerProps) {
   const isEdit = Boolean(cliente)
   const [form, setForm] = useState<FormState>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
@@ -200,11 +204,17 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
   // Popula o form quando o drawer abre
   useEffect(() => {
     if (open) {
-      setForm(cliente ? clienteToForm(cliente) : EMPTY)
+      setForm(
+        cliente
+          ? clienteToForm(cliente)
+          : nomeInicial
+            ? { ...EMPTY, nome: nomeInicial }
+            : EMPTY,
+      )
       setPortalToken(cliente?.portalToken ?? null)
       setErrors({})
     }
-  }, [open, cliente])
+  }, [open, cliente, nomeInicial])
 
   const portalUrl = portalToken ? `${portalBase}/p/${portalToken}` : ''
 
@@ -365,15 +375,16 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved }: ClienteDrawer
           : {}),
       }
 
+      let salvo: Cliente
       if (isEdit && cliente) {
-        await api.patch(`/clientes/${cliente.id}`, payload)
+        salvo = await api.patch<Cliente>(`/clientes/${cliente.id}`, payload)
         toast.success('Cliente atualizado com sucesso!')
       } else {
-        await api.post('/clientes', payload)
+        salvo = await api.post<Cliente>('/clientes', payload)
         toast.success('Cliente cadastrado com sucesso!')
       }
 
-      onSaved()
+      onSaved(salvo)
       onClose()
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao salvar cliente')

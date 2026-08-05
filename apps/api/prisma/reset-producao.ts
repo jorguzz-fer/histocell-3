@@ -138,7 +138,11 @@ async function main() {
   // Numeração de etiqueta e de amostra vive em sequences próprias — checa a
   // existência fora da transação para não misturar conexões.
   const sequences: string[] = [];
-  for (const seq of ['histocell_etiqueta_numero_seq', 'histocell_amostra_numero_seq']) {
+  for (const seq of [
+    'histocell_etiqueta_numero_seq',
+    'histocell_amostra_numero_seq',
+    'histocell_entrada_numero_seq',
+  ]) {
     if (await existe(seq)) sequences.push(seq);
   }
 
@@ -168,7 +172,9 @@ async function main() {
     `\n✅ Reset concluído. Preservados: ${await contar('Cliente')} cliente(s), ` +
       `${await contar('User')} usuário(s), ${await contar('Servico')} serviço(s).`,
   );
-  console.log('   Numeração reiniciada: etiqueta #1, amostra 00001, pedido #0001, OS #0001.');
+  console.log(
+    '   Numeração reiniciada: etiqueta #1, amostra 00001, entrada ENT-000001, pedido #0001, OS #0001.',
+  );
 }
 
 main()
