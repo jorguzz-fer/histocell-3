@@ -12,6 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "npx tsx prisma/seed.ts",
     "db:reset-piloto": "npx tsx prisma/reset-piloto.ts",
+    "db:reset-producao": "npx tsx prisma/reset-producao.ts",
+    "db:reset-producao:prod": "node dist/prisma/reset-producao.js",
     "db:backfill-rastreio": "npx tsx prisma/backfill-rastreio.ts"
   },
   "dependencies": {
