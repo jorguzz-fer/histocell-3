@@ -15,6 +15,7 @@ import {
   Inbox,
   Tags,
   ClipboardList,
+  ListChecks,
   ScanLine,
   FileText,
   MessageSquare,
@@ -57,7 +58,11 @@ const menuItems: MenuItem[] = [
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
   { href: '/pacotes', label: 'Pacotes', icon: Boxes, perm: 'pacotes', roles: ['gerencia', 'recepcao', 'financeiro'] },
   { href: '/etiquetas', label: 'Etiquetas', icon: Tags, perm: 'etiquetas' },
-  { href: '/ordens', label: 'Ordem de Serviço', icon: ClipboardList, perm: 'ordens' },
+  // A OS é o centro do fluxo: nasce na Entrada e é onde se define o serviço.
+  { href: '/os', label: 'Ordem de Serviço', icon: ClipboardList, perm: 'ordens' },
+  // Tela antiga da OS (etapas, responsáveis, laudo, conferência fina). Fica
+  // acessível enquanto o que ela faz não migra para a tela nova.
+  { href: '/ordens', label: 'OS — execução', icon: ListChecks, perm: 'ordens' },
   { href: '/rastreio', label: 'Rastreio', icon: ScanLine, perm: 'rastreio' },
   { href: '/laudos', label: 'Laudos', icon: FileText, perm: 'laudos' },
   // Cadastro de serviços (criar/editar/arquivar) — tirado de dentro do Orçamento.

@@ -58,8 +58,9 @@ export class RecebimentoController {
   /** Registra a entrada avulsa e devolve os ids dos volumes (p/ imprimir) */
   @Post('entrada-avulsa')
   @Roles('gerencia', 'recepcao')
-  registrarEntradaAvulsa(@Body() dto: EntradaAvulsaDto) {
-    return this.service.registrarEntradaAvulsa(dto);
+  registrarEntradaAvulsa(@Body() dto: EntradaAvulsaDto, @Request() req: any) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.registrarEntradaAvulsa(dto, userId);
   }
 
   /** Entradas avulsas: `?pendentes=true` (sem pedido) ou `?dias=N` (recentes) */

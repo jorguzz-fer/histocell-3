@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { PrecoService } from '../common/preco.service';
+import { AddItemOSDto } from './dto/item-os.dto';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
@@ -52,6 +54,12 @@ const INCLUDE_OS = {
       },
     },
   },
+  cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+  volumes: { orderBy: { id: 'asc' as const } },
+  itens: {
+    orderBy: { id: 'asc' as const },
+    include: { servico: { select: { id: true, codigo: true, nome: true, categoria: true } } },
+  },
   etapas: { orderBy: { id: 'asc' as const } },
 } as const;
 
@@ -59,7 +67,11 @@ const INCLUDE_OS = {
 
 @Injectable()
 export class OrdensService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+    private preco: PrecoService,
+  ) {}
 
   /**
    * Espelha a etapa atual da OS no Rastreio das etiquetas da amostra, para que a
@@ -70,10 +82,13 @@ export class OrdensService {
    * pedido não entrava. Best-effort — nunca derruba o avanço da OS.
    */
   private async sincronizarRastreio(
-    amostraId: number,
+    amostraId: number | null,
     etapa: EtapaOrdem,
     opts: { responsavel?: string; concluir?: boolean } = {},
   ) {
+    // OS aberta na Entrada ainda não tem amostra — logo, nenhuma etiqueta de
+    // lâmina para espelhar. O rastreio dela começa quando a amostra existir.
+    if (amostraId == null) return;
     try {
       const departamento = ETAPA_PARA_DEPARTAMENTO[etapa];
       if (!departamento) return;
@@ -121,6 +136,12 @@ export class OrdensService {
     } catch {
       // Sincronização de rastreio é best-effort: não deve bloquear a OS.
     }
+  }
+
+  /** Muda o status da amostra da OS. No-op quando a OS nasceu na Entrada. */
+  private async atualizarStatusAmostra(amostraId: number | null, status: string) {
+    if (amostraId == null) return;
+    await this.prisma.amostra.update({ where: { id: amostraId }, data: { status } });
   }
 
   // ── número sequencial diário ─────────────────────────────────────────────────
@@ -213,6 +234,147 @@ export class OrdensService {
   }
 
   /**
+   * Cria a OS da Entrada: nasce sem amostra, ligada ao cliente e aos volumes
+   * que chegaram. A etapa inicial vem da condição do material — molhado abre na
+   * Macroscopia, seco vai direto ao corte. É nesta OS que a equipe confirma o
+   * serviço a executar.
+   */
+  async criarDaEntrada(
+    clienteId: number,
+    etapaInicial: string,
+    opts: { recipienteIds?: number[]; responsavel?: string; userId?: number } = {},
+  ) {
+    const agora = new Date();
+    const idxInicial = ETAPAS_ORDEM.indexOf(etapaInicial as Etapa);
+    const dadosEtapas = ETAPAS_ORDEM.map((etapa, i) => {
+      // Etapas anteriores à inicial nascem concluídas: o material chegou já
+      // naquele ponto do fluxo (seco não passa pela macroscopia, por exemplo).
+      if (idxInicial >= 0 && i < idxInicial) {
+        return { etapa, status: 'concluida', iniciadoEm: agora, concluidoEm: agora };
+      }
+      if (i === idxInicial) return { etapa, status: 'em_andamento', iniciadoEm: agora };
+      return { etapa, status: 'pendente' };
+    });
+
+    // Mesmo retry do criarAuto: gerarNumero relê o máximo, então converge.
+    let os: any;
+    for (let tentativa = 0; ; tentativa++) {
+      const numero = await this.gerarNumero();
+      const seq = await this.gerarSeq();
+      try {
+        os = await this.prisma.ordemServico.create({
+          data: {
+            origem: 'entrada',
+            clienteId,
+            numero,
+            seq,
+            etapaAtual: etapaInicial,
+            status: 'em_andamento',
+            responsavel: opts.responsavel,
+            iniciadoEm: agora,
+            etapas: { create: dadosEtapas },
+          },
+        });
+        break;
+      } catch (e: any) {
+        if (e?.code === 'P2002' && tentativa < 4) continue;
+        throw e;
+      }
+    }
+
+    if (opts.recipienteIds?.length) {
+      await this.prisma.recipiente.updateMany({
+        where: { id: { in: opts.recipienteIds } },
+        data: { ordemServicoId: os.id },
+      });
+    }
+    if (opts.userId) {
+      await this.audit.log(opts.userId, 'CREATE_ENTRADA', 'OrdemServico', os.id, {
+        clienteId,
+        etapaInicial,
+        volumes: opts.recipienteIds?.length ?? 0,
+      });
+    }
+    return os;
+  }
+
+  // ── Serviços que a OS vai executar ───────────────────────────────────────────
+  // A lista do orçamento é estimativa; esta é o que a equipe confirmou ao
+  // conferir o material. É daqui que a execução (e, adiante, a cobrança) parte.
+
+  /** Cliente da OS, venha ela da entrada ou do fluxo antigo (via amostra). */
+  private async clienteDaOS(ordemServicoId: number): Promise<number | null> {
+    const os = await this.prisma.ordemServico.findUnique({
+      where: { id: ordemServicoId },
+      select: {
+        clienteId: true,
+        amostra: { select: { pedido: { select: { clienteId: true } } } },
+      },
+    });
+    if (!os) throw new NotFoundException(`OS #${ordemServicoId} não encontrada.`);
+    return os.clienteId ?? os.amostra?.pedido.clienteId ?? null;
+  }
+
+  async listarItens(ordemServicoId: number) {
+    const itens = await this.prisma.itemOrdemServico.findMany({
+      where: { ordemServicoId },
+      include: { servico: { select: { id: true, codigo: true, nome: true, categoria: true } } },
+      orderBy: { id: 'asc' },
+    });
+    return itens.map((i) => ({
+      ...i,
+      preco: Number(i.preco),
+      desconto: Number(i.desconto),
+      total: Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
+    }));
+  }
+
+  async adicionarItem(ordemServicoId: number, dto: AddItemOSDto, userId?: number) {
+    const clienteId = await this.clienteDaOS(ordemServicoId);
+    const servico = await this.prisma.servico.findUnique({ where: { id: dto.servicoId } });
+    if (!servico) throw new NotFoundException(`Serviço #${dto.servicoId} não encontrado.`);
+
+    // Preço informado manda; senão vale a tabela do cliente. Sem cliente (caso
+    // que o schema não permite hoje, mas o código não deve presumir), cai no
+    // preço base do serviço.
+    let preco = dto.preco;
+    let desconto = dto.desconto;
+    if (preco == null && clienteId != null) {
+      const tabela = await this.preco.getPreco(clienteId, dto.servicoId);
+      preco = tabela.preco;
+      desconto = desconto ?? tabela.desconto;
+    }
+
+    const item = await this.prisma.itemOrdemServico.create({
+      data: {
+        ordemServicoId,
+        servicoId: dto.servicoId,
+        quantidade: dto.quantidade ?? 1,
+        preco: preco ?? Number(servico.precoBase),
+        desconto: desconto ?? 0,
+        observacoes: dto.observacoes,
+      },
+      include: { servico: { select: { id: true, codigo: true, nome: true, categoria: true } } },
+    });
+    if (userId) {
+      await this.audit.log(userId, 'ADD_ITEM', 'OrdemServico', ordemServicoId, {
+        servicoId: dto.servicoId,
+      });
+    }
+    return { ...item, preco: Number(item.preco), desconto: Number(item.desconto) };
+  }
+
+  async removerItem(itemId: number, userId?: number) {
+    const item = await this.prisma.itemOrdemServico.findUnique({ where: { id: itemId } });
+    if (!item) throw new NotFoundException(`Item #${itemId} não encontrado.`);
+    await this.prisma.itemOrdemServico.delete({ where: { id: itemId } });
+    if (userId) {
+      await this.audit.log(userId, 'REMOVE_ITEM', 'OrdemServico', item.ordemServicoId, { itemId });
+    }
+    return { id: itemId, deleted: true };
+  }
+
+  /**
    * Cria OS automática (Macroscopia) para TODAS as amostras de um pedido que
    * ainda não têm OS. Best-effort POR AMOSTRA: a falha de uma não derruba as
    * demais — mas NUNCA é silenciosa: é logada, auditada e contabilizada em
@@ -289,6 +451,8 @@ export class OrdensService {
         { amostra: { numeroInterno: { contains: filter.busca, mode: 'insensitive' } } },
         { amostra: { pedido: { cliente: { nome:         { contains: filter.busca, mode: 'insensitive' } } } } },
         { amostra: { pedido: { cliente: { nomeFantasia: { contains: filter.busca, mode: 'insensitive' } } } } },
+        { cliente: { nome:         { contains: filter.busca, mode: 'insensitive' } } },
+        { cliente: { nomeFantasia: { contains: filter.busca, mode: 'insensitive' } } },
       ];
     }
 
@@ -385,7 +549,9 @@ export class OrdensService {
       select: { id: true, amostraId: true, conferenciaLiberada: true, conferenciaObs: true },
     });
     if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
-    const etiquetas = await this.prisma.etiqueta.findMany({
+    // OS aberta na Entrada ainda não tem amostra identificada — logo, nenhuma
+    // lâmina para conferir. A conferência fina só existe depois da microtomia.
+    const etiquetas = os.amostraId == null ? [] : await this.prisma.etiqueta.findMany({
       where: { amostraId: os.amostraId },
       select: { id: true, codigo: true, numero: true, laminaSeq: true, coloracao: true, conferidaEm: true, conferidaPor: true },
       orderBy: { laminaSeq: 'asc' },
@@ -413,6 +579,9 @@ export class OrdensService {
     // um texto composto (ex.: "00000032 - 17062026") — mesmo comportamento do rastreio.
     const grupoDigitos = alvo.match(/\d+/);
     const asNumero = grupoDigitos ? parseInt(grupoDigitos[0], 10) : -1;
+    if (os.amostraId == null) {
+      throw new BadRequestException('Esta OS ainda não tem amostra identificada — nada a conferir.');
+    }
     const et = await this.prisma.etiqueta.findFirst({
       where: {
         amostraId: os.amostraId,
@@ -460,7 +629,12 @@ export class OrdensService {
       },
       orderBy: { iniciadoEm: 'asc' },
     });
-    const ids = ativas.map((o) => o.amostraId);
+    // Só OS com amostra entram: sem ela não há lâmina para conferir.
+    const comAmostra = ativas.filter(
+      (o): o is typeof o & { amostraId: number; amostra: NonNullable<typeof o.amostra> } =>
+        o.amostraId != null && o.amostra != null,
+    );
+    const ids = comAmostra.map((o) => o.amostraId);
     const grupos = await this.prisma.etiqueta.groupBy({
       by: ['amostraId'],
       where: { amostraId: { in: ids } },
@@ -471,9 +645,9 @@ export class OrdensService {
       where: { amostraId: { in: ids }, conferidaEm: { not: null } },
       _count: { _all: true },
     });
-    const total = new Map(grupos.map((g) => [g.amostraId, g._count._all]));
-    const feitas = new Map(conf.map((g) => [g.amostraId, g._count._all]));
-    return ativas
+    const total = new Map(grupos.map((g) => [g.amostraId, g._count?._all ?? 0]));
+    const feitas = new Map(conf.map((g) => [g.amostraId, g._count?._all ?? 0]));
+    return comAmostra
       .map((o) => {
         const esperado = total.get(o.amostraId) ?? 0;
         const conferidas = feitas.get(o.amostraId) ?? 0;
@@ -530,10 +704,7 @@ export class OrdensService {
         data: { status: 'concluida', concluidoEm: agora },
         include: INCLUDE_OS,
       });
-      await this.prisma.amostra.update({
-        where: { id: os.amostraId },
-        data: { status: 'concluida' },
-      });
+      await this.atualizarStatusAmostra(os.amostraId, 'concluida');
       // Conclui o rastreio das etiquetas (saída do departamento final).
       await this.sincronizarRastreio(os.amostraId, etapaAtual, {
         responsavel: os.responsavel ?? undefined,
@@ -629,10 +800,7 @@ export class OrdensService {
       include: INCLUDE_OS,
     });
 
-    await this.prisma.amostra.update({
-      where: { id: os.amostraId },
-      data: { status: terminal ? 'concluida' : 'em_processamento' },
-    });
+    await this.atualizarStatusAmostra(os.amostraId, terminal ? 'concluida' : 'em_processamento');
 
     // Espelha o destino no rastreio das etiquetas do pedido.
     await this.sincronizarRastreio(os.amostraId, destino as EtapaOrdem, {
@@ -662,10 +830,7 @@ export class OrdensService {
       include: INCLUDE_OS,
     });
 
-    await this.prisma.amostra.update({
-      where: { id: os.amostraId },
-      data: { status: 'pendente' },
-    });
+    await this.atualizarStatusAmostra(os.amostraId, 'pendente');
 
     await this.audit.log(userId, 'CANCEL', 'OrdemServico', id, { amostraId: os.amostraId });
 
