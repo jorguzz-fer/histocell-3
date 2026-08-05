@@ -31,11 +31,13 @@ export type OrdemServico = {
   amostra: {
     numeroInterno: string
     pedido: {
+      id: number
       numero: string
       seq: number | null
       cliente: { id: number; nome: string; nomeFantasia: string | null }
     }
   } | null
+  etapas: { id: number; etapa: string; status: string }[]
   volumes: VolumeOS[]
   itens: ItemOS[]
 }
