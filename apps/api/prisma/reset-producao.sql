@@ -83,6 +83,10 @@ BEGIN
     ALTER SEQUENCE "histocell_amostra_numero_seq" RESTART WITH 1;
     RAISE NOTICE 'Numeracao interna de amostra reiniciada em 00001.';
   END IF;
+  IF to_regclass('"histocell_entrada_numero_seq"') IS NOT NULL THEN
+    ALTER SEQUENCE "histocell_entrada_numero_seq" RESTART WITH 1;
+    RAISE NOTICE 'Numeracao de entrada reiniciada em ENT-000001.';
+  END IF;
 
   -- Faturas apagadas: os contratos não podem achar que já cobraram o mês.
   IF to_regclass('"Contrato"') IS NOT NULL THEN

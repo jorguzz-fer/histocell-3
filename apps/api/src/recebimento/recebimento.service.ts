@@ -5,6 +5,11 @@ import { EtiquetasService } from '../etiquetas/etiquetas.service';
 import { OrdensService } from '../ordens/ordens.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
+import {
+  EntradaAvulsaDto,
+  FilterEntradaDto,
+  VincularEntradaDto,
+} from './dto/entrada-avulsa.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
 import { AuditService } from '../common/audit.service';
@@ -155,6 +160,173 @@ export class RecebimentoService {
       message: `Entrada registrada (${novos.length} recipiente(s)). Pedido enviado ao Laboratório.`,
       total: novos.length,
     };
+  }
+
+  // ── Entrada avulsa (tela Entrada) ────────────────────────────────────────────
+  // A recepção só identifica o cliente e o que chegou; o orçamento pode nem
+  // existir ainda. Cada volume vira um Recipiente ligado ao cliente (sem pedido)
+  // com seu próprio código de barras, para a etiqueta ser colada na hora.
+
+  /** Código do volume de entrada (ENT-000001). Sequence global, sem colisão. */
+  private async gerarCodigoEntrada(): Promise<string> {
+    const rows = await this.prisma.$queryRawUnsafe<{ nextval: bigint }[]>(
+      `SELECT nextval('histocell_entrada_numero_seq') AS nextval`,
+    );
+    return `ENT-${String(Number(rows[0].nextval)).padStart(6, '0')}`;
+  }
+
+  async registrarEntradaAvulsa(dto: EntradaAvulsaDto) {
+    const cliente = await this.prisma.cliente.findUnique({
+      where: { id: dto.clienteId },
+      select: { id: true, nome: true, nomeFantasia: true, ativo: true },
+    });
+    if (!cliente) throw new NotFoundException(`Cliente #${dto.clienteId} não encontrado.`);
+    if (!cliente.ativo) throw new BadRequestException('Cliente está inativo.');
+
+    const novos: {
+      clienteId: number;
+      tipo: string;
+      quantidade: number;
+      codigo: string;
+      observacoes?: string;
+      recebidoPor?: string;
+    }[] = [];
+    for (const r of dto.recipientes) {
+      for (let i = 0; i < r.quantidade; i++) {
+        novos.push({
+          clienteId: cliente.id,
+          tipo: r.tipo,
+          quantidade: 1,
+          codigo: await this.gerarCodigoEntrada(),
+          observacoes: r.observacoes,
+          recebidoPor: dto.recebidoPor,
+        });
+      }
+    }
+
+    // create um a um (e não createMany) porque a tela precisa dos ids de volta
+    // para abrir a impressão das etiquetas recém-criadas.
+    const criados = await this.prisma.$transaction(
+      novos.map((data) => this.prisma.recipiente.create({ data, select: { id: true } })),
+    );
+
+    return {
+      message: `Entrada registrada (${criados.length} volume(s)).`,
+      total: criados.length,
+      ids: criados.map((c) => c.id),
+    };
+  }
+
+  /** Entradas avulsas: pendentes de vínculo, ou as dos últimos N dias. */
+  async entradasAvulsas(filter: FilterEntradaDto) {
+    const where: any = { clienteId: { not: null } };
+    if (filter.pendentes) {
+      where.pedidoId = null;
+    } else {
+      const desde = new Date();
+      desde.setHours(0, 0, 0, 0);
+      desde.setDate(desde.getDate() - ((filter.dias ?? 1) - 1));
+      where.createdAt = { gte: desde };
+    }
+
+    const recipientes = await this.prisma.recipiente.findMany({
+      where,
+      orderBy: { id: 'desc' },
+      include: {
+        cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+        pedido: { select: { id: true, numero: true, seq: true } },
+        amostras: { select: { id: true } },
+      },
+    });
+
+    return recipientes.map((r) => ({
+      id: r.id,
+      tipo: r.tipo,
+      codigo: r.codigo,
+      observacoes: r.observacoes,
+      recebidoPor: r.recebidoPor,
+      createdAt: r.createdAt,
+      clienteId: r.clienteId,
+      clienteNome: r.cliente?.nome ?? '',
+      clienteNomeFantasia: r.cliente?.nomeFantasia ?? null,
+      vinculada: r.pedidoId != null,
+      pedidoId: r.pedidoId,
+      pedidoNumero: r.pedido?.numero ?? null,
+      pedidoCodigoCurto:
+        r.pedido == null
+          ? null
+          : r.pedido.seq != null
+            ? `#${String(r.pedido.seq).padStart(4, '0')}`
+            : r.pedido.numero,
+      totalAmostras: r.amostras.length,
+    }));
+  }
+
+  /** Dados das etiquetas de entrada para a página de impressão. */
+  async etiquetasEntrada(ids: number[]) {
+    if (ids.length === 0) throw new BadRequestException('Informe ao menos um volume.');
+    const recipientes = await this.prisma.recipiente.findMany({
+      where: { id: { in: ids } },
+      orderBy: { id: 'asc' },
+      include: {
+        cliente: { select: { id: true, nome: true, nomeFantasia: true, idEtiqueta: true } },
+      },
+    });
+    if (recipientes.length === 0) throw new NotFoundException('Nenhum volume encontrado.');
+
+    // A folha imprime o cabeçalho de um cliente só — misturar clientes numa
+    // mesma impressão colaria etiqueta errada no volume.
+    const clientes = new Set(recipientes.map((r) => r.clienteId ?? r.pedidoId));
+    if (clientes.size > 1) {
+      throw new BadRequestException('Selecione volumes de um mesmo cliente para imprimir.');
+    }
+
+    const primeiro = recipientes[0];
+    return {
+      cliente: primeiro.cliente,
+      recebidoEm: primeiro.createdAt,
+      volumes: recipientes.map((r) => ({
+        id: r.id,
+        tipo: r.tipo,
+        codigo: r.codigo,
+        observacoes: r.observacoes,
+      })),
+    };
+  }
+
+  /** Vincula entradas avulsas a um pedido/orçamento do mesmo cliente. */
+  async vincularEntrada(dto: VincularEntradaDto) {
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id: dto.pedidoId },
+      select: { id: true, numero: true, clienteId: true },
+    });
+    if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
+
+    const recipientes = await this.prisma.recipiente.findMany({
+      where: { id: { in: dto.recipienteIds } },
+      select: { id: true, clienteId: true, pedidoId: true },
+    });
+    if (recipientes.length !== dto.recipienteIds.length) {
+      throw new NotFoundException('Algum volume informado não existe.');
+    }
+    const jaVinculado = recipientes.find((r) => r.pedidoId != null);
+    if (jaVinculado) {
+      throw new BadRequestException(`Volume #${jaVinculado.id} já está vinculado a um pedido.`);
+    }
+    // Vincular a um pedido de outro cliente trocaria o dono do material.
+    const deOutroCliente = recipientes.find((r) => r.clienteId !== pedido.clienteId);
+    if (deOutroCliente) {
+      throw new BadRequestException(
+        `Volume #${deOutroCliente.id} é de outro cliente — não pode entrar neste pedido.`,
+      );
+    }
+
+    const { count } = await this.prisma.recipiente.updateMany({
+      where: { id: { in: dto.recipienteIds } },
+      data: { pedidoId: pedido.id },
+    });
+
+    return { message: `${count} volume(s) vinculado(s) ao pedido ${pedido.numero}.`, total: count };
   }
 
   /** Detalhe do pedido para impressão (etiquetas de recipiente + Ordem de Serviço). */
@@ -463,7 +635,9 @@ export class RecebimentoService {
       select: { id: true, pedido: { select: { status: true } } },
     });
     if (!rec) throw new NotFoundException(`Recipiente #${id} não encontrado.`);
-    this.garantirTriagemAberta(rec.pedido.status, role);
+    // Entrada avulsa ainda sem pedido: não há triagem para travar, a recepção
+    // pode corrigir o tipo livremente até vincular.
+    if (rec.pedido) this.garantirTriagemAberta(rec.pedido.status, role);
     const data: { tipo?: string; observacoes?: string } = {};
     if (dto.tipo != null && dto.tipo.trim()) data.tipo = dto.tipo.trim();
     if (dto.observacoes != null) data.observacoes = dto.observacoes;

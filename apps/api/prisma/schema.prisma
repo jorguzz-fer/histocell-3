@@ -117,6 +117,7 @@ model Cliente {
   users         User[]
   creditos      CreditoPrePago[]
   contratos     Contrato[]
+  recipientes   Recipiente[] // entradas avulsas ainda sem pedido
 
   @@index([documento])
   @@index([nome])
@@ -335,7 +336,11 @@ model TipoRecipiente {
 
 model Recipiente {
   id          Int      @id @default(autoincrement())
-  pedidoId    Int
+  // Entrada avulsa (tela Entrada): o material chega antes de existir orçamento,
+  // então o recipiente nasce ligado só ao cliente e o pedido entra depois, na
+  // vinculação. Um dos dois é sempre obrigatório (CHECK no banco).
+  pedidoId    Int?
+  clienteId   Int?
   tipo        String   // Pote, Caixa, Saco, Outro, …
   quantidade  Int      @default(1)
   codigo      String?  @unique // conteúdo do código de barras da etiqueta do recipiente (Recepção)
@@ -344,10 +349,12 @@ model Recipiente {
   recebidoPor String?
   createdAt   DateTime @default(now())
 
-  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  pedido   Pedido?   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  cliente  Cliente?  @relation(fields: [clienteId], references: [id])
   amostras Amostra[] // amostras designadas dentro do recipiente (Laboratório)
 
   @@index([pedidoId])
+  @@index([clienteId])
 }
 
 model ItemPedido {

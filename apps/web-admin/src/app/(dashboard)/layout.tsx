@@ -11,6 +11,7 @@ import {
   Boxes,
   FlaskConical,
   PackageOpen,
+  DoorOpen,
   Inbox,
   Tags,
   ClipboardList,
@@ -47,6 +48,10 @@ const menuItems: MenuItem[] = [
   // Orçamento entre Clientes e Recebimento (ordem do fluxo: cadastra → orça → recebe).
   // Telas com valores: ocultas para o perfil técnico (sem valores).
   { href: '/pedidos-legado', label: 'Novo Pedido', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
+  // Porta de entrada física: identifica o cliente + o objeto que chegou e
+  // imprime a etiqueta do volume, antes de existir orçamento. Compartilha a
+  // permissão de Recebimento (é a etapa anterior dele).
+  { href: '/entrada', label: 'Entrada', icon: DoorOpen, perm: 'recebimento' },
   { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
   { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
   // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'

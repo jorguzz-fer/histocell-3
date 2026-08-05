@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2, Printer, Archive } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Inbox, FlaskConical, Pencil, RefreshCw, Globe, Building2, Printer, Archive, DoorOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -12,8 +12,10 @@ import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { codigoCurtoPedido } from '@/lib/pedido'
 import { ReceberDrawer } from './ReceberDrawer'
 import { RecepcaoDrawer } from './RecepcaoDrawer'
+import { VincularEntradaDrawer } from './VincularEntradaDrawer'
 import { PrintModal } from '@/components/PrintModal'
 import type { PedidoFila, Amostra, AmostraListResponse } from './types'
+import type { EntradaAvulsa } from '@/app/(dashboard)/entrada/types'
 
 // ─── config ───────────────────────────────────────────────────────────────────
 
@@ -208,6 +210,9 @@ export default function RecebimentoPage() {
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFila | null>(null)
   const [printUrl, setPrintUrl]         = useState<string | null>(null)
   const [arquivando, setArquivando]     = useState<PedidoFila | null>(null)
+  // Entradas avulsas (tela Entrada) ainda sem pedido
+  const [entradasPendentes, setEntradasPendentes] = useState<EntradaAvulsa[]>([])
+  const [vinculando, setVinculando]     = useState<EntradaAvulsa[] | null>(null)
 
   // Amostras
   const [amostras, setAmostras]         = useState<Amostra[]>([])
@@ -225,18 +230,36 @@ export default function RecebimentoPage() {
   const fetchFila = useCallback(async () => {
     setLoadingFila(true)
     try {
-      const [rec, lab] = await Promise.all([
+      const [rec, lab, entradas] = await Promise.all([
         api.get<PedidoFila[]>('/recebimento/recepcao'),
         api.get<PedidoFila[]>('/recebimento/laboratorio'),
+        api.get<EntradaAvulsa[]>('/recebimento/entradas?pendentes=true'),
       ])
       setFilaRecepcao(rec)
       setFilaLab(lab)
+      setEntradasPendentes(entradas)
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao carregar filas')
     } finally {
       setLoadingFila(false)
     }
   }, [])
+
+  // Uma entrada = um volume; a recepção resolve por cliente, então agrupa.
+  const gruposEntrada = useMemo(() => {
+    const mapa = new Map<number, { clienteId: number; label: string; entradas: EntradaAvulsa[] }>()
+    for (const e of entradasPendentes) {
+      if (e.clienteId == null) continue
+      const grupo = mapa.get(e.clienteId) ?? {
+        clienteId: e.clienteId,
+        label: e.clienteNomeFantasia ?? e.clienteNome,
+        entradas: [],
+      }
+      grupo.entradas.push(e)
+      mapa.set(e.clienteId, grupo)
+    }
+    return Array.from(mapa.values())
+  }, [entradasPendentes])
 
   const fetchAmostras = useCallback(async () => {
     setLoadingAmostras(true)
@@ -308,6 +331,57 @@ export default function RecebimentoPage() {
           </Button>
         }
       />
+
+      {/* ── Entradas sem orçamento (vindas da tela Entrada) ── */}
+      {entradasPendentes.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <DoorOpen className="h-4 w-4 text-slate-400" />
+            <h2 className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+              Entradas sem orçamento
+            </h2>
+            <span className="text-[11px] text-slate-400">
+              material que chegou antes do orçamento · vincule quando o pedido existir
+            </span>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2 items-start">
+            {gruposEntrada.map((g) => (
+              <div
+                key={g.clienteId}
+                className="rounded-card border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-500/30 dark:bg-amber-500/5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <ClienteAvatar nome={g.label} seed={g.clienteId} size={32} />
+                    <div>
+                      <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
+                        {g.label}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-slate-600 dark:text-slate-400">
+                        {g.entradas.length} volume(s) aguardando vínculo
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => setVinculando(g.entradas)}>
+                    Vincular
+                  </Button>
+                </div>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {g.entradas.map((e) => (
+                    <span
+                      key={e.id}
+                      className="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                      title={e.observacoes ?? undefined}
+                    >
+                      {e.tipo} · <span className="font-mono">{e.codigo}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Etapa 1 — Recepção ── */}
       <section className="space-y-3">
@@ -583,6 +657,13 @@ export default function RecebimentoPage() {
         pedido={pedidoSelecionado}
         onSaved={onSaved}
         onImprimir={setPrintUrl}
+      />
+
+      <VincularEntradaDrawer
+        open={vinculando != null}
+        onClose={() => setVinculando(null)}
+        entradas={vinculando ?? []}
+        onSaved={onSaved}
       />
 
       <PrintModal

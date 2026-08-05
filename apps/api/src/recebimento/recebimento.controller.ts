@@ -4,6 +4,11 @@ import { RolesGuard, Roles, Area } from '../auth/roles.guard';
 import { RecebimentoService } from './recebimento.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
+import {
+  EntradaAvulsaDto,
+  FilterEntradaDto,
+  VincularEntradaDto,
+} from './dto/entrada-avulsa.dto';
 import { CriarTipoRecipienteDto } from './dto/tipo-recipiente.dto';
 import { UpdateAmostraDto } from './dto/update-amostra.dto';
 import { FilterAmostraDto } from './dto/filter-amostra.dto';
@@ -46,6 +51,40 @@ export class RecebimentoController {
   @Roles('gerencia', 'recepcao')
   registrarEntrada(@Body() dto: EntradaRecepcaoDto) {
     return this.service.registrarEntrada(dto);
+  }
+
+  // ── Tela "Entrada": cliente + objeto que chegou, sem orçamento ainda ─────────
+
+  /** Registra a entrada avulsa e devolve os ids dos volumes (p/ imprimir) */
+  @Post('entrada-avulsa')
+  @Roles('gerencia', 'recepcao')
+  registrarEntradaAvulsa(@Body() dto: EntradaAvulsaDto) {
+    return this.service.registrarEntradaAvulsa(dto);
+  }
+
+  /** Entradas avulsas: `?pendentes=true` (sem pedido) ou `?dias=N` (recentes) */
+  @Get('entradas')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  entradasAvulsas(@Query() filter: FilterEntradaDto) {
+    return this.service.entradasAvulsas(filter);
+  }
+
+  /** Dados das etiquetas de entrada p/ impressão: `?ids=1,2,3` */
+  @Get('entradas/etiquetas')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  etiquetasEntrada(@Query('ids') ids?: string) {
+    const lista = (ids ?? '')
+      .split(',')
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => Number.isInteger(n));
+    return this.service.etiquetasEntrada(lista);
+  }
+
+  /** Vincula volumes de entrada a um pedido/orçamento do mesmo cliente */
+  @Post('entradas/vincular')
+  @Roles('gerencia', 'recepcao')
+  vincularEntrada(@Body() dto: VincularEntradaDto) {
+    return this.service.vincularEntrada(dto);
   }
 
   /** Fila (compat) — mesma da recepção */
