@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { LancarCreditoDto } from './dto/lancar-credito.dto';
+import { ConsumoService } from '../common/consumo.service';
 
 @Injectable()
 export class FinanceiroService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private consumo: ConsumoService) {}
 
   // ── Lança crédito/débito e recalcula o saldo acumulado ───────────────────────
   async lancarCredito(dto: LancarCreditoDto) {
@@ -141,68 +142,27 @@ export class FinanceiroService {
   }
 
   // ── Fechamento mensal: o que cada cliente consumiu no mês (base da fatura) ────
-  // Considera pedidos recebidos (dataRecebimento dentro do mês). A emissão de
-  // boleto/NFe (Cora) é um passo posterior, fora deste cálculo.
+  // A base é a Ordem de Serviço — o que foi efetivamente executado — e não mais
+  // os itens do orçamento. A emissão de boleto/NFe (Cora) é um passo posterior.
   async fechamentoMensal(ano: number, mes: number) {
-    const inicio = new Date(ano, mes - 1, 1);
-    const fim = new Date(ano, mes, 1); // exclusivo
-
-    const pedidos = await this.prisma.pedido.findMany({
-      where: {
-        status: { notIn: ['rascunho', 'cancelado'] },
-        dataRecebimento: { gte: inicio, lt: fim },
-      },
-      select: {
-        clienteId: true,
-        numero: true,
-        pagamentoAdiantado: true,
-        cliente: { select: { nome: true, nomeFantasia: true } },
-        itens: { select: { preco: true, quantidade: true, desconto: true } },
-      },
-    });
-
-    // saldo de crédito atual por cliente
+    const consumo = await this.consumo.doMes(ano, mes);
     const saldos = await this.resumoCreditos();
     const saldoMap = new Map(saldos.map((s) => [s.clienteId, s.saldo]));
-
-    const porCliente = new Map<
-      number,
-      { clienteId: number; nome: string; nomeFantasia: string | null; qtdPedidos: number; totalBruto: number; adiantado: number }
-    >();
-
-    for (const p of pedidos) {
-      const valor = p.itens.reduce(
-        (s, i) => s + Number(i.preco) * i.quantidade * (1 - Number(i.desconto) / 100),
-        0,
-      );
-      const cur =
-        porCliente.get(p.clienteId) ?? {
-          clienteId: p.clienteId,
-          nome: p.cliente.nome,
-          nomeFantasia: p.cliente.nomeFantasia,
-          qtdPedidos: 0,
-          totalBruto: 0,
-          adiantado: 0,
-        };
-      cur.qtdPedidos += 1;
-      cur.totalBruto += valor;
-      if (p.pagamentoAdiantado) cur.adiantado += valor;
-      porCliente.set(p.clienteId, cur);
-    }
-
     const round = (n: number) => Math.round(n * 100) / 100;
-    const linhas = Array.from(porCliente.values())
-      .map((c) => ({
-        clienteId: c.clienteId,
-        nome: c.nome,
-        nomeFantasia: c.nomeFantasia,
-        qtdPedidos: c.qtdPedidos,
-        totalBruto: round(c.totalBruto),
-        adiantado: round(c.adiantado),
-        aFaturar: round(c.totalBruto - c.adiantado),
-        creditoSaldo: saldoMap.get(c.clienteId) ?? 0,
-      }))
-      .sort((a, b) => (a.nomeFantasia ?? a.nome).localeCompare(b.nomeFantasia ?? b.nome, 'pt'));
+
+    const linhas = consumo.map((c) => ({
+      clienteId: c.clienteId,
+      nome: c.nome,
+      nomeFantasia: c.nomeFantasia,
+      qtdOrdens: c.ordens.length,
+      totalBruto: c.totalBruto,
+      adiantado: c.adiantado,
+      aFaturar: round(c.totalBruto - c.adiantado),
+      creditoSaldo: saldoMap.get(c.clienteId) ?? 0,
+      // OS abertas no mês sem serviço definido: não entram no valor, mas quem
+      // vai faturar precisa saber que existem.
+      ordensSemServico: c.ordensSemServico,
+    }));
 
     return {
       ano,
@@ -210,9 +170,10 @@ export class FinanceiroService {
       linhas,
       totais: {
         clientes: linhas.length,
-        pedidos: linhas.reduce((s, l) => s + l.qtdPedidos, 0),
+        ordens: linhas.reduce((s, l) => s + l.qtdOrdens, 0),
         totalBruto: round(linhas.reduce((s, l) => s + l.totalBruto, 0)),
         aFaturar: round(linhas.reduce((s, l) => s + l.aFaturar, 0)),
+        ordensSemServico: linhas.reduce((s, l) => s + l.ordensSemServico.length, 0),
       },
     };
   }
@@ -220,60 +181,24 @@ export class FinanceiroService {
   // ── Fechamento detalhado: discriminação por serviço de um cliente no mês ──────
   // Base da NF (ex.: "10 H&E, 15 lâminas em branco, 10 específica").
   async fechamentoDetalhado(clienteId: number, ano: number, mes: number) {
-    const inicio = new Date(ano, mes - 1, 1);
-    const fim = new Date(ano, mes, 1);
-
     const cliente = await this.prisma.cliente.findUnique({
       where: { id: clienteId },
       select: { nome: true, nomeFantasia: true, segmento: true, projeto: true },
     });
     if (!cliente) throw new NotFoundException(`Cliente #${clienteId} não encontrado.`);
 
-    const pedidos = await this.prisma.pedido.findMany({
-      where: {
-        clienteId,
-        status: { notIn: ['rascunho', 'cancelado'] },
-        // Adiantados já foram cobrados na entrada — fora da discriminação a faturar
-        // (mesma regra do fechamentoMensal e do criarFaturaDoMes).
-        pagamentoAdiantado: false,
-        dataRecebimento: { gte: inicio, lt: fim },
-      },
-      select: {
-        numero: true,
-        itens: {
-          select: {
-            quantidade: true, preco: true, desconto: true,
-            servico: { select: { nome: true, codigo: true } },
-          },
-        },
-      },
-      orderBy: { dataRecebimento: 'asc' },
-    });
-
+    const c = await this.consumo.doClienteNoMes(clienteId, ano, mes);
     const round = (n: number) => Math.round(n * 100) / 100;
-    // agrega por (serviço + preço unitário líquido), somando quantidades
-    const mapa = new Map<string, { servico: string; codigo: string; quantidade: number; valorUnit: number; valorTotal: number }>();
-    for (const p of pedidos) {
-      for (const it of p.itens) {
-        const unit = round(Number(it.preco) * (1 - Number(it.desconto) / 100));
-        const chave = `${it.servico.codigo}::${unit}`;
-        const cur = mapa.get(chave) ?? { servico: it.servico.nome, codigo: it.servico.codigo, quantidade: 0, valorUnit: unit, valorTotal: 0 };
-        cur.quantidade += it.quantidade;
-        cur.valorTotal = round(cur.valorTotal + unit * it.quantidade);
-        mapa.set(chave, cur);
-      }
-    }
-    const linhas = Array.from(mapa.values()).sort((a, b) => a.servico.localeCompare(b.servico, 'pt'));
-    const total = round(linhas.reduce((s, l) => s + l.valorTotal, 0));
 
     return {
       cliente: cliente.nomeFantasia ?? cliente.nome,
       segmento: cliente.segmento,
       projeto: cliente.projeto,
       periodo: `${ano}-${String(mes).padStart(2, '0')}`,
-      pedidos: pedidos.map((p) => p.numero),
-      linhas,
-      total,
+      ordens: c?.ordens ?? [],
+      ordensSemServico: c?.ordensSemServico ?? [],
+      linhas: c?.linhas ?? [],
+      total: round((c?.totalBruto ?? 0) - (c?.adiantado ?? 0)),
     };
   }
 }

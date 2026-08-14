@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ClipboardList, RefreshCw, FlaskConical, DoorOpen } from 'lucide-react'
+import { ClipboardList, RefreshCw, FlaskConical, DoorOpen, Play, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -11,7 +11,13 @@ import { Select } from '@/components/ui/Select'
 import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { api } from '@/lib/api'
 import { ETAPA_LABEL } from '@/lib/etapas'
+import { EtapaProgress } from '@/components/EtapaProgress'
+import { ComunicacaoDrawer } from '@/components/comunicacao/ComunicacaoDrawer'
+import { ConferenciaDrawer } from '@/components/comunicacao/ConferenciaDrawer'
+import { OSModal } from '@/components/OSModal'
+import { NovaOSDrawer } from '@/app/(dashboard)/ordens/NovaOSDrawer'
 import { ServicosOSDrawer } from './ServicosOSDrawer'
+import { ExecucaoOSDrawer } from './ExecucaoOSDrawer'
 import { clienteDaOS, clienteIdDaOS, type OrdemListResponse, type OrdemServico } from './types'
 
 const ORIGEM_OPTS = [
@@ -35,7 +41,15 @@ export default function OrdensServicoPage() {
   const [busca, setBusca] = useState('')
   const [origem, setOrigem] = useState('')
   const [etapa, setEtapa] = useState('')
-  const [selecionada, setSelecionada] = useState<OrdemServico | null>(null)
+  // Guardamos só o id: a OS aberta é derivada da lista, então recarregar depois
+  // de uma ação (avançar, mover, adicionar serviço) atualiza o drawer junto —
+  // com uma cópia do objeto, ele continuaria mostrando o estado anterior.
+  const [selecionadaId, setSelecionadaId] = useState<number | null>(null)
+  const [emExecucaoId, setEmExecucaoId] = useState<number | null>(null)
+  const [novaOS, setNovaOS] = useState(false)
+  const [comOS, setComOS] = useState<{ pedidoId: number; ordemId: number; numero: string } | null>(null)
+  const [confOS, setConfOS] = useState<{ ordemId: number; numero: string } | null>(null)
+  const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -59,16 +73,25 @@ export default function OrdensServicoPage() {
     return () => clearTimeout(t)
   }, [carregar, busca])
 
+  const selecionada = ordens.find((o) => o.id === selecionadaId) ?? null
+  const emExecucao = ordens.find((o) => o.id === emExecucaoId) ?? null
+
   return (
     <>
       <PageHeader
         title="Ordem de Serviço"
         subtitle="Tudo parte da OS: o material que chegou e o serviço que será executado sobre ele."
         action={
-          <Button variant="secondary" size="sm" onClick={carregar} disabled={carregando}>
-            <RefreshCw className={`h-3.5 w-3.5 ${carregando ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={carregar} disabled={carregando}>
+              <RefreshCw className={`h-3.5 w-3.5 ${carregando ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button size="sm" onClick={() => setNovaOS(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Nova OS
+            </Button>
+          </div>
         }
       />
 
@@ -136,6 +159,8 @@ export default function OrdensServicoPage() {
                     </p>
                   </div>
 
+                  <EtapaProgress etapas={os.etapas ?? []} etapaAtual={os.etapaAtual} status={os.status} />
+
                   <Badge variant="slate">{ETAPA_LABEL[os.etapaAtual] ?? os.etapaAtual}</Badge>
 
                   {semServico ? (
@@ -146,9 +171,13 @@ export default function OrdensServicoPage() {
                     </Badge>
                   )}
 
-                  <Button size="sm" variant="secondary" onClick={() => setSelecionada(os)}>
+                  <Button size="sm" variant="secondary" onClick={() => setSelecionadaId(os.id)}>
                     <ClipboardList className="h-3.5 w-3.5" />
                     Serviços
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setEmExecucaoId(os.id)}>
+                    <Play className="h-3.5 w-3.5" />
+                    Execução
                   </Button>
                 </div>
               )
@@ -159,9 +188,48 @@ export default function OrdensServicoPage() {
 
       <ServicosOSDrawer
         open={selecionada != null}
-        onClose={() => setSelecionada(null)}
+        onClose={() => setSelecionadaId(null)}
         os={selecionada}
         onSaved={carregar}
+      />
+
+      <ExecucaoOSDrawer
+        open={emExecucao != null}
+        onClose={() => setEmExecucaoId(null)}
+        os={emExecucao}
+        onSaved={carregar}
+        onConferir={(ordemId, numero) => setConfOS({ ordemId, numero })}
+        onComunicar={(pedidoId, ordemId, numero) => setComOS({ pedidoId, ordemId, numero })}
+        onImprimir={(pedidoId, numero) => setOsModal({ pedidoId, numero })}
+      />
+
+      <NovaOSDrawer open={novaOS} onClose={() => setNovaOS(false)} onSaved={carregar} />
+
+      {comOS && (
+        <ComunicacaoDrawer
+          open
+          onClose={() => setComOS(null)}
+          pedidoId={comOS.pedidoId}
+          ordemServicoId={comOS.ordemId}
+          pedidoNumero={comOS.numero}
+        />
+      )}
+
+      {confOS && (
+        <ConferenciaDrawer
+          open
+          onClose={() => setConfOS(null)}
+          ordemId={confOS.ordemId}
+          numero={confOS.numero}
+          onChange={carregar}
+        />
+      )}
+
+      <OSModal
+        open={osModal != null}
+        pedidoId={osModal?.pedidoId ?? null}
+        osNumero={osModal?.numero}
+        onClose={() => setOsModal(null)}
       />
     </>
   )

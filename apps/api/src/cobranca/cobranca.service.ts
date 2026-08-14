@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CryptoService } from '../common/crypto.service';
+import { ConsumoService } from '../common/consumo.service';
 import { CoraClient } from './cora.client';
 
 const cents = (v: number) => Math.round(v * 100);
@@ -28,6 +29,7 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
     private prisma: PrismaService,
     private crypto: CryptoService,
     private cora: CoraClient,
+    private consumo: ConsumoService,
   ) {}
 
   // ── Agendador leve (sem dependência): verifica de hora em hora ───────────────
@@ -132,42 +134,25 @@ export class CobrancaService implements OnModuleInit, OnModuleDestroy {
     });
     if (existente) return existente;
 
-    const pedidos = await this.prisma.pedido.findMany({
-      where: {
-        clienteId,
-        status: { notIn: ['rascunho', 'cancelado'] },
-        pagamentoAdiantado: false,
-        dataRecebimento: { gte: inicio, lt: fim },
-      },
-      select: {
-        numero: true,
-        itens: {
-          select: {
-            quantidade: true, preco: true, desconto: true,
-            servico: { select: { nome: true } },
-          },
-        },
-      },
-    });
-    if (pedidos.length === 0) throw new BadRequestException('Nenhum pedido faturável neste mês para o cliente.');
-
-    // Uma linha por (serviço + preço unitário líquido), agregando quantidades —
-    // evita boleto com centenas de linhas repetidas (mesma regra do fechamentoDetalhado).
-    const round = (n: number) => Math.round(n * 100) / 100;
-    const mapa = new Map<string, { descricao: string; quantidade: number; valor: number }>();
-    let total = 0;
-    for (const p of pedidos) {
-      for (const it of p.itens) {
-        const valor = round(Number(it.preco) * (1 - Number(it.desconto) / 100));
-        const chave = `${it.servico.nome}::${valor}`;
-        const cur = mapa.get(chave) ?? { descricao: it.servico.nome, quantidade: 0, valor };
-        cur.quantidade += it.quantidade;
-        mapa.set(chave, cur);
-        total += valor * it.quantidade;
-      }
+    // A fatura sai do que a OS registrou como executado — não mais dos itens do
+    // orçamento. Mesma fonte do fechamento, para o boleto bater com o relatório.
+    const consumo = await this.consumo.doClienteNoMes(clienteId, ano, mes);
+    if (!consumo || consumo.linhas.length === 0) {
+      const semServico = consumo?.ordensSemServico.length ?? 0;
+      throw new BadRequestException(
+        semServico > 0
+          ? `Nenhuma OS com serviço definido neste mês — ${semServico} OS aguardando conferência.`
+          : 'Nenhuma OS faturável neste mês para o cliente.',
+      );
     }
-    const itens = Array.from(mapa.values());
-    total = round(total);
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const itens = consumo.linhas.map((l) => ({
+      descricao: l.servico,
+      quantidade: l.quantidade,
+      valor: l.valorUnit,
+    }));
+    const total = round(consumo.totalBruto - consumo.adiantado);
 
     const numero = await this.gerarNumeroFatura(periodo);
     const dataVencimento = new Date();
