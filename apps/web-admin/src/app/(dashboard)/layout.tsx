@@ -23,12 +23,10 @@ import {
   Wallet,
   LineChart,
   FileSignature,
-  LogOut,
   UserCog,
-  KeyRound,
   type LucideIcon,
 } from 'lucide-react'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { UserMenu, type UsuarioLogado } from '@/components/UserMenu'
 
 type MenuItem = {
   href: string
@@ -80,15 +78,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const [role, setRole] = useState<string | null>(null)
   const [permissoes, setPermissoes] = useState<string[] | null>(null)
+  const [usuario, setUsuario] = useState<UsuarioLogado | null>(null)
 
   useEffect(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}')
       setRole(u?.role ?? null)
       setPermissoes(Array.isArray(u?.permissoes) ? u.permissoes : null)
+      setUsuario(u?.nome || u?.email ? u : null)
     } catch {
       setRole(null)
       setPermissoes(null)
+      setUsuario(null)
     }
   }, [])
 
@@ -115,14 +116,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, permissoes, pathname])
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    window.location.href = '/login'
-  }
-
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
+    <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
         <div className="px-5 py-5 border-b border-slate-200 dark:border-slate-800">
@@ -146,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
           {visibleItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -173,30 +168,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )
           })}
         </nav>
-
-        <div className="px-3 py-3 border-t border-slate-200 dark:border-slate-800 space-y-0.5">
-          <ThemeToggle />
-          <Link
-            href="/trocar-senha"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/60 transition-all"
-          >
-            <KeyRound className="h-[18px] w-[18px] text-slate-400" strokeWidth={1.75} />
-            <span>Trocar senha</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/60 transition-all"
-          >
-            <LogOut className="h-[18px] w-[18px] text-slate-400" strokeWidth={1.75} />
-            <span>Sair</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="max-w-[1400px] mx-auto px-8 py-8">{children}</div>
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Barra do topo: só a área do usuário — o que é da conta (tema,
+            senha, sair) sai do menu lateral, que fica só com a operação. */}
+        <header className="h-14 shrink-0 border-b border-slate-200 bg-white px-6 flex items-center justify-end dark:border-slate-800 dark:bg-slate-900">
+          <UserMenu usuario={usuario} />
+        </header>
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-[1400px] mx-auto px-8 py-8">{children}</div>
+        </main>
+      </div>
     </div>
   )
 }
