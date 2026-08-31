@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, Ban, MessageSquare, Printer, ScanLine, Shuffle } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
@@ -95,12 +95,11 @@ export function ExecucaoOSDrawer({
   }
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title={`Execução da OS ${codigoCurto}`}
-      subtitle={clienteDaOS(os)}
-      width="max-w-lg"
+      subtitle={clienteDaOS(os)} width="max-w-xl"
     >
       <div className="space-y-5">
         <section className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
@@ -216,6 +215,6 @@ export function ExecucaoOSDrawer({
           </Button>
         </div>
       </div>
-    </Drawer>
+    </Modal>
   )
 }

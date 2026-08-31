@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Link2, Package } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { api } from '@/lib/api'
 import { codigoCurtoPedido } from '@/lib/pedido'
@@ -80,12 +80,11 @@ export function VincularEntradaDrawer({ open, onClose, entradas, onSaved }: Prop
   if (entradas.length === 0) return null
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title="Vincular entrada a um orçamento"
-      subtitle={clienteLabel}
-      width="max-w-lg"
+      subtitle={clienteLabel} width="max-w-xl"
     >
       <div className="space-y-5">
         <section className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
@@ -176,6 +175,6 @@ export function VincularEntradaDrawer({ open, onClose, entradas, onSaved }: Prop
           </Button>
         </div>
       </div>
-    </Drawer>
+    </Modal>
   )
 }

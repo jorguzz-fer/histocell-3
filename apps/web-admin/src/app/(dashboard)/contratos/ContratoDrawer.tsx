@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -84,7 +84,7 @@ export function ContratoDrawer({ open, onClose, contrato, onSaved }: Props) {
   }
 
   return (
-    <Drawer open={open} onClose={onClose} title={isEdit ? 'Editar contrato' : 'Novo contrato'} width="max-w-md">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Editar contrato' : 'Novo contrato'} width="max-w-md">
       <div className="space-y-4">
         <Select
           label="Cliente"
@@ -144,6 +144,6 @@ export function ContratoDrawer({ open, onClose, contrato, onSaved }: Props) {
           <Button onClick={salvar} loading={saving}>{isEdit ? 'Salvar' : 'Criar contrato'}</Button>
         </div>
       </div>
-    </Drawer>
+    </Modal>
   )
 }

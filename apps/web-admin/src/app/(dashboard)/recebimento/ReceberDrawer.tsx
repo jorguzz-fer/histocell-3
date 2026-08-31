@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Trash2, FlaskConical, Package, Printer } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -233,12 +233,11 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
     : [{ recipiente: null, linhas: linhas.filter((l) => l.recipienteId == null) }]
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title="Identificar amostras (Laboratório)"
-      subtitle={`${pedido.codigoCurto ?? pedido.numero} · ${clienteLabel}`}
-      width="max-w-2xl"
+      subtitle={`${pedido.codigoCurto ?? pedido.numero} · ${clienteLabel}`} width="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Serviços solicitados */}
@@ -442,6 +441,6 @@ export function ReceberDrawer({ open, onClose, pedido, onSaved, onImprimir }: Re
           </div>
         </div>
       </form>
-    </Drawer>
+    </Modal>
   )
 }
