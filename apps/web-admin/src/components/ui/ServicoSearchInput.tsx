@@ -187,7 +187,7 @@ export function ServicoSearchInput({
           </div>
 
           {/* Filtro de categoria */}
-          <div className="flex gap-1.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap gap-1.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setCategoria('')}
