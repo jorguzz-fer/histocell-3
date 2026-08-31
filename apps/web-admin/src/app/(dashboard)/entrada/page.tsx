@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { DoorOpen, Package, Plus, Printer, Trash2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
@@ -13,6 +14,7 @@ import { ClienteSearchInput } from '@/components/ui/ClienteSearchInput'
 import { PrintModal } from '@/components/PrintModal'
 import { ClienteDrawer } from '@/app/(dashboard)/cadastro/ClienteDrawer'
 import { api } from '@/lib/api'
+import { etapaCurta } from '@/lib/proximoPasso'
 import type { Cliente } from '@/app/(dashboard)/cadastro/types'
 import { CONDICOES, type EntradaAvulsa, type TipoRecipiente } from './types'
 
@@ -305,8 +307,21 @@ export default function EntradaPage() {
                       {e.recebidoPor ? ` · ${e.recebidoPor}` : ''}
                     </p>
                     {e.osCodigoCurto && (
-                      <p className="truncate text-[11px] text-slate-400">
-                        OS {e.osCodigoCurto}
+                      <p className="flex items-center gap-1.5 truncate text-[11px] text-slate-400">
+                        <Link href="/os" className="hover:underline" title="Abrir a tela de Ordem de Serviço">
+                          OS {e.osCodigoCurto}
+                        </Link>
+                        {/* Onde a OS deste volume está agora — o guia da recepção. */}
+                        {e.osEtapa && e.osStatus !== 'concluida' && e.osStatus !== 'cancelada' && (
+                          <span className="inline-flex items-center rounded-full border border-blue-400 px-2 py-px text-[10px] font-medium text-blue-700 dark:border-blue-500 dark:text-blue-400">
+                            aguardando {etapaCurta(e.osEtapa).toLowerCase()}
+                          </span>
+                        )}
+                        {e.osStatus === 'concluida' && (
+                          <span className="inline-flex items-center rounded-full border border-slate-300 px-2 py-px text-[10px] font-medium text-slate-500 dark:border-slate-600 dark:text-slate-400">
+                            concluída
+                          </span>
+                        )}
                       </p>
                     )}
                     {e.observacoes && (

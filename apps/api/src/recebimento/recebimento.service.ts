@@ -251,7 +251,7 @@ export class RecebimentoService {
       include: {
         cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         pedido: { select: { id: true, numero: true, seq: true } },
-        ordemServico: { select: { id: true, numero: true, seq: true } },
+        ordemServico: { select: { id: true, numero: true, seq: true, etapaAtual: true, status: true } },
         amostras: { select: { id: true } },
       },
     });
@@ -283,6 +283,9 @@ export class RecebimentoService {
         r.ordemServico?.seq != null
           ? `#${String(r.ordemServico.seq).padStart(4, '0')}`
           : (r.ordemServico?.numero ?? null),
+      // Para o guia da Entrada: em que fase a OS deste volume está agora.
+      osEtapa: r.ordemServico?.etapaAtual ?? null,
+      osStatus: r.ordemServico?.status ?? null,
     }));
   }
 

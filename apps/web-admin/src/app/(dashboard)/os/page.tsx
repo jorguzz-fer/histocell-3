@@ -19,6 +19,9 @@ import { NovaOSDrawer } from '@/app/(dashboard)/ordens/NovaOSDrawer'
 import { ServicosOSDrawer } from './ServicosOSDrawer'
 import { ExecucaoOSDrawer } from './ExecucaoOSDrawer'
 import { clienteDaOS, clienteIdDaOS, type OrdemListResponse, type OrdemServico } from './types'
+import { guiaDaOS, type AcaoGuia } from '@/lib/proximoPasso'
+import { GuiaProximoPasso } from '@/components/GuiaProximoPasso'
+import { fatosDaOS } from './guia'
 
 const ORIGEM_OPTS = [
   { value: '', label: 'Todas as origens' },
@@ -67,6 +70,27 @@ export default function OrdensServicoPage() {
       setCarregando(false)
     }
   }, [busca, etapa, origem])
+
+  // Ação do guia numa linha da lista. Avançar executa direto (mesma chamada da
+  // Fila); definir serviço abre a janela de Serviços; o resto mora na Execução.
+  const [avancandoId, setAvancandoId] = useState<number | null>(null)
+  async function acaoDoGuia(os: OrdemServico, acao: AcaoGuia) {
+    if (acao.tipo === 'definir_servico') return setSelecionadaId(os.id)
+    if (acao.tipo === 'avancar') {
+      setAvancandoId(os.id)
+      try {
+        await api.patch(`/ordens/${os.id}/avancar`, {})
+        toast.success(`${acao.rotulo} — feito.`)
+        carregar()
+      } catch (err: any) {
+        toast.error(err.message ?? 'Não foi possível avançar')
+      } finally {
+        setAvancandoId(null)
+      }
+      return
+    }
+    setEmExecucaoId(os.id)
+  }
 
   useEffect(() => {
     const t = setTimeout(carregar, busca ? 350 : 0)
@@ -123,7 +147,6 @@ export default function OrdensServicoPage() {
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {ordens.map((os) => {
               const codigoCurto = os.seq != null ? `#${String(os.seq).padStart(4, '0')}` : os.numero
-              const semServico = os.itens.length === 0
               return (
                 <div key={os.id} className="flex items-center gap-3 px-5 py-3">
                   <ClienteAvatar
@@ -161,15 +184,14 @@ export default function OrdensServicoPage() {
 
                   <EtapaProgress etapas={os.etapas ?? []} etapaAtual={os.etapaAtual} status={os.status} />
 
-                  <Badge variant="slate">{ETAPA_LABEL[os.etapaAtual] ?? os.etapaAtual}</Badge>
-
-                  {semServico ? (
-                    <Badge variant="amber">Sem serviço definido</Badge>
-                  ) : (
-                    <Badge variant="green">
-                      {os.itens.length} serviço{os.itens.length > 1 ? 's' : ''}
-                    </Badge>
-                  )}
+                  {/* O guia substitui os badges de etapa/serviço: o chip diz a
+                      fase e o botão primário é a próxima ação nomeada. */}
+                  <GuiaProximoPasso
+                    guia={guiaDaOS(fatosDaOS(os))}
+                    compacto
+                    agindo={avancandoId === os.id}
+                    onAcao={(acao) => acaoDoGuia(os, acao)}
+                  />
 
                   <Button size="sm" variant="secondary" onClick={() => setSelecionadaId(os.id)}>
                     <ClipboardList className="h-3.5 w-3.5" />
@@ -201,6 +223,9 @@ export default function OrdensServicoPage() {
         onConferir={(ordemId, numero) => setConfOS({ ordemId, numero })}
         onComunicar={(pedidoId, ordemId, numero) => setComOS({ pedidoId, ordemId, numero })}
         onImprimir={(pedidoId, numero) => setOsModal({ pedidoId, numero })}
+        // Fecha a execução e abre Serviços: o guia levou até aqui, a definição
+        // acontece lá.
+        onDefinirServico={(id) => { setEmExecucaoId(null); setSelecionadaId(id) }}
       />
 
       <NovaOSDrawer open={novaOS} onClose={() => setNovaOS(false)} onSaved={carregar} />

@@ -12,6 +12,7 @@ import { clienteCor } from '@/lib/clienteVisual'
 import { codigoCurtoPedido, codigoCurtoOS } from '@/lib/pedido'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { clienteDaOS, nomeClienteDaOS, type FilaResponse, type FilaOS, type FilaPedidoPendente } from './types'
+import { rotuloAvanco } from '@/lib/proximoPasso'
 
 const ETAPA_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   triagem:       { label: 'Triagem / Recebidas',   icon: ClipboardList, color: 'text-slate-500' },
@@ -266,6 +267,14 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: 
                     {o.amostra
                       ? `${' · '}Amostra ${o.amostra.numeroInterno}${o.amostra.numeroCliente ? ` (${o.amostra.numeroCliente})` : ''}`
                       : ` · ${volumes} volume${volumes === 1 ? '' : 's'} · aguardando identificação`}
+                    {o._count?.itens === 0 && (
+                      <span
+                        className="ml-2 inline-flex"
+                        title="Sem serviço definido, esta OS fica fora da cobrança do mês — defina na tela Ordem de Serviço."
+                      >
+                        <Badge variant="amber">sem serviço</Badge>
+                      </span>
+                    )}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {pedido && (
@@ -282,8 +291,10 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: 
               </div>
               {!terminal && (
                 <div className="flex flex-col items-end gap-1 shrink-0">
+                  {/* Avanço nomeado (plano "O próximo passo"): quem olha a fila
+                      sabe para onde o item vai, não só que ele "avança". */}
                   <Button size="sm" variant="secondary" onClick={() => onAvancar(o.id)}>
-                    Avançar <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    {rotuloAvanco(etapa)} <ChevronRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                   {/* Mover para: desvios (Imunofluorescência) e terminais (Arquivo/Descarte) */}
                   <select
