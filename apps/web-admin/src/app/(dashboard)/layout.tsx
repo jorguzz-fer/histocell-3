@@ -38,41 +38,59 @@ type MenuItem = {
   roles?: string[]
 }
 
-// Ordem alinhada à sequência operacional definida na 3ª homologação (Célio):
-// Cliente → Recebimento → Orçamento → Etiquetas → Ordem de Serviço → Rastreio …
-const menuItems: MenuItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, perm: 'dashboard', roles: ['gerencia'] },
-  { href: '/cadastro', label: 'Clientes', icon: Users, perm: 'clientes' },
-  // Orçamento entre Clientes e Recebimento (ordem do fluxo: cadastra → orça → recebe).
-  // Telas com valores: ocultas para o perfil técnico (sem valores).
-  { href: '/pedidos-legado', label: 'Novo Pedido', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
-  // Porta de entrada física: identifica o cliente + o objeto que chegou e
-  // imprime a etiqueta do volume, antes de existir orçamento. Compartilha a
-  // permissão de Recebimento (é a etapa anterior dele).
-  { href: '/entrada', label: 'Entrada', icon: DoorOpen, perm: 'recebimento' },
-  { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
-  { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
-  // Itens removidos do menu (rotas/códigos mantidos): '/pedidos' e '/pedidos-guiado'
-  { href: '/pacotes', label: 'Pacotes', icon: Boxes, perm: 'pacotes', roles: ['gerencia', 'recepcao', 'financeiro'] },
-  { href: '/etiquetas', label: 'Etiquetas', icon: Tags, perm: 'etiquetas' },
-  // A OS é o centro do fluxo: nasce na Entrada, é onde se define o serviço e de
-  // onde a execução é tocada. Substituiu a antiga /ordens (que agora redireciona).
-  { href: '/os', label: 'Ordem de Serviço', icon: ClipboardList, perm: 'ordens' },
-  { href: '/rastreio', label: 'Rastreio', icon: ScanLine, perm: 'rastreio' },
-  { href: '/laudos', label: 'Laudos', icon: FileText, perm: 'laudos' },
-  // Cadastro de serviços (criar/editar/arquivar) — tirado de dentro do Orçamento.
-  { href: '/servicos', label: 'Cadastro Serviço', icon: FlaskConical, perm: 'orcamento', roles: ['gerencia'] },
-  { href: '/relatorios', label: 'Relatórios', icon: LineChart, perm: 'relatorios', roles: ['gerencia', 'financeiro'] },
-  { href: '/motivos', label: 'Motivos', icon: MessageSquare, perm: 'motivos', roles: ['gerencia'] },
-  { href: '/comercial', label: 'Orçamentos', icon: Briefcase, perm: 'comercial', roles: ['gerencia', 'financeiro'] },
-  // Qualidade: não usado hoje — fica no rodapé do menu (implementar depois).
-  { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck, perm: 'qualidade' },
-  // Financeiro por último.
-  { href: '/financeiro', label: 'Financeiro', icon: Wallet, perm: 'financeiro', roles: ['gerencia', 'financeiro'] },
-  { href: '/contratos', label: 'Contratos', icon: FileSignature, perm: 'financeiro', roles: ['gerencia', 'financeiro'] },
-  // Administração de usuários, papéis e permissões (gerência).
-  { href: '/usuarios', label: 'Usuários e Acessos', icon: UserCog, perm: 'usuarios', roles: ['gerencia'] },
+// Menu em grupos, na ordem do fluxo (plano "O próximo passo"):
+// FLUXO é a sequência da operação — a mesma do mapa em /mapa; APOIO são os
+// cadastros que alimentam o fluxo; GESTÃO é quem olha o conjunto. A ordem do
+// menu vira o "onde estou" implícito de quem trabalha de cima para baixo.
+type MenuGrupo = { titulo: string; itens: MenuItem[] }
+
+const menuGrupos: MenuGrupo[] = [
+  {
+    titulo: 'Fluxo',
+    itens: [
+      { href: '/pedidos-legado', label: 'Novo Pedido', icon: FileSpreadsheet, perm: 'orcamento', roles: ['gerencia', 'recepcao', 'financeiro'] },
+      // Porta de entrada física: identifica o cliente + o objeto que chegou e
+      // imprime a etiqueta do volume, antes de existir orçamento. Compartilha a
+      // permissão de Recebimento (é a etapa anterior dele).
+      { href: '/entrada', label: 'Entrada', icon: DoorOpen, perm: 'recebimento' },
+      { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
+      { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
+      // A OS é o centro do fluxo: nasce na Entrada, é onde se define o serviço e
+      // de onde a execução é tocada. Substituiu a antiga /ordens (que redireciona).
+      { href: '/os', label: 'Ordem de Serviço', icon: ClipboardList, perm: 'ordens' },
+      { href: '/rastreio', label: 'Rastreio', icon: ScanLine, perm: 'rastreio' },
+      { href: '/laudos', label: 'Laudos', icon: FileText, perm: 'laudos' },
+    ],
+  },
+  {
+    titulo: 'Apoio',
+    itens: [
+      // Clientes fica em Apoio por ser cadastro; se a recepção o tratar como
+      // passo zero do dia, é uma linha para subir ao topo do Fluxo.
+      { href: '/cadastro', label: 'Clientes', icon: Users, perm: 'clientes' },
+      { href: '/servicos', label: 'Cadastro Serviço', icon: FlaskConical, perm: 'orcamento', roles: ['gerencia'] },
+      { href: '/etiquetas', label: 'Etiquetas', icon: Tags, perm: 'etiquetas' },
+      { href: '/pacotes', label: 'Pacotes', icon: Boxes, perm: 'pacotes', roles: ['gerencia', 'recepcao', 'financeiro'] },
+      { href: '/motivos', label: 'Motivos', icon: MessageSquare, perm: 'motivos', roles: ['gerencia'] },
+      // Qualidade: não usado hoje — fica no fim do Apoio (implementar depois).
+      { href: '/qualidade', label: 'Qualidade', icon: ShieldCheck, perm: 'qualidade' },
+    ],
+  },
+  {
+    titulo: 'Gestão',
+    itens: [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, perm: 'dashboard', roles: ['gerencia'] },
+      { href: '/relatorios', label: 'Relatórios', icon: LineChart, perm: 'relatorios', roles: ['gerencia', 'financeiro'] },
+      { href: '/comercial', label: 'Orçamentos', icon: Briefcase, perm: 'comercial', roles: ['gerencia', 'financeiro'] },
+      { href: '/financeiro', label: 'Financeiro', icon: Wallet, perm: 'financeiro', roles: ['gerencia', 'financeiro'] },
+      { href: '/contratos', label: 'Contratos', icon: FileSignature, perm: 'financeiro', roles: ['gerencia', 'financeiro'] },
+      { href: '/usuarios', label: 'Usuários e Acessos', icon: UserCog, perm: 'usuarios', roles: ['gerencia'] },
+    ],
+  },
 ]
+
+// Lista plana: a guarda de rota e o fallback de permissão não mudam com os grupos.
+const menuItems: MenuItem[] = menuGrupos.flatMap((g) => g.itens)
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -100,7 +118,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return !item.roles || (role != null && item.roles.includes(role))
   }
 
-  const visibleItems = menuItems.filter(podeAcessar)
+  // Grupos com só os itens que o usuário pode ver; grupo vazio não aparece.
+  const gruposVisiveis = menuGrupos
+    .map((g) => ({ ...g, itens: g.itens.filter(podeAcessar) }))
+    .filter((g) => g.itens.length > 0)
 
   // Guarda de rota: quem tenta abrir uma tela sem permissão via URL é
   // redirecionado para a primeira tela permitida.
@@ -141,32 +162,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-          {visibleItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`group flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
-                }`}
-              >
-                <Icon
-                  className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-                    isActive
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'
-                  }`}
-                  strokeWidth={1.75}
-                />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
+          {gruposVisiveis.map((grupo, gi) => (
+            <div key={grupo.titulo} className={gi > 0 ? 'mt-4' : ''}>
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500 select-none">
+                {grupo.titulo}
+              </p>
+              <div className="space-y-0.5">
+                {grupo.itens.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`group flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
+                      }`}
+                    >
+                      <Icon
+                        className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                          isActive
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'
+                        }`}
+                        strokeWidth={1.75}
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </aside>
 
