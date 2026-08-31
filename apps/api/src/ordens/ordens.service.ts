@@ -546,7 +546,10 @@ export class OrdensService {
   async statusConferencia(osId: number) {
     const os = await this.prisma.ordemServico.findUnique({
       where: { id: osId },
-      select: { id: true, amostraId: true, conferenciaLiberada: true, conferenciaObs: true },
+      select: {
+        id: true, numero: true, amostraId: true, conferenciaLiberada: true, conferenciaObs: true,
+        saidaConferidaEm: true, saidaConferidaPor: true,
+      },
     });
     if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
     // OS aberta na Entrada ainda não tem amostra identificada — logo, nenhuma
@@ -561,26 +564,50 @@ export class OrdensService {
       esperado: etiquetas.length,
       conferidas,
       faltantes: etiquetas.length - conferidas,
-      // Sem etiquetas (ex.: serviço sem geração de etiqueta) → nada a bipar,
-      // conferência considerada completa; não trava a finalização.
+      // Etiquetas completas ≠ saída liberada: falta o carimbo final abaixo.
       completo: conferidas === etiquetas.length,
+      // Bipagem de saída (regra do Célio): TODA OS precisa do próprio código
+      // bipado para concluir. É o que cobre o serviço que não gera etiqueta —
+      // antes, "zero de zero lâminas" passava direto, sem nenhum ato de entrega.
+      osNumero: os.numero,
+      saidaConferida: os.saidaConferidaEm != null,
+      saidaConferidaEm: os.saidaConferidaEm,
+      saidaConferidaPor: os.saidaConferidaPor,
       liberada: os.conferenciaLiberada,
       obs: os.conferenciaObs,
       etiquetas,
     };
   }
 
-  /** Bipa uma etiqueta na conferência fina (deve pertencer à amostra da OS). */
+  /** Bipa um código na conferência de saída: etiqueta da amostra OU o código da própria OS. */
   async conferir(osId: number, codigo: string, userId: number) {
-    const os = await this.prisma.ordemServico.findUnique({ where: { id: osId }, select: { amostraId: true } });
+    const os = await this.prisma.ordemServico.findUnique({
+      where: { id: osId },
+      select: { amostraId: true, numero: true },
+    });
     if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
     const alvo = (codigo ?? '').trim();
+
+    // Bipar o código da OS é o carimbo final de entrega — funciona em qualquer
+    // OS, inclusive a da Entrada (sem amostra e sem etiqueta para bipar).
+    if (alvo.toUpperCase() === os.numero.toUpperCase()) {
+      const nome = await this.nomeUsuario(userId);
+      await this.prisma.ordemServico.update({
+        where: { id: osId },
+        data: { saidaConferidaEm: new Date(), saidaConferidaPor: nome },
+      });
+      await this.audit.log(userId, 'CONFERE_SAIDA_OS', 'OrdemServico', osId, {});
+      return this.statusConferencia(osId);
+    }
+
     // Aceita o código exato, um número puro, OU o primeiro grupo de dígitos de
     // um texto composto (ex.: "00000032 - 17062026") — mesmo comportamento do rastreio.
     const grupoDigitos = alvo.match(/\d+/);
     const asNumero = grupoDigitos ? parseInt(grupoDigitos[0], 10) : -1;
     if (os.amostraId == null) {
-      throw new BadRequestException('Esta OS ainda não tem amostra identificada — nada a conferir.');
+      throw new BadRequestException(
+        `Esta OS não tem etiquetas para bipar — confirme a saída bipando o código da OS (${os.numero}).`,
+      );
     }
     const et = await this.prisma.etiqueta.findFirst({
       where: {
@@ -674,13 +701,21 @@ export class OrdensService {
     const etapaAtual = os.etapaAtual as Etapa;
     const proxima = proximaEtapa(etapaAtual);
 
-    // Trava: sair da Finalização exige conferência fina completa (ou liberada c/ justificativa)
+    // Trava: sair da Finalização exige as etiquetas todas bipadas E o código da
+    // própria OS bipado (carimbo de entrega) — ou a liberação com justificativa.
     if (etapaAtual === 'finalizacao') {
       const conf = await this.statusConferencia(id);
-      if (!conf.completo && !conf.liberada) {
-        throw new BadRequestException(
-          `Conferência fina incompleta (${conf.conferidas}/${conf.esperado}). Bipe todas as lâminas ou libere com justificativa.`,
-        );
+      if (!conf.liberada) {
+        if (!conf.completo) {
+          throw new BadRequestException(
+            `Conferência de saída incompleta (${conf.conferidas}/${conf.esperado} lâminas). Bipe todas as lâminas ou libere com justificativa.`,
+          );
+        }
+        if (!conf.saidaConferida) {
+          throw new BadRequestException(
+            `Falta o carimbo de saída: bipe o código da OS (${conf.osNumero}) para confirmar a entrega, ou libere com justificativa.`,
+          );
+        }
       }
     }
 

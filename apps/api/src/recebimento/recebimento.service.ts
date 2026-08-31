@@ -377,6 +377,9 @@ export class RecebimentoService {
             servico: { select: { nome: true, codigo: true } },
             // serviço de origem da amostra (quando criada via emissão de etiquetas)
             itemPedido: { select: { servico: { select: { nome: true, codigo: true } } } },
+            // OS da amostra — a folha impressa carrega o código de barras dela,
+            // que a bancada bipa na conferência de saída (carimbo de entrega).
+            ordemServico: { select: { numero: true, seq: true } },
           },
         },
       },

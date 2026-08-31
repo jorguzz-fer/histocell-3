@@ -77,9 +77,11 @@ export function guiaDaOS(f: FatosOS): GuiaOS {
       dicas.push('O laudo é solicitado pelo pedido — vincule o volume da Entrada ao pedido do cliente para liberar.')
     }
   } else if (f.etapaAtual === 'finalizacao') {
-    daEtapa = { tipo: 'conferencia', rotulo: 'Conferência fina', habilitada: f.temAmostra }
+    // A conferência de saída vale para toda OS: lâminas bipadas uma a uma e o
+    // código da própria OS como carimbo final de entrega.
+    daEtapa = { tipo: 'conferencia', rotulo: 'Conferência de saída', habilitada: true }
     if (!f.temAmostra) {
-      dicas.push('A conferência fina bipa as lâminas — libera após identificar a amostra e emitir as etiquetas.')
+      dicas.push('OS sem etiquetas: a saída é confirmada bipando o código da própria OS.')
     }
   } else if (f.etapaAtual === 'expedicao' && f.temPedido) {
     daEtapa = { tipo: 'notificar', rotulo: 'Notificar cliente', habilitada: true }

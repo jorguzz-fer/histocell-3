@@ -200,10 +200,10 @@ export function ExecucaoOSDrawer({
               variant="secondary"
               size="sm"
               onClick={() => onConferir?.(os.id, codigoCurto)}
-              // A conferência fina bipa as lâminas — só existe depois que a
-              // amostra foi identificada e etiquetada.
-              disabled={!os.amostra}
-              title={os.amostra ? 'Conferência fina (bipagem)' : 'Disponível após identificar a amostra'}
+              // Toda OS passa pela conferência de saída: lâminas etiquetadas são
+              // bipadas uma a uma, e o código da própria OS é o carimbo final —
+              // inclusive na OS da Entrada, que não tem etiqueta nenhuma.
+              title="Conferência de saída (bipagem)"
             >
               <ScanLine className="h-3.5 w-3.5" />
               Conferência
