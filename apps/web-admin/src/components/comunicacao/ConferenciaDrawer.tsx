@@ -7,7 +7,12 @@ import { Button } from '@/components/ui/Button'
 import { api } from '@/lib/api'
 
 type EtiquetaConf = { id: number; codigo: string; numero: number; laminaSeq: number; coloracao?: string | null; conferidaEm?: string | null; conferidaPor?: string | null }
-type StatusConf = { esperado: number; conferidas: number; faltantes: number; completo: boolean; liberada: boolean; obs?: string | null; etiquetas: EtiquetaConf[] }
+type StatusConf = {
+  esperado: number; conferidas: number; faltantes: number; completo: boolean
+  /** Carimbo de saída: o código da própria OS foi bipado. */
+  osNumero: string; saidaConferida: boolean; saidaConferidaPor?: string | null
+  liberada: boolean; obs?: string | null; etiquetas: EtiquetaConf[]
+}
 
 interface Props {
   open: boolean
@@ -38,10 +43,21 @@ export function ConferenciaDrawer({ open, onClose, ordemId, numero, onChange }: 
     try {
       const s = await api.post<StatusConf>(`/ordens/${ordemId}/conferir`, { codigo: cod })
       setStatus(s); setCodigo('')
-      if (s.completo) toast.success('Conferência completa!')
+      if (s.completo && s.saidaConferida) toast.success('Conferência de saída completa!')
     } catch (err: any) {
       toast.error(err.message ?? 'Etiqueta inválida')
     } finally { setSaving(false); inputRef.current?.focus() }
+  }
+
+  // O botão faz o mesmo que o leitor: bipa o código da própria OS.
+  async function confirmarSaida() {
+    if (!status) return
+    setSaving(true)
+    try {
+      const s = await api.post<StatusConf>(`/ordens/${ordemId}/conferir`, { codigo: status.osNumero })
+      setStatus(s); onChange?.()
+      toast.success('Saída da OS confirmada.')
+    } catch (err: any) { toast.error(err.message ?? 'Erro ao confirmar saída') } finally { setSaving(false) }
   }
 
   async function liberar() {
@@ -61,16 +77,41 @@ export function ConferenciaDrawer({ open, onClose, ordemId, numero, onChange }: 
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { onChange?.(); onClose() }} />
       <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">
-          Conferência fina {numero ? `· ${numero}` : ''}
+          Conferência de saída {numero ? `· ${numero}` : ''}
         </h2>
 
         {status && (
-          <div className="flex items-center gap-2 text-[13px]">
-            <span className={`font-semibold ${status.completo || status.liberada ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {status.conferidas}/{status.esperado} conferidas
-            </span>
-            {status.completo && <span className="text-emerald-600">✓ completo</span>}
-            {!status.completo && status.liberada && <span className="text-amber-600">liberado c/ justificativa</span>}
+          <div className="space-y-1.5">
+            {status.esperado > 0 && (
+              <div className="flex items-center gap-2 text-[13px]">
+                <span className={`font-semibold ${status.completo || status.liberada ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {status.conferidas}/{status.esperado} lâminas
+                </span>
+                {status.completo && <span className="text-emerald-600">✓ completo</span>}
+              </div>
+            )}
+            {/* Carimbo de saída: toda OS precisa do próprio código bipado para
+                concluir — é o que cobre os serviços que não geram etiqueta. */}
+            <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-[13px]
+              border-slate-200 dark:border-slate-700">
+              <span className="text-slate-600 dark:text-slate-300">
+                Saída da OS <span className="font-mono text-slate-400">{status.osNumero}</span>
+              </span>
+              {status.saidaConferida ? (
+                <span className="text-emerald-600 flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5" /> bipada{status.saidaConferidaPor ? ` · ${status.saidaConferidaPor}` : ''}
+                </span>
+              ) : (
+                <Button size="sm" variant="secondary" loading={saving}
+                  title="O mesmo que bipar o código de barras da OS na folha impressa"
+                  onClick={confirmarSaida}>
+                  Confirmar saída
+                </Button>
+              )}
+            </div>
+            {!status.completo && status.liberada && (
+              <p className="text-[12px] text-amber-600">liberado c/ justificativa</p>
+            )}
           </div>
         )}
 
@@ -80,7 +121,7 @@ export function ConferenciaDrawer({ open, onClose, ordemId, numero, onChange }: 
             ref={inputRef}
             value={codigo}
             onChange={(e) => setCodigo(e.target.value)}
-            placeholder="Bipe a etiqueta e tecle Enter…"
+            placeholder="Bipe a etiqueta ou o código da OS…"
             autoComplete="off"
             className="w-full rounded-md border border-slate-200 dark:border-slate-700 pl-9 pr-3 py-2 text-[13px]
               bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -103,14 +144,17 @@ export function ConferenciaDrawer({ open, onClose, ordemId, numero, onChange }: 
             </div>
           ))}
           {status && status.etiquetas.length === 0 && (
-            <p className="text-[12px] text-slate-400 text-center py-3">Esta OS não tem etiquetas para conferir.</p>
+            <p className="text-[12px] text-slate-400 text-center py-3">Esta OS não tem etiquetas — a saída é confirmada bipando o código da OS.</p>
           )}
         </div>
 
-        {status && !status.completo && !status.liberada && (
+        {status && (!status.completo || !status.saidaConferida) && !status.liberada && (
           <div className="rounded-lg border border-amber-200 dark:border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 p-3 space-y-2">
             <p className="text-[12px] text-amber-800 dark:text-amber-300">
-              Faltam {status.faltantes}. Para liberar mesmo assim (ex.: lâmina será refeita), justifique:
+              {status.faltantes > 0
+                ? `Faltam ${status.faltantes} lâmina(s)`
+                : 'Falta o carimbo de saída da OS'}
+              . Para liberar mesmo assim (ex.: lâmina será refeita), justifique:
             </p>
             <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2}
               placeholder="Justificativa…"

@@ -440,6 +440,10 @@ model OrdemServico {
   // Conferência fina: liberada com justificativa mesmo incompleta (trava a expedição)
   conferenciaLiberada Boolean @default(false)
   conferenciaObs      String? @db.Text
+  // Bipagem de saída (Célio): a OS só conclui quando alguém bipa o código da
+  // própria OS — o carimbo final de entrega, cobrindo os serviços sem etiqueta.
+  saidaConferidaEm    DateTime?
+  saidaConferidaPor   String?
   iniciadoEm  DateTime?
   concluidoEm DateTime?
   createdAt   DateTime  @default(now())

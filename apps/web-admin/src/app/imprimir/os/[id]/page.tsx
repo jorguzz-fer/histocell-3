@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { api } from '@/lib/api'
+import { Barcode } from '@/components/ui/Barcode'
 
 type ServicoRef = { nome: string; codigo: string }
 type Detalhe = {
@@ -24,6 +25,8 @@ type Detalhe = {
     itemPedidoId?: number | null
     servico?: ServicoRef | null
     itemPedido?: { servico: ServicoRef } | null
+    /** OS da amostra — o código de barras dela é o carimbo da conferência de saída. */
+    ordemServico?: { numero: string; seq?: number | null } | null
   }[]
 }
 
@@ -128,6 +131,7 @@ export default function ImprimirOSPage() {
               <th className="py-1 pr-2 font-semibold">Identificação</th>
               <th className="py-1 pr-2 font-semibold">Obs.</th>
               <th className="py-1 pr-2 font-semibold text-right">Qtd</th>
+              <th className="py-1 pl-2 font-semibold text-right">Saída (bipar)</th>
             </tr>
           </thead>
           <tbody>
@@ -141,6 +145,18 @@ export default function ImprimirOSPage() {
                   <td className="py-1 pr-2">{a.numeroCliente ?? '—'}</td>
                   <td className="py-1 pr-2">{a.observacoes ?? ''}</td>
                   <td className="py-1 pr-2 text-right">1</td>
+                  {/* Código da OS: bipado na conferência como carimbo de saída —
+                      cobre também o serviço que não gera etiqueta de lâmina. */}
+                  <td className="py-1 pl-2 text-right">
+                    {a.ordemServico ? (
+                      <div className="inline-block text-center">
+                        <Barcode value={a.ordemServico.numero} height={26} width={1} />
+                        <div className="font-mono text-[8px] leading-none">{a.ordemServico.numero}</div>
+                      </div>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
                 </tr>
               )
             })}
@@ -152,6 +168,7 @@ export default function ImprimirOSPage() {
                 <td className="py-1 pr-2 text-slate-400">—</td>
                 <td className="py-1 pr-2" />
                 <td className="py-1 pr-2 text-right">{i.quantidade}</td>
+                <td className="py-1 pl-2" />
               </tr>
             ))}
           </tbody>
