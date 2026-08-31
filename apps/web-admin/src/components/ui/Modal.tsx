@@ -11,10 +11,16 @@ interface ModalProps {
   children: ReactNode
   footer?: ReactNode
   width?: string
+  /**
+   * 'auto' (padrão): o card abraça o conteúdo, até 90vh.
+   * 'cheia': altura fixa de 88vh — para janelas com dropdown de busca dentro,
+   * que senão abrem colados no fundo do card e são cortados pelo scroll.
+   */
+  altura?: 'auto' | 'cheia'
 }
 
 /** Diálogo centralizado (modal) — overlay + card no centro da tela. */
-export function Modal({ open, onClose, title, subtitle, children, footer, width = 'max-w-2xl' }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, children, footer, width = 'max-w-2xl', altura = 'auto' }: ModalProps) {
   // Fecha com Esc
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -46,7 +52,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, width 
         role="dialog"
         aria-modal="true"
         className={`relative z-10 w-full ${width} my-auto rounded-xl bg-white dark:bg-slate-900 shadow-2xl
-          border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]`}
+          border border-slate-200 dark:border-slate-800 flex flex-col ${altura === 'cheia' ? 'h-[88vh]' : 'max-h-[90vh]'}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
