@@ -46,6 +46,12 @@ export class FilaService {
       responsavel: true,
       responsavelUserId: true,
       iniciadoEm: true,
+      // A OS aberta na Entrada não tem amostra: o material chegou, mas ainda
+      // não foi identificado. Ela carrega o cliente e os volumes direto, e é
+      // por aqui que a fila consegue mostrá-la.
+      origem: true,
+      cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+      _count: { select: { volumes: true } },
       amostra: {
         select: {
           id: true,

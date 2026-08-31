@@ -11,7 +11,7 @@ import { OSModal } from '@/components/OSModal'
 import { clienteCor } from '@/lib/clienteVisual'
 import { codigoCurtoPedido, codigoCurtoOS } from '@/lib/pedido'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import type { FilaResponse, FilaOS, FilaPedidoPendente } from './types'
+import { clienteDaOS, nomeClienteDaOS, type FilaResponse, type FilaOS, type FilaPedidoPendente } from './types'
 
 const ETAPA_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   triagem:       { label: 'Triagem / Recebidas',   icon: ClipboardList, color: 'text-slate-500' },
@@ -236,29 +236,46 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: 
         </p>
       ) : (
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {itens.map((o) => (
+          {itens.map((o) => {
+            // A OS da Entrada não tem amostra nem pedido — só cliente e volumes.
+            // Tudo que depende da amostra é opcional daqui para baixo.
+            const cliente = clienteDaOS(o)
+            const nomeCliente = nomeClienteDaOS(o)
+            const pedido = o.amostra?.pedido ?? null
+            const volumes = o._count?.volumes ?? 0
+            return (
             <div key={o.id} className="px-5 py-3 flex items-center justify-between gap-3 border-l-4"
-              style={{ borderLeftColor: clienteCor(o.amostra.pedido.cliente.id).borda }}>
+              style={{ borderLeftColor: cliente ? clienteCor(cliente.id).borda : 'transparent' }}>
               <div className="flex items-center gap-2.5 min-w-0">
-                <ClienteAvatar
-                  nome={o.amostra.pedido.cliente.nomeFantasia || o.amostra.pedido.cliente.nome}
-                  seed={o.amostra.pedido.cliente.id}
-                  size={30}
-                />
+                <ClienteAvatar nome={nomeCliente} seed={cliente?.id ?? nomeCliente} size={30} />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
-                    <button
-                      onClick={() => onVerOS(o.amostra.pedido.id, o.numero)}
-                      title={`Ver Ordem de Serviço · ${o.numero}`}
-                      className="text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
-                    >
-                      {codigoCurtoOS(o.seq, o.numero)}
-                    </button>
-                    {' · '}Amostra {o.amostra.numeroInterno}
-                    {o.amostra.numeroCliente ? ` (${o.amostra.numeroCliente})` : ''}
+                    {pedido ? (
+                      <button
+                        onClick={() => onVerOS(pedido.id, o.numero)}
+                        title={`Ver Ordem de Serviço · ${o.numero}`}
+                        className="text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
+                      >
+                        {codigoCurtoOS(o.seq, o.numero)}
+                      </button>
+                    ) : (
+                      // Sem pedido não há o que abrir no modal — o código fica
+                      // como texto, e a OS se identifica pelos volumes.
+                      <span title={o.numero}>{codigoCurtoOS(o.seq, o.numero)}</span>
+                    )}
+                    {o.amostra
+                      ? `${' · '}Amostra ${o.amostra.numeroInterno}${o.amostra.numeroCliente ? ` (${o.amostra.numeroCliente})` : ''}`
+                      : ` · ${volumes} volume${volumes === 1 ? '' : 's'} · aguardando identificação`}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    <span title={o.amostra.pedido.numero}>{codigoCurtoPedido(o.amostra.pedido.seq, o.amostra.pedido.numero)}</span> · {o.amostra.pedido.cliente.nomeFantasia || o.amostra.pedido.cliente.nome} · {o.amostra.especie} · {o.amostra.material}
+                    {pedido && (
+                      <>
+                        <span title={pedido.numero}>{codigoCurtoPedido(pedido.seq, pedido.numero)}</span>
+                        {' · '}
+                      </>
+                    )}
+                    {nomeCliente}
+                    {o.amostra ? ` · ${o.amostra.especie} · ${o.amostra.material}` : ' · entrada da recepção'}
                     {o.responsavel ? ` · ${o.responsavel}` : ''}
                   </p>
                 </div>
@@ -294,7 +311,8 @@ function SecaoOS({ etapa, itens, count, onAvancar, onMover, onVerOS }: { etapa: 
                 </div>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </section>
