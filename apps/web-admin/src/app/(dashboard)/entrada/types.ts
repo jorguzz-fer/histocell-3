@@ -27,4 +27,7 @@ export type EntradaAvulsa = {
   ordemServicoId: number | null
   osNumero: string | null
   osCodigoCurto: string | null
+  /** Fase atual da OS deste volume — alimenta o chip do guia na lista do dia. */
+  osEtapa: string | null
+  osStatus: string | null
 }

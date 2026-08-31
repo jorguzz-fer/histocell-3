@@ -16,6 +16,8 @@ import {
   ETAPA_LABEL,
 } from '@/lib/etapas'
 import { clienteDaOS, type OrdemServico } from './types'
+import { guiaDaOS } from '@/lib/proximoPasso'
+import { fatosDaOS } from './guia'
 
 interface Props {
   open: boolean
@@ -26,6 +28,8 @@ interface Props {
   onImprimir?: (pedidoId: number, numero: string) => void
   onComunicar?: (pedidoId: number, ordemId: number, numero: string) => void
   onConferir?: (ordemId: number, numero: string) => void
+  /** Abre a janela de Serviços — o guia aponta para cá quando falta definir. */
+  onDefinirServico?: (ordemId: number) => void
 }
 
 /**
@@ -41,6 +45,7 @@ export function ExecucaoOSDrawer({
   onImprimir,
   onComunicar,
   onConferir,
+  onDefinirServico,
 }: Props) {
   const [destino, setDestino] = useState('')
   const [agindo, setAgindo] = useState(false)
@@ -55,6 +60,7 @@ export function ExecucaoOSDrawer({
   const idxAtual = ETAPAS_ORDEM.indexOf(os.etapaAtual as (typeof ETAPAS_ORDEM)[number])
   const proxima = idxAtual >= 0 && idxAtual < ETAPAS_ORDEM.length - 1 ? ETAPAS_ORDEM[idxAtual + 1] : null
   const encerrada = os.status === 'concluida' || os.status === 'cancelada'
+  const guia = guiaDaOS(fatosDaOS(os))
 
   async function acao(fn: () => Promise<unknown>, sucesso: string) {
     setAgindo(true)
@@ -115,6 +121,16 @@ export function ExecucaoOSDrawer({
           {os.responsavel && (
             <p className="text-[12px] text-slate-500">Responsável: {os.responsavel}</p>
           )}
+          {/* O que falta para liberar o que está pendente — mesma fonte do guia
+              das listas (lib/proximoPasso). */}
+          {guia.dicas.map((dica) => (
+            <p
+              key={dica}
+              className="rounded border-l-2 border-amber-400 bg-amber-50 px-3 py-1.5 text-[12px] text-amber-800 dark:bg-amber-900/15 dark:text-amber-300"
+            >
+              {dica}
+            </p>
+          ))}
         </section>
 
         {encerrada ? (
@@ -123,6 +139,20 @@ export function ExecucaoOSDrawer({
           </p>
         ) : (
           <>
+            {guia.primaria?.tipo === 'definir_servico' && (
+              <section className="space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Próximo passo
+                </span>
+                <Button
+                  onClick={() => onDefinirServico?.(os.id)}
+                  className="w-full justify-center"
+                >
+                  {guia.primaria.rotulo}
+                </Button>
+              </section>
+            )}
+
             <section className="space-y-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Avançar no fluxo

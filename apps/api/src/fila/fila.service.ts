@@ -51,7 +51,7 @@ export class FilaService {
       // por aqui que a fila consegue mostrá-la.
       origem: true,
       cliente: { select: { id: true, nome: true, nomeFantasia: true } },
-      _count: { select: { volumes: true } },
+      _count: { select: { volumes: true, itens: true } },
       amostra: {
         select: {
           id: true,

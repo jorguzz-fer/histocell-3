@@ -14,8 +14,8 @@ export type FilaOS = {
   origem?: string
   /** Preenchido quando a OS nasceu na Entrada. */
   cliente?: ClienteFila | null
-  /** Contagem de volumes da entrada. */
-  _count?: { volumes: number } | null
+  /** Contagens: volumes da entrada e serviços já definidos na OS. */
+  _count?: { volumes: number; itens?: number } | null
   /**
    * NULO na OS aberta pela Entrada: o material chegou, mas ainda não foi
    * identificado como amostra. Toda leitura precisa passar pelos helpers
