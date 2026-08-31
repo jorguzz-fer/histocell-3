@@ -106,7 +106,7 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
       open={open}
       onClose={onClose}
       title={`Serviços da OS ${codigoCurto}`}
-      subtitle={clienteDaOS(os)} width="max-w-2xl"
+      subtitle={clienteDaOS(os)} width="max-w-3xl" altura="cheia"
     >
       <div className="space-y-5">
         <section className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">

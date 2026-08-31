@@ -354,7 +354,7 @@ export function PedidoDrawer({ open, onClose, pedido, onSaved }: PedidoDrawerPro
           isEdit
             ? `${pedido?.numero} — ${pedido?.clienteNomeFantasia ?? pedido?.clienteNome}`
             : 'Preencha os dados do pedido'
-        } width="max-w-3xl"
+        } width="max-w-3xl" altura="cheia"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
 

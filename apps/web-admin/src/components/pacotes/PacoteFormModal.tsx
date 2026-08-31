@@ -145,7 +145,7 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
       open={open}
       onClose={onClose}
       title={isEdit ? 'Editar pacote' : 'Novo pacote'}
-      subtitle={isEdit ? `#${pacote?.id} — ${pacote?.nome}` : 'Combo de serviços'} width="max-w-xl"
+      subtitle={isEdit ? `#${pacote?.id} — ${pacote?.nome}` : 'Combo de serviços'} width="max-w-xl" altura="cheia"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-3 gap-3">
