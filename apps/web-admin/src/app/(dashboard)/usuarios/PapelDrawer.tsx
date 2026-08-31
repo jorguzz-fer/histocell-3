@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Lock } from 'lucide-react'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { api } from '@/lib/api'
@@ -88,12 +88,11 @@ export function PapelDrawer({
   }
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title={editando ? `Papel: ${papel?.label}` : 'Novo papel'}
-      subtitle={somenteLeitura ? 'Papel do sistema — acesso fixo (somente leitura)' : 'Defina o nome e as áreas que este papel acessa'}
-      width="max-w-xl"
+      subtitle={somenteLeitura ? 'Papel do sistema — acesso fixo (somente leitura)' : 'Defina o nome e as áreas que este papel acessa'} width="max-w-xl"
     >
       <form onSubmit={salvar} className="space-y-5">
         <Input label="Nome do papel" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex.: Estagiário, Auxiliar…" disabled={somenteLeitura && papel?.superadmin} />
@@ -148,6 +147,6 @@ export function PapelDrawer({
           <Button type="submit" loading={saving}>{editando ? 'Salvar' : 'Criar papel'}</Button>
         </div>
       </form>
-    </Drawer>
+    </Modal>
   )
 }

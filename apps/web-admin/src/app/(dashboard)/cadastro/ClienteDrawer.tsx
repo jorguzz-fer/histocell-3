@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Copy, RefreshCw, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -396,12 +396,11 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved, nomeInicial }: 
   const docMask = form.tipo === 'PF' ? maskCPF : maskCNPJ
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title={isEdit ? 'Editar cliente' : 'Novo cliente'}
-      subtitle={isEdit ? `#${cliente?.id} — ${cliente?.nome}` : 'Preencha os dados do cliente'}
-      width="max-w-xl"
+      subtitle={isEdit ? `#${cliente?.id} — ${cliente?.nome}` : 'Preencha os dados do cliente'} width="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -770,6 +769,6 @@ export function ClienteDrawer({ open, onClose, cliente, onSaved, nomeInicial }: 
         </div>
 
       </form>
-    </Drawer>
+    </Modal>
   )
 }

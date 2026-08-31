@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FlaskConical, Package, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
@@ -102,12 +102,11 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
   const isPesquisador = false // preço já vem resolvido do backend; aqui é só exibição
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title={`Serviços da OS ${codigoCurto}`}
-      subtitle={clienteDaOS(os)}
-      width="max-w-2xl"
+      subtitle={clienteDaOS(os)} width="max-w-2xl"
     >
       <div className="space-y-5">
         <section className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
@@ -225,6 +224,6 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
           </Button>
         </div>
       </div>
-    </Drawer>
+    </Modal>
   )
 }

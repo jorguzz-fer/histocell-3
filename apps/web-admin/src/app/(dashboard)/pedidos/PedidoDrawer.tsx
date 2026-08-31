@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Plus, Trash2, AlertCircle, Tag } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -346,7 +346,7 @@ export function PedidoDrawer({ open, onClose, pedido, onSaved }: PedidoDrawerPro
 
   return (
     <>
-      <Drawer
+      <Modal
         open={open}
         onClose={onClose}
         title={isEdit ? 'Editar pedido' : 'Novo pedido'}
@@ -354,8 +354,7 @@ export function PedidoDrawer({ open, onClose, pedido, onSaved }: PedidoDrawerPro
           isEdit
             ? `${pedido?.numero} — ${pedido?.clienteNomeFantasia ?? pedido?.clienteNome}`
             : 'Preencha os dados do pedido'
-        }
-        width="max-w-2xl"
+        } width="max-w-3xl"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -550,7 +549,7 @@ export function PedidoDrawer({ open, onClose, pedido, onSaved }: PedidoDrawerPro
             </Button>
           </div>
         </form>
-      </Drawer>
+      </Modal>
 
       {/* Modal de criar novo serviço */}
       {novoServicoNome !== null && (

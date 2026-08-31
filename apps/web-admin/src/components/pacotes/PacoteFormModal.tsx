@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ServicoSearchInput } from '@/components/ui/ServicoSearchInput'
@@ -141,12 +141,11 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
   }
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title={isEdit ? 'Editar pacote' : 'Novo pacote'}
-      subtitle={isEdit ? `#${pacote?.id} — ${pacote?.nome}` : 'Combo de serviços'}
-      width="max-w-xl"
+      subtitle={isEdit ? `#${pacote?.id} — ${pacote?.nome}` : 'Combo de serviços'} width="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-3 gap-3">
@@ -283,6 +282,6 @@ export function PacoteFormModal({ open, onClose, pacote, servicos, onSaved }: Pa
           <Button type="submit" loading={saving}>{isEdit ? 'Salvar alterações' : 'Criar pacote'}</Button>
         </div>
       </form>
-    </Drawer>
+    </Modal>
   )
 }

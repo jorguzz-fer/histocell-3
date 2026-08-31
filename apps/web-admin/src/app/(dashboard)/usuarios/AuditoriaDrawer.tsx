@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { api } from '@/lib/api'
 import type { AuditoriaItem, UsuarioAdmin } from './types'
@@ -43,7 +43,7 @@ export function AuditoriaDrawer({
   }, [open, usuario])
 
   return (
-    <Drawer open={open} onClose={onClose} title="Auditoria" subtitle={usuario?.nome}>
+    <Modal open={open} onClose={onClose} title="Auditoria" subtitle={usuario?.nome} width="max-w-2xl">
       {loading ? (
         <p className="text-[13px] text-slate-400 py-8 text-center">Carregando…</p>
       ) : itens.length === 0 ? (
@@ -63,6 +63,6 @@ export function AuditoriaDrawer({
           ))}
         </ul>
       )}
-    </Drawer>
+    </Modal>
   )
 }

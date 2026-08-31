@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -98,7 +98,7 @@ export function GerarEtiquetasDrawer({ open, onClose, onGenerated }: Props) {
   }
 
   return (
-    <Drawer open={open} onClose={onClose} title="Gerar etiquetas" subtitle="Code128 por lâmina/cassete">
+    <Modal open={open} onClose={onClose} title="Gerar etiquetas" subtitle="Code128 por lâmina/cassete" width="max-w-xl">
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
         {/* Seleção de amostra */}
         <div className="space-y-2">
@@ -200,6 +200,6 @@ export function GerarEtiquetasDrawer({ open, onClose, onGenerated }: Props) {
           Gerar {quantidade && parseInt(quantidade, 10) > 0 ? `(${parseInt(quantidade, 10)})` : ''}
         </Button>
       </div>
-    </Drawer>
+    </Modal>
   )
 }

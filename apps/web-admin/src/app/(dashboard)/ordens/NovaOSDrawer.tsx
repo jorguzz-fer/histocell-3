@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { FlaskConical } from 'lucide-react'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -107,11 +107,11 @@ export function NovaOSDrawer({ open, onClose, onSaved }: NovaOSDrawerProps) {
   ]
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title="Nova Ordem de Serviço"
-      subtitle="Selecione a amostra e configure a OS"
+      subtitle="Selecione a amostra e configure a OS" width="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -225,6 +225,6 @@ export function NovaOSDrawer({ open, onClose, onSaved }: NovaOSDrawerProps) {
           </Button>
         </div>
       </form>
-    </Drawer>
+    </Modal>
   )
 }

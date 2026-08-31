@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -71,11 +71,11 @@ export function UserDrawer({
     .map((p) => ({ value: p.nome, label: p.label + (p.ativo ? '' : ' (inativo)') }))
 
   return (
-    <Drawer
+    <Modal
       open={open}
       onClose={onClose}
       title={editando ? 'Editar usuário' : 'Novo usuário'}
-      subtitle={editando ? usuario?.email : 'Cadastre um novo acesso ao sistema'}
+      subtitle={editando ? usuario?.email : 'Cadastre um novo acesso ao sistema'} width="max-w-xl"
     >
       <form onSubmit={salvar} className="space-y-4">
         <Input label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
@@ -101,6 +101,6 @@ export function UserDrawer({
           <Button type="submit" loading={saving}>{editando ? 'Salvar' : 'Criar usuário'}</Button>
         </div>
       </form>
-    </Drawer>
+    </Modal>
   )
 }
