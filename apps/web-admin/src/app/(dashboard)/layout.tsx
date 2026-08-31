@@ -54,10 +54,10 @@ const menuGrupos: MenuGrupo[] = [
       // permissão de Recebimento (é a etapa anterior dele).
       { href: '/entrada', label: 'Entrada', icon: DoorOpen, perm: 'recebimento' },
       { href: '/recebimento', label: 'Recebimento', icon: PackageOpen, perm: 'recebimento' },
-      { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
       // A OS é o centro do fluxo: nasce na Entrada, é onde se define o serviço e
       // de onde a execução é tocada. Substituiu a antiga /ordens (que redireciona).
       { href: '/os', label: 'Ordem de Serviço', icon: ClipboardList, perm: 'ordens' },
+      { href: '/fila', label: 'Fila', icon: Inbox, perm: 'fila' },
       { href: '/rastreio', label: 'Rastreio', icon: ScanLine, perm: 'rastreio' },
       { href: '/laudos', label: 'Laudos', icon: FileText, perm: 'laudos' },
     ],
