@@ -30,6 +30,7 @@ export class ClientesController {
    * Lista clientes com filtros opcionais: ?busca=&tipo=&segmento=&ativo=&page=&limit=
    * Roles: todos os usuários internos
    */
+  @Roles('gerencia', 'recepcao', 'financeiro', 'tecnico')
   @Get()
   findAll(@Query() filter: FilterClienteDto) {
     return this.service.findAll(filter);
@@ -40,6 +41,7 @@ export class ClientesController {
    * Detalhe de um cliente (com endereços)
    * Roles: todos os usuários internos
    */
+  @Roles('gerencia', 'recepcao', 'financeiro', 'tecnico')
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
