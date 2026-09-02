@@ -89,18 +89,46 @@ export function ServicoSearchInput({
     [servicos],
   )
 
-  // Filtro de resultados
+  // Filtro de resultados — mesma regra da tabela do Novo Pedido
+  // (ServicoLegadoTable): busca numérica prioriza o casamento EXATO de código,
+  // com parseInt dos dois lados ("001" acha o código 1); sem exato, vale o
+  // prefixo. Busca textual segue por nome/código. Divergir daqui confunde quem
+  // usa as duas telas no mesmo dia.
   const results = useMemo(() => {
-    const q = normalize(query)
-    return servicos
-      .filter((s) => {
-        if (categoria && s.categoria !== categoria) return false
-        if (!q) return true
-        return (
-          normalize(s.nome).includes(q) ||
-          s.codigo.includes(q) ||
-          (s.codigoLegado && String(s.codigoLegado).includes(q))
+    const raw = query.trim()
+    const q = normalize(raw)
+    let list = servicos.filter((s) => !categoria || s.categoria === categoria)
+
+    if (q) {
+      if (/^\d+$/.test(raw)) {
+        const qn = parseInt(raw, 10)
+        const codeNum = (s: Servico) => {
+          const n = parseInt(s.codigo, 10)
+          return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER
+        }
+        const exato = list.filter(
+          (s) => s.codigo === raw || codeNum(s) === qn || s.codigoLegado === qn,
         )
+        list = exato.length
+          ? exato
+          : list.filter(
+              (s) =>
+                s.codigo.startsWith(raw) ||
+                (s.codigoLegado != null && String(s.codigoLegado).startsWith(raw)),
+            )
+      } else {
+        list = list.filter((s) => normalize(s.nome).includes(q) || normalize(s.codigo).includes(q))
+      }
+    }
+
+    // sempre do menor para o maior código, como na tabela do Pedido
+    return [...list]
+      .sort((a, b) => {
+        const na = parseInt(a.codigo, 10)
+        const nb = parseInt(b.codigo, 10)
+        const va = Number.isFinite(na) ? na : Number.MAX_SAFE_INTEGER
+        const vb = Number.isFinite(nb) ? nb : Number.MAX_SAFE_INTEGER
+        return va - vb || a.codigo.localeCompare(b.codigo)
       })
       .slice(0, 60) // máx 60 resultados visíveis
   }, [servicos, query, categoria])
