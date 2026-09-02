@@ -22,6 +22,16 @@ const INCLUDE_ETIQUETA = {
       },
     },
   },
+  // Etiqueta gerada direto na OS (fluxo da Entrada) não tem amostra — o
+  // cliente e a referência vêm da própria OS.
+  ordemServico: {
+    select: {
+      id: true,
+      numero: true,
+      seq: true,
+      cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+    },
+  },
 } as const;
 
 @Injectable()
@@ -132,6 +142,56 @@ export class EtiquetasService {
         });
       }),
     );
+  }
+
+  /**
+   * Gera etiquetas de cassete direto na OS (fluxo da Entrada): uma por posição,
+   * cada uma com a identificação do cliente digitada na tela de Serviços.
+   * Entram na mesma conferência de saída das etiquetas de amostra.
+   */
+  async gerarParaOS(osId: number, dto: { identificacoes: string[]; tipo?: string }) {
+    const os = await this.prisma.ordemServico.findUnique({
+      where: { id: osId },
+      select: {
+        id: true,
+        numero: true,
+        seq: true,
+        cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+        amostra: { select: { pedido: { select: { cliente: { select: { id: true, nome: true, nomeFantasia: true } } } } } },
+      },
+    });
+    if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
+    const cliente = os.cliente ?? os.amostra?.pedido.cliente;
+    if (!cliente) throw new NotFoundException(`OS #${osId} não tem cliente para etiquetar.`);
+
+    const idents = (dto.identificacoes ?? []).map((i) => (i ?? '').trim());
+    if (idents.length === 0) throw new NotFoundException('Informe ao menos uma identificação.');
+
+    // continua a sequência de cassetes já gerados nesta OS
+    const jaExistentes = await this.prisma.etiqueta.count({ where: { ordemServicoId: os.id } });
+    const numeros = await this.gerarNumeros(idents.length);
+    const osRef = os.seq != null ? `OS${os.seq}` : os.numero.replace(/[^A-Za-z0-9-]/g, '');
+    const clienteLabel = cliente.nomeFantasia ?? cliente.nome;
+
+    const criadas = await this.prisma.$transaction(
+      numeros.map((numero, i) => {
+        const laminaSeq = jaExistentes + i + 1;
+        // mesmo desenho do código composto da amostra: cliente + referência + seq + nº global
+        const codigo = `${cliente.id}-${osRef}-C${laminaSeq}-${numero}`;
+        return this.prisma.etiqueta.create({
+          data: {
+            ordemServicoId: os.id,
+            numero,
+            codigo,
+            tipo: dto.tipo ?? 'cassete',
+            identificacao: idents[i] || clienteLabel,
+            laminaSeq,
+          },
+          include: INCLUDE_ETIQUETA,
+        });
+      }),
+    );
+    return { message: `${criadas.length} etiqueta(s) gerada(s) para a OS ${os.numero}.`, etiquetas: criadas };
   }
 
   // ── Gera N etiquetas para uma amostra ─────────────────────────────────────────
@@ -258,6 +318,7 @@ export class EtiquetasService {
 
     const where: any = {};
     if (filter.amostraId) where.amostraId = filter.amostraId;
+    if (filter.ordemServicoId) where.ordemServicoId = filter.ordemServicoId;
     if (filter.impresso === 'true') where.impresso = true;
     if (filter.impresso === 'false') where.impresso = false;
     if (filter.busca) {

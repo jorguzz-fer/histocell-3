@@ -1,5 +1,5 @@
 import { Barcode } from '@/components/ui/Barcode'
-import type { Etiqueta } from './types'
+import { clienteDaEtiqueta, refDaEtiqueta, type Etiqueta } from './types'
 
 function numeroFmt(n: number) {
   return String(n).padStart(8, '0')
@@ -29,9 +29,8 @@ export function EtiquetaLabel({
   larguraMm?: number
   alturaMm?: number
 }) {
-  const ident =
-    etiqueta.identificacao ??
-    (etiqueta.amostra.pedido.cliente.nomeFantasia ?? etiqueta.amostra.pedido.cliente.nome)
+  const cliente = clienteDaEtiqueta(etiqueta)
+  const ident = etiqueta.identificacao ?? cliente?.nomeFantasia ?? cliente?.nome ?? ''
 
   // Barras: altura ~38% da etiqueta; módulo proporcional à largura (limitado
   // para permanecer legível/escaneável em etiqueta pequena). 1mm ≈ 3.78px.
@@ -47,7 +46,7 @@ export function EtiquetaLabel({
       <div className="etiqueta-numero">
         {numeroFmt(etiqueta.numero)} - {ddmmaa(etiqueta.createdAt)}
       </div>
-      <div className="etiqueta-histocell">Histocell - {etiqueta.amostra.numeroInterno}</div>
+      <div className="etiqueta-histocell">Histocell - {refDaEtiqueta(etiqueta)}</div>
     </div>
   )
 }

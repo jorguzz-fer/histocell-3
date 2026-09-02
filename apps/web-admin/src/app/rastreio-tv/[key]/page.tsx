@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Clock, LogIn, LogOut, Maximize2 } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { Departamento, RastreioEtiqueta } from '@/app/(dashboard)/rastreio/types'
+import { clienteDaEtiqueta, refDaEtiqueta, type Departamento, type RastreioEtiqueta } from '@/app/(dashboard)/rastreio/types'
 
 type Lista = { data: RastreioEtiqueta[]; meta: { total: number } }
 
@@ -18,7 +18,8 @@ function desde(iso?: string | null) {
 }
 
 function TvCard({ e, tone }: { e: RastreioEtiqueta; tone: 'verde' | 'ambar' }) {
-  const cli = e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome
+  const cliente = clienteDaEtiqueta(e)
+  const cli = cliente?.nomeFantasia ?? cliente?.nome ?? '—'
   const ring = tone === 'verde' ? 'border-emerald-500/40' : 'border-amber-500/40'
   return (
     <div className={`bg-slate-900 border ${ring} rounded-xl px-5 py-4`}>
@@ -32,7 +33,7 @@ function TvCard({ e, tone }: { e: RastreioEtiqueta; tone: 'verde' | 'ambar' }) {
         {e.identificacao ?? '—'} {e.coloracao ? <span className="text-slate-400">· {e.coloracao}</span> : null}
       </div>
       <div className="text-base text-slate-400 truncate">
-        Histocell {e.amostra.numeroInterno} · {cli}
+        Histocell {refDaEtiqueta(e)} · {cli}
       </div>
     </div>
   )

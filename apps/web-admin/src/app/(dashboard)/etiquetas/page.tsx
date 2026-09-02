@@ -13,7 +13,7 @@ import { ClienteAvatar } from '@/components/ui/ClienteAvatar'
 import { GerarEtiquetasDrawer } from './GerarEtiquetasDrawer'
 import { EtiquetaPrintArea } from './EtiquetaPrintArea'
 import { lerEtiquetaConfig, salvarEtiquetaConfig } from './etiquetaConfig'
-import type { Etiqueta, EtiquetaListResponse } from './types'
+import { clienteDaEtiqueta, refDaEtiqueta, type Etiqueta, type EtiquetaListResponse } from './types'
 
 const TIPO_LABEL: Record<string, string> = { lamina: 'Lâmina', cassete: 'Cassete', bloco: 'Bloco' }
 
@@ -234,7 +234,8 @@ export default function EtiquetasPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {etiquetas.map((e) => {
-                  const cli = e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome
+                  const cliente = clienteDaEtiqueta(e)
+                  const cli = cliente?.nomeFantasia ?? cliente?.nome ?? '—'
                   return (
                     <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-4 py-3">
@@ -272,10 +273,10 @@ export default function EtiquetasPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <ClienteAvatar nome={cli} seed={e.amostra.pedido.cliente.id} size={26} />
+                          <ClienteAvatar nome={cli} seed={cliente?.id ?? cli} size={26} />
                           <div className="min-w-0">
                             <div className="text-[12px] font-mono text-slate-600 dark:text-slate-400">
-                              {e.amostra.numeroInterno}
+                              {refDaEtiqueta(e)}
                             </div>
                             <div className="text-[12px] text-slate-700 dark:text-slate-300 truncate max-w-[180px]">{cli}</div>
                           </div>

@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { OSModal } from '@/components/OSModal'
 import { api } from '@/lib/api'
 import { ScanBox } from '../../ScanBox'
-import type { Departamento, RastreioEtiqueta } from '../../types'
+import { clienteDaEtiqueta, refDaEtiqueta, type Departamento, type RastreioEtiqueta } from '../../types'
 
 type Lista = { data: RastreioEtiqueta[]; meta: { total: number } }
 
@@ -22,8 +22,9 @@ function desde(iso?: string | null) {
 }
 
 function Card({ e, onVerOS }: { e: RastreioEtiqueta; onVerOS: (pedidoId: number, numero: string) => void }) {
-  const cli = e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome
-  const prevista = e.amostra.pedido.qtdPrevista
+  const cliente = clienteDaEtiqueta(e)
+  const cli = cliente?.nomeFantasia ?? cliente?.nome ?? '—'
+  const prevista = e.amostra?.pedido.qtdPrevista
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
       <div className="flex items-center justify-between gap-2">
@@ -38,20 +39,23 @@ function Card({ e, onVerOS }: { e: RastreioEtiqueta; onVerOS: (pedidoId: number,
         {e.identificacao ?? '—'} {e.coloracao ? `· ${e.coloracao}` : ''}
       </div>
       <div className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between gap-2">
-        <span className="truncate">Histocell {e.amostra.numeroInterno} · {cli}</span>
+        <span className="truncate">Histocell {refDaEtiqueta(e)} · {cli}</span>
         {prevista != null && prevista > 0 && (
           <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
             {prevista} no orçamento
           </span>
         )}
       </div>
-      {/* Acesso à OS: serviços solicitados + quantidades (sem valores) para a técnica. */}
-      <button
-        onClick={() => onVerOS(e.amostra.pedido.id, e.amostra.pedido.numero)}
-        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-      >
-        <FileText className="h-3 w-3" /> Ver OS / serviços
-      </button>
+      {/* Acesso à OS: serviços solicitados + quantidades (sem valores) para a
+          técnica. Cassete da Entrada não tem pedido — sem o link. */}
+      {e.amostra && (
+        <button
+          onClick={() => onVerOS(e.amostra!.pedido.id, e.amostra!.pedido.numero)}
+          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+        >
+          <FileText className="h-3 w-3" /> Ver OS / serviços
+        </button>
+      )}
     </div>
   )
 }

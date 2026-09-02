@@ -18,12 +18,16 @@ import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
 import { AddItemOSDto } from './dto/item-os.dto';
+import { EtiquetasService } from '../etiquetas/etiquetas.service';
 
 @Controller('ordens')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Area('ordens')
 export class OrdensController {
-  constructor(private service: OrdensService) {}
+  constructor(
+    private service: OrdensService,
+    private etiquetas: EtiquetasService,
+  ) {}
 
   /** Amostras recebidas que ainda não possuem OS */
   @Get('pendentes')
@@ -37,6 +41,16 @@ export class OrdensController {
   @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
   pendencias() {
     return this.service.pendencias();
+  }
+
+  /** Gera etiquetas de cassete direto na OS, uma por identificação informada */
+  @Post(':id/etiquetas')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  gerarEtiquetas(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { identificacoes: string[]; tipo?: string },
+  ) {
+    return this.etiquetas.gerarParaOS(id, body);
   }
 
   /** Status da conferência fina de uma OS */

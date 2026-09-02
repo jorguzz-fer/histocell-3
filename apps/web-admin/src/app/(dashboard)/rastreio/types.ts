@@ -11,6 +11,7 @@ export type RastreioEtiqueta = {
   rastreioStatus: string
   ultimoEventoEm?: string | null
   ultimoResponsavel?: string | null
+  /** NULO na etiqueta de cassete gerada direto na OS (fluxo da Entrada). */
   amostra: {
     id: number
     numeroInterno: string
@@ -21,7 +22,26 @@ export type RastreioEtiqueta = {
       qtdRecebida?: number | null
       cliente: { id: number; nome: string; nomeFantasia?: string | null }
     }
-  }
+  } | null
+  ordemServico?: {
+    id: number
+    numero: string
+    seq?: number | null
+    cliente: { id: number; nome: string; nomeFantasia?: string | null } | null
+  } | null
+}
+
+/** Cliente da etiqueta, venha ela da amostra (pedido) ou direto da OS. */
+export function clienteDaEtiqueta(e: RastreioEtiqueta) {
+  return e.amostra?.pedido.cliente ?? e.ordemServico?.cliente ?? null
+}
+
+/** Referência interna: nº Histocell da amostra ou o código curto da OS. */
+export function refDaEtiqueta(e: RastreioEtiqueta): string {
+  if (e.amostra) return e.amostra.numeroInterno
+  const os = e.ordemServico
+  if (!os) return '—'
+  return os.seq != null ? `OS #${String(os.seq).padStart(4, '0')}` : os.numero
 }
 
 export type ScanResponse = {
