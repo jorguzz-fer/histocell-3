@@ -20,6 +20,16 @@ const INCLUDE_ETIQUETA = {
       },
     },
   },
+  // Etiqueta de cassete gerada direto na OS (fluxo da Entrada): sem amostra,
+  // o cliente e a referência vêm da própria OS.
+  ordemServico: {
+    select: {
+      id: true,
+      numero: true,
+      seq: true,
+      cliente: { select: { id: true, nome: true, nomeFantasia: true } },
+    },
+  },
 } as const;
 
 @Injectable()

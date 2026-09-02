@@ -452,6 +452,7 @@ model OrdemServico {
   amostra       Amostra?       @relation(fields: [amostraId], references: [id])
   cliente       Cliente?       @relation(fields: [clienteId], references: [id])
   volumes       Recipiente[]   // volumes recebidos na entrada que compõem esta OS
+  etiquetas     Etiqueta[]     // etiquetas de cassete geradas direto na OS (fluxo da Entrada)
   itens         ItemOrdemServico[]
   etapas        EtapaOS[]
   laudo         Laudo?
@@ -534,7 +535,10 @@ model Laudo {
 // ==========================================
 model Etiqueta {
   id            Int       @id @default(autoincrement())
-  amostraId     Int
+  // A etiqueta pertence a uma amostra (fluxo do pedido) OU direto à OS (fluxo
+  // da Entrada: cassetes identificados na própria OS, antes de existir amostra).
+  amostraId     Int?
+  ordemServicoId Int?
   numero        Int       @unique // sequencial global (ex: 1384126) — impresso sob o barcode
   codigo        String    @unique // conteúdo do código de barras Code128 (composto: cliente+histocell+lâmina)
   tipo          String    // cassete, lamina, bloco
@@ -553,12 +557,14 @@ model Etiqueta {
   conferidaEm       DateTime?
   conferidaPor      String?
 
-  amostra Amostra @relation(fields: [amostraId], references: [id])
+  amostra      Amostra?      @relation(fields: [amostraId], references: [id])
+  ordemServico OrdemServico? @relation(fields: [ordemServicoId], references: [id])
   eventos RastreioEvento[]
 
   @@index([codigo])
   @@index([numero])
   @@index([amostraId])
+  @@index([ordemServicoId])
   @@index([impresso])
   @@index([departamentoAtual])
 }

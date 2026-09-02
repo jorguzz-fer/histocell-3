@@ -82,19 +82,22 @@ export class OrdensService {
    * pedido não entrava. Best-effort — nunca derruba o avanço da OS.
    */
   private async sincronizarRastreio(
-    amostraId: number | null,
+    ref: { amostraId: number | null; ordemServicoId: number },
     etapa: EtapaOrdem,
     opts: { responsavel?: string; concluir?: boolean } = {},
   ) {
-    // OS aberta na Entrada ainda não tem amostra — logo, nenhuma etiqueta de
-    // lâmina para espelhar. O rastreio dela começa quando a amostra existir.
-    if (amostraId == null) return;
     try {
       const departamento = ETAPA_PARA_DEPARTAMENTO[etapa];
       if (!departamento) return;
 
+      // Etiquetas da amostra E as geradas direto na OS (cassetes da Entrada).
       const etiquetas = await this.prisma.etiqueta.findMany({
-        where: { amostraId },
+        where: {
+          OR: [
+            ...(ref.amostraId != null ? [{ amostraId: ref.amostraId }] : []),
+            { ordemServicoId: ref.ordemServicoId },
+          ],
+        },
         select: { id: true, departamentoAtual: true },
       });
       if (etiquetas.length === 0) return;
@@ -224,7 +227,7 @@ export class OrdensService {
       data: { status: 'em_processamento' },
     });
     // Espelha a posição inicial no rastreio das etiquetas do pedido.
-    await this.sincronizarRastreio(amostraId, etapaInicial as EtapaOrdem, {
+    await this.sincronizarRastreio({ amostraId, ordemServicoId: os.id }, etapaInicial as EtapaOrdem, {
       responsavel: opts.responsavel,
     });
     if (opts.userId) {
@@ -552,11 +555,16 @@ export class OrdensService {
       },
     });
     if (!os) throw new NotFoundException(`OS #${osId} não encontrada.`);
-    // OS aberta na Entrada ainda não tem amostra identificada — logo, nenhuma
-    // lâmina para conferir. A conferência fina só existe depois da microtomia.
-    const etiquetas = os.amostraId == null ? [] : await this.prisma.etiqueta.findMany({
-      where: { amostraId: os.amostraId },
-      select: { id: true, codigo: true, numero: true, laminaSeq: true, coloracao: true, conferidaEm: true, conferidaPor: true },
+    // Etiquetas da amostra (fluxo do pedido) E as geradas direto na OS
+    // (cassetes identificados na tela de Serviços) — ambas entram na bipagem.
+    const etiquetas = await this.prisma.etiqueta.findMany({
+      where: {
+        OR: [
+          ...(os.amostraId != null ? [{ amostraId: os.amostraId }] : []),
+          { ordemServicoId: os.id },
+        ],
+      },
+      select: { id: true, codigo: true, numero: true, laminaSeq: true, coloracao: true, identificacao: true, conferidaEm: true, conferidaPor: true },
       orderBy: { laminaSeq: 'asc' },
     });
     const conferidas = etiquetas.filter((e) => e.conferidaEm).length;
@@ -604,15 +612,14 @@ export class OrdensService {
     // um texto composto (ex.: "00000032 - 17062026") — mesmo comportamento do rastreio.
     const grupoDigitos = alvo.match(/\d+/);
     const asNumero = grupoDigitos ? parseInt(grupoDigitos[0], 10) : -1;
-    if (os.amostraId == null) {
-      throw new BadRequestException(
-        `Esta OS não tem etiquetas para bipar — confirme a saída bipando o código da OS (${os.numero}).`,
-      );
-    }
     const et = await this.prisma.etiqueta.findFirst({
       where: {
-        amostraId: os.amostraId,
-        OR: [{ codigo: alvo }, { numero: Number.isNaN(asNumero) ? -1 : asNumero }],
+        // pertence à OS: pela amostra (fluxo do pedido) ou direto (cassete da OS)
+        OR: [
+          ...(os.amostraId != null ? [{ amostraId: os.amostraId }] : []),
+          { ordemServicoId: osId },
+        ],
+        AND: { OR: [{ codigo: alvo }, { numero: Number.isNaN(asNumero) ? -1 : asNumero }] },
       },
       select: { id: true },
     });
@@ -741,7 +748,7 @@ export class OrdensService {
       });
       await this.atualizarStatusAmostra(os.amostraId, 'concluida');
       // Conclui o rastreio das etiquetas (saída do departamento final).
-      await this.sincronizarRastreio(os.amostraId, etapaAtual, {
+      await this.sincronizarRastreio({ amostraId: os.amostraId, ordemServicoId: id }, etapaAtual, {
         responsavel: os.responsavel ?? undefined,
         concluir: true,
       });
@@ -772,7 +779,7 @@ export class OrdensService {
     });
 
     // Espelha o novo departamento no rastreio das etiquetas do pedido.
-    await this.sincronizarRastreio(os.amostraId, proxima, {
+    await this.sincronizarRastreio({ amostraId: os.amostraId, ordemServicoId: id }, proxima, {
       responsavel: os.responsavel ?? undefined,
     });
 
@@ -838,7 +845,7 @@ export class OrdensService {
     await this.atualizarStatusAmostra(os.amostraId, terminal ? 'concluida' : 'em_processamento');
 
     // Espelha o destino no rastreio das etiquetas do pedido.
-    await this.sincronizarRastreio(os.amostraId, destino as EtapaOrdem, {
+    await this.sincronizarRastreio({ amostraId: os.amostraId, ordemServicoId: id }, destino as EtapaOrdem, {
       responsavel: os.responsavel ?? undefined,
       concluir: terminal,
     });

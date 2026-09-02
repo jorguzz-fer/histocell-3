@@ -17,6 +17,12 @@ export class FilterEtiquetaDto {
   @IsInt()
   amostraId?: number;
 
+  /** Etiquetas de cassete geradas direto numa OS (fluxo da Entrada). */
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  ordemServicoId?: number;
+
   @IsOptional()
   @Transform(({ value }) => parseInt(value, 10))
   @IsInt()

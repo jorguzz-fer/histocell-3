@@ -18,6 +18,8 @@ import {
   type RastreioEtiqueta,
   type ResumoResponse,
   type TimelineResponse,
+  clienteDaEtiqueta,
+  refDaEtiqueta,
 } from './types'
 
 function fmtData(iso?: string | null) {
@@ -65,7 +67,8 @@ export default function RastreioPage() {
   const itensFiltrados = itens.filter((e) => {
     const q = filtroCliente.trim().toLowerCase()
     if (!q) return true
-    const cl = e.amostra.pedido.cliente
+    const cl = clienteDaEtiqueta(e)
+    if (!cl) return false
     return (
       cl.nome.toLowerCase().includes(q) ||
       (cl.nomeFantasia ?? '').toLowerCase().includes(q) ||
@@ -196,33 +199,35 @@ export default function RastreioPage() {
                   >
                     <td className="px-4 py-2">
                       <div className="font-mono text-slate-700 dark:text-slate-200">{e.codigo}</div>
-                      <button
-                        onClick={(ev) => {
-                          ev.stopPropagation()
-                          setOsModal({ pedidoId: e.amostra.pedido.id, numero: e.amostra.pedido.numero })
-                        }}
-                        className="text-[11px] font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
-                      >
-                        Ver OS
-                      </button>
+                      {e.amostra && (
+                        <button
+                          onClick={(ev) => {
+                            ev.stopPropagation()
+                            setOsModal({ pedidoId: e.amostra!.pedido.id, numero: e.amostra!.pedido.numero })
+                          }}
+                          className="text-[11px] font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
+                        >
+                          Ver OS
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{e.identificacao ?? '—'}</td>
                     <td className="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[160px]">
                       <div className="flex items-center gap-2">
                         <ClienteAvatar
-                          nome={e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
-                          seed={e.amostra.pedido.cliente.id}
+                          nome={clienteDaEtiqueta(e)?.nomeFantasia ?? clienteDaEtiqueta(e)?.nome ?? '—'}
+                          seed={clienteDaEtiqueta(e)?.id ?? e.id}
                           size={24}
                         />
                         <span className="truncate">
-                          {e.amostra.pedido.cliente.nomeFantasia ?? e.amostra.pedido.cliente.nome}
+                          {clienteDaEtiqueta(e)?.nomeFantasia ?? clienteDaEtiqueta(e)?.nome ?? '—'}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-2 text-center">
                       {(() => {
-                        const prev = e.amostra.pedido.qtdPrevista
-                        const rec = e.amostra.pedido.qtdRecebida
+                        const prev = e.amostra?.pedido.qtdPrevista
+                        const rec = e.amostra?.pedido.qtdRecebida
                         if (prev == null || prev <= 0) return <span className="text-slate-300">—</span>
                         // solicitado × entregue: verde = completo · âmbar = faltando · rosa = excedente
                         let cls = 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
@@ -305,10 +310,10 @@ export default function RastreioPage() {
                 {timeline.etiqueta.codigo}
               </span>
               <span className="text-slate-500">{timeline.etiqueta.identificacao ?? '—'}</span>
-              <span className="text-slate-400">Histocell {timeline.etiqueta.amostra.numeroInterno}</span>
+              <span className="text-slate-400">Histocell {refDaEtiqueta(timeline.etiqueta)}</span>
               <span className="text-slate-400">
-                {timeline.etiqueta.amostra.pedido.cliente.nomeFantasia ??
-                  timeline.etiqueta.amostra.pedido.cliente.nome}
+                {clienteDaEtiqueta(timeline.etiqueta)?.nomeFantasia ??
+                  clienteDaEtiqueta(timeline.etiqueta)?.nome ?? '—'}
               </span>
               <Badge variant={STATUS_LABEL[timeline.etiqueta.rastreioStatus]?.variant ?? 'slate'}>
                 {STATUS_LABEL[timeline.etiqueta.rastreioStatus]?.label ?? timeline.etiqueta.rastreioStatus}
