@@ -16,11 +16,23 @@ import { ClienteDrawer } from '@/app/(dashboard)/cadastro/ClienteDrawer'
 import { api } from '@/lib/api'
 import { etapaCurta } from '@/lib/proximoPasso'
 import type { Cliente } from '@/app/(dashboard)/cadastro/types'
-import { CONDICOES, type EntradaAvulsa, type TipoRecipiente } from './types'
+import {
+  CONDICOES,
+  CONDICAO_BTN,
+  type EntradaAvulsa,
+  type TipoRecipiente,
+} from './types'
 
-type Linha = { tipo: string; condicao: string; quantidade: string; observacoes: string }
+type Linha = {
+  tipo: string
+  condicao: string
+  quantidade: string
+  observacoes: string
+  /** Nomes de paciente por pacote (fluxo Macroscopia). */
+  pacientes: string[]
+}
 
-const LINHA_VAZIA: Linha = { tipo: '', condicao: '', quantidade: '1', observacoes: '' }
+const LINHA_VAZIA: Linha = { tipo: '', condicao: '', quantidade: '1', observacoes: '', pacientes: [] }
 
 function fmtHora(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -58,8 +70,19 @@ export default function EntradaPage() {
     carregarEntradas()
   }, [carregarTipos, carregarEntradas])
 
-  function setLinha(i: number, campo: keyof Linha, valor: string) {
+  function setLinha(i: number, campo: 'tipo' | 'condicao' | 'quantidade' | 'observacoes', valor: string) {
     setLinhas((prev) => prev.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)))
+  }
+
+  function setPaciente(i: number, k: number, valor: string) {
+    setLinhas((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== i) return l
+        const pacientes = [...l.pacientes]
+        pacientes[k] = valor
+        return { ...l, pacientes }
+      }),
+    )
   }
 
   async function novoTipo() {
@@ -94,15 +117,38 @@ export default function EntradaPage() {
     // A condição decide o departamento de destino — sem ela a OS não sabe onde
     // começar, então é obrigatória.
     if (preenchidas.some((l) => !l.condicao)) {
-      toast.error('Diga se cada objeto é seco ou molhado.')
+      toast.error('Diga a condição de cada objeto (Macroscopia, Molhado ou Seco).')
       return
     }
-    const recipientes = preenchidas.map((l) => ({
-      tipo: l.tipo,
-      condicao: l.condicao,
-      quantidade: parseInt(l.quantidade, 10),
-      observacoes: l.observacoes.trim() || undefined,
-    }))
+    // Macroscopia identifica cada pacote pelo nome do paciente — o nome é o que
+    // vai na etiqueta, então é obrigatório aqui.
+    const macroSemNome = preenchidas.some(
+      (l) =>
+        l.condicao === 'macroscopia' &&
+        Array.from({ length: parseInt(l.quantidade, 10) || 0 }).some(
+          (_, k) => !(l.pacientes[k] ?? '').trim(),
+        ),
+    )
+    if (macroSemNome) {
+      toast.error('Informe o nome do paciente de cada pacote de Macroscopia.')
+      return
+    }
+    // Macroscopia vira um volume por pacote (cada um com seu paciente); as
+    // demais condições mantêm o volume com a quantidade agrupada.
+    const recipientes = preenchidas.flatMap((l) => {
+      const qtd = parseInt(l.quantidade, 10)
+      const obs = l.observacoes.trim() || undefined
+      if (l.condicao === 'macroscopia') {
+        return Array.from({ length: qtd }, (_, k) => ({
+          tipo: l.tipo,
+          condicao: 'macroscopia',
+          quantidade: 1,
+          paciente: (l.pacientes[k] ?? '').trim() || undefined,
+          observacoes: obs,
+        }))
+      }
+      return [{ tipo: l.tipo, condicao: l.condicao, quantidade: qtd, observacoes: obs }]
+    })
 
     setSalvando(true)
     try {
@@ -207,9 +253,9 @@ export default function EntradaPage() {
                     </button>
                   )}
                 </div>
-                {/* Seco ou molhado decide o departamento de destino, então é
-                    escolha explícita — não um select que se erra sem perceber. */}
-                <div className="grid grid-cols-2 gap-1.5">
+                {/* A condição decide o departamento de destino, então é escolha
+                    explícita — não um select que se erra sem perceber. */}
+                <div className="grid grid-cols-3 gap-1.5">
                   {CONDICOES.map((c) => (
                     <button
                       key={c.value}
@@ -218,9 +264,7 @@ export default function EntradaPage() {
                       onClick={() => setLinha(i, 'condicao', c.value)}
                       className={`rounded-md border px-2 py-1.5 text-[12px] font-medium transition-colors ${
                         l.condicao === c.value
-                          ? c.value === 'molhado'
-                            ? 'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-300'
-                            : 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-300'
+                          ? CONDICAO_BTN[c.cor].on
                           : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60'
                       }`}
                     >
@@ -228,6 +272,19 @@ export default function EntradaPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Macroscopia: um nome de paciente por pacote — é o que vai na
+                    etiqueta e identifica o material na bancada. */}
+                {l.condicao === 'macroscopia' &&
+                  Array.from({ length: parseInt(l.quantidade, 10) || 0 }).map((_, k) => (
+                    <Input
+                      key={k}
+                      label=""
+                      value={l.pacientes[k] ?? ''}
+                      onChange={(e) => setPaciente(i, k, e.target.value)}
+                      placeholder={`Paciente ${k + 1} — nome do animal`}
+                    />
+                  ))}
 
                 <Input
                   label=""
@@ -301,6 +358,9 @@ export default function EntradaPage() {
                       {e.clienteNomeFantasia ?? e.clienteNome}
                     </p>
                     <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                      {e.paciente && (
+                        <span className="font-medium text-slate-700 dark:text-slate-200">{e.paciente} · </span>
+                      )}
                       {e.tipo}
                       {e.condicao ? ` (${e.condicao})` : ''} ·{' '}
                       <span className="font-mono">{e.codigo}</span> · {fmtHora(e.createdAt)}

@@ -196,8 +196,11 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
                   className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 text-[11px] text-slate-600 dark:border-slate-700 dark:text-slate-300"
                 >
                   {v.tipo}
+                  {v.paciente && <span className="font-medium text-slate-700 dark:text-slate-200">{v.paciente}</span>}
                   {v.condicao && (
-                    <Badge variant={v.condicao === 'molhado' ? 'blue' : 'amber'}>{v.condicao}</Badge>
+                    <Badge variant={v.condicao === 'molhado' ? 'blue' : v.condicao === 'macroscopia' ? 'purple' : 'amber'}>
+                      {v.condicao}
+                    </Badge>
                   )}
                   <span className="font-mono text-slate-400">{v.codigo}</span>
                 </span>

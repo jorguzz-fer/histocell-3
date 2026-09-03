@@ -13,23 +13,44 @@ import {
 import { RecipienteItemDto } from './entrada-recepcao.dto';
 
 /** Estados possíveis do material que chega. Cada um segue para um departamento. */
-export const CONDICOES = ['molhado', 'seco'] as const;
+export const CONDICOES = ['macroscopia', 'molhado', 'seco'] as const;
 export type Condicao = (typeof CONDICOES)[number];
 
 /**
- * Departamento de destino por condição do material:
- *  - molhado (pote com formol) precisa ser aberto e clivado na Macroscopia;
- *  - seco (cassete, bloco, lâmina) já vem preparado e vai direto ao corte.
+ * Departamento de destino por condição do material (reunião 02/09):
+ *  - macroscopia: peça/animal no pote — a macroscopista abre, descreve e
+ *    transforma em cassetes;
+ *  - molhado: cassete em formol que o cliente já montou — vai direto ao
+ *    Processamento (não passa pela Macroscopia);
+ *  - seco: bloco/lâmina — já vem pronto e vai ao corte (Microtomia).
  */
 export const CONDICAO_ETAPA: Record<Condicao, string> = {
-  molhado: 'macroscopia',
+  macroscopia: 'macroscopia',
+  molhado: 'processamento',
   seco: 'microtomia',
 };
+
+/**
+ * Etapa em que a OS da entrada começa: a mais atrasada do fluxo entre os
+ * volumes (nenhum volume pode pular uma etapa que ainda precisa acontecer).
+ */
+export function etapaInicialEntrada(condicoes: string[]): string {
+  const destinos = condicoes.map((c) => CONDICAO_ETAPA[c as Condicao]);
+  return (
+    ['macroscopia', 'processamento', 'microtomia'].find((e) => destinos.includes(e)) ??
+    'triagem'
+  );
+}
 
 /** Objeto recebido na Entrada: como o recipiente, mais a condição do material. */
 export class ObjetoEntradaDto extends RecipienteItemDto {
   @IsIn([...CONDICOES])
   condicao: Condicao;
+
+  /** Nome do paciente/animal (obrigatório de fato só no fluxo Macroscopia). */
+  @IsOptional()
+  @IsString()
+  paciente?: string;
 }
 
 /**
