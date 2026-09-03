@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { FlaskConical, Package, Plus, Printer, Tags, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowRightLeft, FlaskConical, Package, Plus, Printer, Tags, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -12,7 +12,14 @@ import { api } from '@/lib/api'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
 import { EtiquetaPrintArea } from '@/app/(dashboard)/etiquetas/EtiquetaPrintArea'
 import type { Etiqueta, EtiquetaListResponse } from '@/app/(dashboard)/etiquetas/types'
-import { clienteDaOS, clienteIdDaOS, type ItemOS, type OrdemServico } from './types'
+import {
+  clienteDaOS,
+  clienteIdDaOS,
+  CONDICAO_UI,
+  type ItemOS,
+  type OrdemServico,
+  type QuadroOS,
+} from './types'
 
 interface Props {
   open: boolean
@@ -35,6 +42,8 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
   const [itens, setItens] = useState<ItemOS[]>([])
   const [servicoId, setServicoId] = useState('')
   const [quantidade, setQuantidade] = useState('1')
+  const [condicao, setCondicao] = useState('')
+  const [encaminhando, setEncaminhando] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [salvando, setSalvando] = useState(false)
   // Identificação dos cassetes (pedido do Célio/Fernando): depois de adicionar
@@ -72,6 +81,7 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
     if (!open || !os) return
     setServicoId('')
     setQuantidade('1')
+    setCondicao('')
     setIdentItem(null)
     carregarItens()
     carregarEtiquetas()
@@ -82,6 +92,51 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
       .catch(() => {})
   }, [open, os, carregarItens, carregarEtiquetas])
 
+  // Quadros seco × molhado × macroscopia calculados no cliente, para reagir na
+  // hora à medida que os serviços são lançados.
+  const quadros: QuadroOS[] = useMemo(() => {
+    if (!os) return []
+    const conds = Array.from(
+      new Set([
+        ...os.volumes.map((v) => v.condicao).filter((c): c is string => !!c),
+        ...itens.map((i) => i.condicao).filter((c): c is string => !!c),
+      ]),
+    )
+    return conds.map((cond) => {
+      const nVol = os.volumes.filter((v) => v.condicao === cond).length
+      const its = itens.filter((i) => i.condicao === cond)
+      const unidades = its.reduce((sum, i) => sum + i.quantidade, 0)
+      return {
+        condicao: cond,
+        volumes: nVol,
+        unidades,
+        completo: nVol > 0 && unidades >= nVol,
+        encaminhados: its.filter((i) => i.encaminhadoEm).length,
+        totalItens: its.length,
+      }
+    })
+  }, [os, itens])
+
+  // Sugere a condição do próximo lançamento: a primeira ainda em aberto (menos
+  // unidades que volumes); se todas fechadas/uma só, a primeira presente.
+  useEffect(() => {
+    if (!open || condicao) return
+    const aberto = quadros.find((q) => !q.completo)
+    const sugestao = aberto?.condicao ?? quadros[0]?.condicao ?? ''
+    if (sugestao) setCondicao(sugestao)
+  }, [open, quadros, condicao])
+
+  async function enviarItem(forcar?: boolean, justificativa?: string) {
+    if (!os) return
+    await api.post(`/ordens/${os.id}/itens`, {
+      servicoId: Number(servicoId),
+      quantidade: Math.max(1, parseInt(quantidade, 10) || 1),
+      condicao: condicao || undefined,
+      forcar,
+      justificativa,
+    })
+  }
+
   async function adicionar() {
     if (!os || !servicoId) {
       toast.error('Escolha o serviço.')
@@ -89,18 +144,54 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
     }
     setSalvando(true)
     try {
-      await api.post(`/ordens/${os.id}/itens`, {
-        servicoId: Number(servicoId),
-        quantidade: Math.max(1, parseInt(quantidade, 10) || 1),
-      })
+      await enviarItem()
       setServicoId('')
       setQuantidade('1')
       await carregarItens()
       onSaved()
     } catch (e: any) {
-      toast.error(e.message ?? 'Erro ao adicionar serviço')
+      // Quadro fechado: guiar sem travar — a gerência libera com justificativa.
+      const msg = String(e?.message ?? '')
+      if (/quadro/i.test(msg) && /completo/i.test(msg)) {
+        const just = window.prompt(
+          `${msg}\n\nJustificativa para reabrir o quadro (gerência):`,
+        )?.trim()
+        if (!just) {
+          setSalvando(false)
+          return
+        }
+        try {
+          await enviarItem(true, just)
+          setServicoId('')
+          setQuantidade('1')
+          await carregarItens()
+          onSaved()
+          toast.success('Serviço lançado (quadro reaberto com justificativa).')
+        } catch (e2: any) {
+          toast.error(e2.message ?? 'Erro ao adicionar serviço')
+        }
+      } else {
+        toast.error(msg || 'Erro ao adicionar serviço')
+      }
     } finally {
       setSalvando(false)
+    }
+  }
+
+  async function encaminharTecnica(cond: string) {
+    if (!os) return
+    setEncaminhando(cond)
+    try {
+      const res = await api.post<{ message: string }>(`/ordens/${os.id}/encaminhar`, {
+        condicao: cond,
+      })
+      toast.success(res.message)
+      await carregarItens()
+      onSaved()
+    } catch (e: any) {
+      toast.error(e.message ?? 'Erro ao encaminhar')
+    } finally {
+      setEncaminhando('')
     }
   }
 
@@ -239,7 +330,94 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
               <Plus className="h-3.5 w-3.5" /> Adicionar
             </Button>
           </div>
+          {/* Condição do serviço: mantém "cada um no seu quadrado" na mesma OS.
+              Só pergunta quando há mais de uma condição entre os volumes. */}
+          {quadros.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-slate-400">Condição:</span>
+              {quadros.map((q) => {
+                const ui = CONDICAO_UI[q.condicao] ?? { label: q.condicao, badge: 'slate' as const }
+                return (
+                  <button
+                    key={q.condicao}
+                    type="button"
+                    onClick={() => setCondicao(q.condicao)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                      condicao === q.condicao
+                        ? 'border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-500/50 dark:bg-blue-500/10 dark:text-blue-300'
+                        : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    {ui.label}
+                    <span className="ml-1 font-mono text-slate-400">
+                      {q.unidades}/{q.volumes || '—'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </section>
+
+        {/* Quadros seco × molhado × macroscopia — cada um no seu quadrado. */}
+        {quadros.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Quadros da OS
+            </h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {quadros.map((q) => {
+                const ui = CONDICAO_UI[q.condicao] ?? { label: q.condicao, badge: 'slate' as const }
+                const pendentesEnc = q.totalItens - q.encaminhados
+                return (
+                  <div
+                    key={q.condicao}
+                    className={`rounded-lg border p-3 ${
+                      q.completo
+                        ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/30 dark:bg-emerald-500/5'
+                        : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant={ui.badge}>{ui.label}</Badge>
+                      <span className="font-mono text-[12px] text-slate-600 dark:text-slate-300">
+                        {q.unidades}/{q.volumes || '—'}
+                        {q.completo && <span className="ml-1 text-emerald-600">✓</span>}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                      {q.volumes === 0
+                        ? 'Sem volume desta condição na entrada.'
+                        : q.completo
+                          ? `Fechado: ${q.unidades} unidade(s) para ${q.volumes} volume(s).`
+                          : `Faltam ${q.volumes - q.unidades} unidade(s) para fechar.`}
+                    </p>
+                    {q.condicao === 'seco' && q.totalItens > 0 && (
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-slate-400">
+                          {q.encaminhados > 0
+                            ? `${q.encaminhados}/${q.totalItens} à técnica`
+                            : 'na recepção'}
+                        </span>
+                        {pendentesEnc > 0 && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            loading={encaminhando === q.condicao}
+                            onClick={() => encaminharTecnica(q.condicao)}
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                            Encaminhar à técnica
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Serviços já confirmados */}
         <section className="space-y-2">
@@ -257,9 +435,17 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
               {itens.map((i) => (
                 <div key={i.id} className="flex items-center gap-3 py-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
+                    <p className="flex items-center gap-1.5 truncate text-[13px] text-slate-800 dark:text-slate-200">
                       <span className="font-mono text-slate-400">{i.servico.codigo}</span>{' '}
                       {i.servico.nome}
+                      {i.condicao && CONDICAO_UI[i.condicao] && (
+                        <Badge variant={CONDICAO_UI[i.condicao].badge}>{CONDICAO_UI[i.condicao].label}</Badge>
+                      )}
+                      {i.encaminhadoEm && (
+                        <span className="text-[10px] text-emerald-600" title={`À técnica${i.encaminhadoPor ? ' por ' + i.encaminhadoPor : ''}`}>
+                          → técnica
+                        </span>
+                      )}
                     </p>
                     <p className="text-[11px] text-slate-400">
                       {i.quantidade} × {fmtBRL(i.preco)}

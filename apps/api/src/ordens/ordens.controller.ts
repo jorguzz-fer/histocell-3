@@ -159,4 +159,23 @@ export class OrdensController {
     const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
     return this.service.removerItem(itemId, userId);
   }
+
+  /** Quadros seco × molhado × macroscopia (volumes vs unidades lançadas) */
+  @Get(':id/quadros')
+  @Roles('gerencia', 'recepcao', 'tecnico', 'financeiro')
+  quadros(@Param('id', ParseIntPipe) id: number) {
+    return this.service.quadrosDaOS(id);
+  }
+
+  /** Encaminha à área técnica os itens de uma condição (ex.: os secos) */
+  @Post(':id/encaminhar')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  encaminhar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('condicao') condicao: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.encaminharCondicao(id, condicao, userId);
+  }
 }

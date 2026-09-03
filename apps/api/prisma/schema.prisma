@@ -478,6 +478,13 @@ model ItemOrdemServico {
   preco          Decimal @db.Decimal(10, 2)
   desconto       Decimal @default(0) @db.Decimal(5, 2)
   observacoes    String?
+  // Condição do material a que este serviço se aplica (reunião 02/09): seco,
+  // molhado ou macroscopia. Deixa "cada um no seu quadrado" dentro da mesma OS.
+  condicao       String?
+  // Carimbo do encaminhamento à área técnica (o seco é resolvido na recepção e
+  // segue para a técnica enquanto o molhado ainda está na macroscopia).
+  encaminhadoEm  DateTime?
+  encaminhadoPor String?
 
   ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
   servico      Servico      @relation(fields: [servicoId], references: [id])
