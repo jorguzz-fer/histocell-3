@@ -18,6 +18,7 @@ import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
 import { AddItemOSDto } from './dto/item-os.dto';
+import { AddPecaMacroscopiaDto } from './dto/peca-macroscopia.dto';
 import { EtiquetasService } from '../etiquetas/etiquetas.service';
 
 @Controller('ordens')
@@ -177,5 +178,37 @@ export class OrdensController {
   ) {
     const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
     return this.service.encaminharCondicao(id, condicao, userId);
+  }
+
+  // ── Ficha de Macroscopia ────────────────────────────────────────────────────
+  @Get(':id/macroscopia')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  macroscopia(@Param('id', ParseIntPipe) id: number) {
+    return this.service.listarMacroscopia(id);
+  }
+
+  @Post(':id/macroscopia')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  adicionarPeca(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AddPecaMacroscopiaDto,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.adicionarPeca(id, dto, userId);
+  }
+
+  @Delete('macroscopia/:pecaId')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  removerPeca(@Param('pecaId', ParseIntPipe) pecaId: number, @Request() req: any) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.removerPeca(pecaId, userId);
+  }
+
+  @Post(':id/macroscopia/concluir')
+  @Roles('gerencia', 'recepcao', 'tecnico')
+  concluirMacroscopia(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.concluirMacroscopia(id, userId);
   }
 }

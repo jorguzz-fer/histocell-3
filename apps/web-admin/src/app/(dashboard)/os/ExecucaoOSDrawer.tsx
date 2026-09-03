@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Ban, MessageSquare, Printer, ScanLine, Shuffle } from 'lucide-react'
+import { ArrowRight, Ban, MessageSquare, Microscope, Printer, ScanLine, Shuffle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -30,6 +30,8 @@ interface Props {
   onConferir?: (ordemId: number, numero: string) => void
   /** Abre a janela de Serviços — o guia aponta para cá quando falta definir. */
   onDefinirServico?: (ordemId: number) => void
+  /** Abre a ficha de Macroscopia (peças → cassetes). */
+  onMacroscopia?: (ordemId: number) => void
 }
 
 /**
@@ -46,6 +48,7 @@ export function ExecucaoOSDrawer({
   onComunicar,
   onConferir,
   onDefinirServico,
+  onMacroscopia,
 }: Props) {
   const [destino, setDestino] = useState('')
   const [agindo, setAgindo] = useState(false)
@@ -208,6 +211,18 @@ export function ExecucaoOSDrawer({
               <ScanLine className="h-3.5 w-3.5" />
               Conferência
             </Button>
+
+            {onMacroscopia && (
+              <Button
+                variant={os.etapaAtual === 'macroscopia' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => onMacroscopia(os.id)}
+                title="Descrever as peças e gerar os cassetes"
+              >
+                <Microscope className="h-3.5 w-3.5" />
+                Macroscopia
+              </Button>
+            )}
 
             {os.amostra?.pedido ? (
               <>

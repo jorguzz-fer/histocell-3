@@ -8,6 +8,8 @@ import { PrismaService } from '../common/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { PrecoService } from '../common/preco.service';
 import { AddItemOSDto } from './dto/item-os.dto';
+import { AddPecaMacroscopiaDto } from './dto/peca-macroscopia.dto';
+import { EtiquetasService } from '../etiquetas/etiquetas.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { FilterOrdemDto } from './dto/filter-ordem.dto';
@@ -71,6 +73,7 @@ export class OrdensService {
     private prisma: PrismaService,
     private audit: AuditService,
     private preco: PrecoService,
+    private etiquetas: EtiquetasService,
   ) {}
 
   /**
@@ -471,6 +474,138 @@ export class OrdensService {
   private async nomeDoUsuario(userId: number): Promise<string | undefined> {
     const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { nome: true } });
     return u?.nome;
+  }
+
+  // ── Ficha de Macroscopia ──────────────────────────────────────────────────────
+
+  /** Volumes de macroscopia (potes com paciente) + peças já descritas. */
+  async listarMacroscopia(ordemServicoId: number) {
+    const [volumes, pecas] = await Promise.all([
+      this.prisma.recipiente.findMany({
+        where: { ordemServicoId, condicao: 'macroscopia' },
+        select: { id: true, tipo: true, paciente: true, codigo: true },
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.pecaMacroscopia.findMany({
+        where: { ordemServicoId },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+    return { volumes, pecas };
+  }
+
+  async adicionarPeca(ordemServicoId: number, dto: AddPecaMacroscopiaDto, userId?: number) {
+    const os = await this.prisma.ordemServico.findUnique({
+      where: { id: ordemServicoId },
+      select: { id: true },
+    });
+    if (!os) throw new NotFoundException(`OS #${ordemServicoId} não encontrada.`);
+
+    let servicoCodigo: string | null = null;
+    let servicoNome: string | null = null;
+    let coloracao: string | null = null;
+    if (dto.servicoId != null) {
+      const servico = await this.prisma.servico.findUnique({
+        where: { id: dto.servicoId },
+        select: { codigo: true, nome: true },
+      });
+      if (!servico) throw new NotFoundException(`Serviço #${dto.servicoId} não encontrado.`);
+      servicoCodigo = servico.codigo;
+      servicoNome = servico.nome;
+    }
+
+    const peca = await this.prisma.pecaMacroscopia.create({
+      data: {
+        ordemServicoId,
+        recipienteId: dto.recipienteId,
+        paciente: dto.paciente?.trim() || null,
+        descricao: dto.descricao.trim(),
+        medidas: dto.medidas?.trim() || null,
+        caracteristicas: dto.caracteristicas?.trim() || null,
+        cor: dto.cor?.trim() || null,
+        consistencia: dto.consistencia?.trim() || null,
+        observacoes: dto.observacoes?.trim() || null,
+        numeroCassetes: dto.numeroCassetes,
+        servicoId: dto.servicoId ?? null,
+        servicoCodigo,
+        servicoNome,
+        coloracao,
+      },
+    });
+    if (userId) {
+      await this.audit.log(userId, 'ADD_PECA_MACRO', 'OrdemServico', ordemServicoId, {
+        pecaId: peca.id,
+        descricao: peca.descricao,
+      });
+    }
+    return peca;
+  }
+
+  async removerPeca(pecaId: number, userId?: number) {
+    const peca = await this.prisma.pecaMacroscopia.findUnique({ where: { id: pecaId } });
+    if (!peca) throw new NotFoundException(`Peça #${pecaId} não encontrada.`);
+    await this.prisma.pecaMacroscopia.delete({ where: { id: pecaId } });
+    if (userId) {
+      await this.audit.log(userId, 'REMOVE_PECA_MACRO', 'OrdemServico', peca.ordemServicoId, {
+        pecaId,
+      });
+    }
+    return { id: pecaId, deleted: true };
+  }
+
+  /**
+   * Conclui a macroscopia: cada peça vira um item de serviço (cobrança) e gera
+   * as etiquetas de cassete; a OS avança para o Processamento. Exige que toda
+   * peça tenha serviço definido — é a peça que determina a cobrança.
+   */
+  async concluirMacroscopia(ordemServicoId: number, userId: number) {
+    const pecas = await this.prisma.pecaMacroscopia.findMany({
+      where: { ordemServicoId },
+      orderBy: { id: 'asc' },
+    });
+    if (pecas.length === 0) {
+      throw new BadRequestException('Descreva ao menos uma peça antes de concluir.');
+    }
+    const semServico = pecas.filter((p) => p.servicoId == null);
+    if (semServico.length > 0) {
+      throw new BadRequestException(
+        `Defina o serviço de todas as peças antes de concluir (${semServico.length} sem serviço).`,
+      );
+    }
+
+    let totalCassetes = 0;
+    for (const peca of pecas) {
+      // Item de cobrança da peça — condição molhado (a peça vira cassete).
+      const item = await this.adicionarItem(
+        ordemServicoId,
+        { servicoId: peca.servicoId!, quantidade: peca.numeroCassetes, condicao: 'molhado' },
+        userId,
+      );
+      // Etiquetas de cassete: identificação = paciente + peça + sequência (a
+      // peça entra no rótulo para não colidir quando o paciente tem várias).
+      const base = [peca.paciente, peca.descricao].filter(Boolean).join(' ');
+      const idents = Array.from({ length: peca.numeroCassetes }, (_, i) => `${base} ${i + 1}`);
+      await this.etiquetas.gerarParaOS(ordemServicoId, {
+        identificacoes: idents,
+        itemOrdemServicoId: item.id,
+        tipo: 'cassete',
+      });
+      totalCassetes += peca.numeroCassetes;
+    }
+
+    await this.audit.log(userId, 'CONCLUIR_MACROSCOPIA', 'OrdemServico', ordemServicoId, {
+      pecas: pecas.length,
+      cassetes: totalCassetes,
+    });
+
+    // Avança a etapa (macroscopia → processamento).
+    await this.avancar(ordemServicoId, userId);
+
+    return {
+      message: `Macroscopia concluída: ${pecas.length} peça(s), ${totalCassetes} cassete(s). OS avançada.`,
+      pecas: pecas.length,
+      cassetes: totalCassetes,
+    };
   }
 
   /**
