@@ -66,6 +66,7 @@ export default function ImprimirOrdemPage() {
   }
   const totalCassetes = etiquetas.length
   const temPaciente = os.volumes.some((v) => v.paciente)
+  const temCondicao = os.itens.some((i) => i.condicao)
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -153,6 +154,7 @@ export default function ImprimirOrdemPage() {
               <tr className="border-y border-black text-left">
                 <th className="py-1 pr-2 font-semibold">C.S.</th>
                 <th className="py-1 pr-2 font-semibold">Serviço</th>
+                {temCondicao && <th className="py-1 pr-2 font-semibold">Condição</th>}
                 <th className="py-1 pr-2 font-semibold">Identificação (cassetes)</th>
                 <th className="py-1 pl-2 font-semibold text-right">Qtd</th>
               </tr>
@@ -164,6 +166,12 @@ export default function ImprimirOrdemPage() {
                   <tr key={it.id} className="border-b border-slate-200 align-top">
                     <td className="py-1 pr-2 font-mono">{it.servico.codigo}</td>
                     <td className="py-1 pr-2">{it.servico.nome}</td>
+                    {temCondicao && (
+                      <td className="py-1 pr-2">
+                        {it.condicao ? CONDICAO_LABEL[it.condicao] ?? it.condicao : '—'}
+                        {it.encaminhadoEm ? ' · à técnica' : ''}
+                      </td>
+                    )}
                     <td className="py-1 pr-2">
                       {cassetes.length > 0
                         ? cassetes.map((c) => c.identificacao).join(', ')

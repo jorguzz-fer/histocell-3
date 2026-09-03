@@ -337,6 +337,26 @@ export class OrdensService {
     const servico = await this.prisma.servico.findUnique({ where: { id: dto.servicoId } });
     if (!servico) throw new NotFoundException(`Serviço #${dto.servicoId} não encontrado.`);
 
+    // Trava por contagem (reunião 02/09): se a condição já tem tantas unidades
+    // lançadas quanto volumes recebidos, o quadrado está "fechado". Lançar mais
+    // só com liberação da gerência (forcar + justificativa) — guiar sem travar.
+    const qtd = dto.quantidade ?? 1;
+    if (dto.condicao) {
+      const quadros = await this.quadrosDaOS(ordemServicoId);
+      const q = quadros.find((x) => x.condicao === dto.condicao);
+      if (q && q.completo) {
+        if (!dto.forcar) {
+          throw new BadRequestException(
+            `O quadro "${dto.condicao}" já está completo (${q.unidades}/${q.volumes}). ` +
+              `Libere com justificativa (gerência) para lançar mais.`,
+          );
+        }
+        if (!dto.justificativa?.trim()) {
+          throw new BadRequestException('Informe a justificativa para reabrir o quadro.');
+        }
+      }
+    }
+
     // Preço informado manda; senão vale a tabela do cliente. Sem cliente (caso
     // que o schema não permite hoje, mas o código não deve presumir), cai no
     // preço base do serviço.
@@ -352,17 +372,25 @@ export class OrdensService {
       data: {
         ordemServicoId,
         servicoId: dto.servicoId,
-        quantidade: dto.quantidade ?? 1,
+        quantidade: qtd,
         preco: preco ?? Number(servico.precoBase),
         desconto: desconto ?? 0,
         observacoes: dto.observacoes,
+        condicao: dto.condicao,
       },
       include: { servico: { select: { id: true, codigo: true, nome: true, categoria: true } } },
     });
     if (userId) {
       await this.audit.log(userId, 'ADD_ITEM', 'OrdemServico', ordemServicoId, {
         servicoId: dto.servicoId,
+        condicao: dto.condicao,
       });
+      if (dto.forcar && dto.justificativa) {
+        await this.audit.log(userId, 'REABRIR_QUADRO', 'OrdemServico', ordemServicoId, {
+          condicao: dto.condicao,
+          justificativa: dto.justificativa.trim(),
+        });
+      }
     }
     return { ...item, preco: Number(item.preco), desconto: Number(item.desconto) };
   }
@@ -375,6 +403,74 @@ export class OrdensService {
       await this.audit.log(userId, 'REMOVE_ITEM', 'OrdemServico', item.ordemServicoId, { itemId });
     }
     return { id: itemId, deleted: true };
+  }
+
+  /**
+   * Quadros seco × molhado × macroscopia da OS (reunião 02/09). Para cada
+   * condição presente nos volumes recebidos, compara quantos volumes chegaram
+   * com quantas unidades de serviço já foram lançadas. O quadrado "fecha"
+   * quando as unidades alcançam os volumes — a partir daí, lançar mais exige
+   * liberação da gerência.
+   */
+  async quadrosDaOS(ordemServicoId: number) {
+    const [volumes, itens] = await Promise.all([
+      this.prisma.recipiente.findMany({
+        where: { ordemServicoId },
+        select: { condicao: true },
+      }),
+      this.prisma.itemOrdemServico.findMany({
+        where: { ordemServicoId },
+        select: { condicao: true, quantidade: true, encaminhadoEm: true },
+      }),
+    ]);
+    const condicoes = Array.from(
+      new Set([
+        ...volumes.map((v) => v.condicao).filter((c): c is string => !!c),
+        ...itens.map((i) => i.condicao).filter((c): c is string => !!c),
+      ]),
+    );
+    return condicoes.map((condicao) => {
+      const nVolumes = volumes.filter((v) => v.condicao === condicao).length;
+      const itensCond = itens.filter((i) => i.condicao === condicao);
+      const unidades = itensCond.reduce((s, i) => s + i.quantidade, 0);
+      const encaminhados = itensCond.filter((i) => i.encaminhadoEm).length;
+      return {
+        condicao,
+        volumes: nVolumes,
+        unidades,
+        // "Fechado" só faz sentido quando sabemos quantos volumes esperar.
+        completo: nVolumes > 0 && unidades >= nVolumes,
+        encaminhados,
+        totalItens: itensCond.length,
+      };
+    });
+  }
+
+  /** Marca os itens de uma condição como encaminhados à área técnica. */
+  async encaminharCondicao(ordemServicoId: number, condicao: string, userId?: number) {
+    const agora = new Date();
+    const responsavel = userId ? await this.nomeDoUsuario(userId) : undefined;
+    const res = await this.prisma.itemOrdemServico.updateMany({
+      where: { ordemServicoId, condicao, encaminhadoEm: null },
+      data: { encaminhadoEm: agora, encaminhadoPor: responsavel ?? null },
+    });
+    if (res.count === 0) {
+      throw new BadRequestException(
+        `Nenhum serviço "${condicao}" pendente de encaminhamento nesta OS.`,
+      );
+    }
+    if (userId) {
+      await this.audit.log(userId, 'ENCAMINHAR_TECNICA', 'OrdemServico', ordemServicoId, {
+        condicao,
+        itens: res.count,
+      });
+    }
+    return { message: `${res.count} serviço(s) ${condicao} encaminhado(s) à técnica.`, count: res.count };
+  }
+
+  private async nomeDoUsuario(userId: number): Promise<string | undefined> {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { nome: true } });
+    return u?.nome;
   }
 
   /**

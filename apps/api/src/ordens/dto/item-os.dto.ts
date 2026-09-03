@@ -25,4 +25,21 @@ export class AddItemOSDto {
   @IsString()
   @IsOptional()
   observacoes?: string;
+
+  /** Condição a que o serviço se aplica: seco | molhado | macroscopia. */
+  @IsString()
+  @IsOptional()
+  condicao?: string;
+
+  /**
+   * Libera o lançamento mesmo com o quadrado da condição já fechado (todas as
+   * unidades esperadas já lançadas). Só a gerência, com justificativa — o
+   * princípio é "guiar sem travar": o padrão avisa, não impede à força.
+   */
+  @IsOptional()
+  forcar?: boolean;
+
+  @IsString()
+  @IsOptional()
+  justificativa?: string;
 }

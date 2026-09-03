@@ -14,7 +14,29 @@ export type ItemOS = {
   preco: number
   desconto: number
   observacoes: string | null
+  /** Condição a que o serviço se aplica: seco | molhado | macroscopia. */
+  condicao: string | null
+  /** Carimbo do encaminhamento à área técnica (fluxo do seco). */
+  encaminhadoEm: string | null
+  encaminhadoPor: string | null
   servico: { id: number; codigo: string; nome: string; categoria: string }
+}
+
+/** Quadro de uma condição na OS: volumes recebidos vs unidades lançadas. */
+export type QuadroOS = {
+  condicao: string
+  volumes: number
+  unidades: number
+  completo: boolean
+  encaminhados: number
+  totalItens: number
+}
+
+/** Rótulo e cor de cada condição (mesma paleta da Entrada). */
+export const CONDICAO_UI: Record<string, { label: string; badge: 'blue' | 'amber' | 'purple' }> = {
+  molhado: { label: 'Molhado', badge: 'blue' },
+  seco: { label: 'Seco', badge: 'amber' },
+  macroscopia: { label: 'Macroscopia', badge: 'purple' },
 }
 
 export type OrdemServico = {
