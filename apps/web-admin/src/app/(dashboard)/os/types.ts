@@ -26,6 +26,7 @@ export type OrdemServico = {
   etapaAtual: string
   prioridade: string
   responsavel: string | null
+  observacoes: string | null
   createdAt: string
   cliente: { id: number; nome: string; nomeFantasia: string | null } | null
   amostra: {

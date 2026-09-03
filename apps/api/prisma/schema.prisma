@@ -478,6 +478,7 @@ model ItemOrdemServico {
 
   ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
   servico      Servico      @relation(fields: [servicoId], references: [id])
+  etiquetas    Etiqueta[]   // cassetes/blocos etiquetados a partir deste item
 
   @@index([ordemServicoId])
   @@index([servicoId])
@@ -539,6 +540,9 @@ model Etiqueta {
   // da Entrada: cassetes identificados na própria OS, antes de existir amostra).
   amostraId     Int?
   ordemServicoId Int?
+  // Item de serviço da OS de onde a etiqueta saiu (fluxo da Entrada): é o que
+  // diz ao técnico qual serviço executar naquele cassete/bloco.
+  itemOrdemServicoId Int?
   numero        Int       @unique // sequencial global (ex: 1384126) — impresso sob o barcode
   codigo        String    @unique // conteúdo do código de barras Code128 (composto: cliente+histocell+lâmina)
   tipo          String    // cassete, lamina, bloco
@@ -559,12 +563,14 @@ model Etiqueta {
 
   amostra      Amostra?      @relation(fields: [amostraId], references: [id])
   ordemServico OrdemServico? @relation(fields: [ordemServicoId], references: [id])
+  itemOrdemServico ItemOrdemServico? @relation(fields: [itemOrdemServicoId], references: [id], onDelete: SetNull)
   eventos RastreioEvento[]
 
   @@index([codigo])
   @@index([numero])
   @@index([amostraId])
   @@index([ordemServicoId])
+  @@index([itemOrdemServicoId])
   @@index([impresso])
   @@index([departamentoAtual])
 }

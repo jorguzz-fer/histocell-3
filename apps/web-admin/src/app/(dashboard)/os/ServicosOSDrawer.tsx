@@ -134,6 +134,7 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
     try {
       const res = await api.post<{ etiquetas: Etiqueta[] }>(`/ordens/${os.id}/etiquetas`, {
         identificacoes: idents.map((i) => i.trim()),
+        itemOrdemServicoId: identItem.id,
         tipo: 'cassete',
       })
       toast.success(`${res.etiquetas.length} etiqueta(s) gerada(s).`)
@@ -347,6 +348,11 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
                 >
                   <span className="font-mono text-slate-400">C{e.laminaSeq}</span>
                   {e.identificacao}
+                  {e.itemOrdemServico && (
+                    <span className="font-mono text-slate-400" title={e.itemOrdemServico.servico.nome}>
+                      · {e.itemOrdemServico.servico.codigo}
+                    </span>
+                  )}
                   {e.impresso && <span className="text-emerald-500" title="Já impressa">✓</span>}
                 </span>
               ))}
@@ -358,9 +364,19 @@ export function ServicosOSDrawer({ open, onClose, os, onSaved }: Props) {
           <span className="text-[13px] text-slate-500">
             Total: <strong className="text-slate-800 dark:text-slate-200">{fmtBRL(total)}</strong>
           </span>
-          <Button variant="secondary" onClick={onClose}>
-            Fechar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => window.open(`/imprimir/ordem/${os.id}`, '_blank')}
+              title="Imprimir a OS para entregar à área técnica"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir OS
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Fechar
+            </Button>
+          </div>
         </div>
       </div>
 
