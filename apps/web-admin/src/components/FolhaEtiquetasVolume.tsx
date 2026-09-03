@@ -29,6 +29,8 @@ export type VolumeEtiqueta = {
   codigo: string
   /** canto direito da linha de informação (ex.: "Pote 01 de 03") */
   direita: string
+  /** nome do paciente (Macroscopia): vira a linha de destaque quando presente */
+  paciente?: string | null
 }
 
 interface Props {
@@ -51,9 +53,11 @@ export function FolhaEtiquetasVolume({ clienteLabel, esquerda, volumes }: Props)
         {volumes.map((v) => (
           <div className="etq-vol-page" key={v.id}>
             <div className="etq-vol">
-              <div className="etq-vol-cliente">{clienteLabel}</div>
+              {/* No fluxo Macroscopia o paciente é o destaque; o cliente desce
+                  para a linha de informação. Mantém o mesmo orçamento vertical. */}
+              <div className="etq-vol-cliente">{v.paciente || clienteLabel}</div>
               <div className="etq-vol-info">
-                <span>{esquerda}</span>
+                <span>{v.paciente ? clienteLabel : esquerda}</span>
                 <span>{v.direita}</span>
               </div>
               {/* O código legível fica FORA do SVG: dentro dele, o esticamento

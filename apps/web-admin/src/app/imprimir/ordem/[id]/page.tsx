@@ -65,6 +65,7 @@ export default function ImprimirOrdemPage() {
     etqsPorItem.get(k)!.push(e)
   }
   const totalCassetes = etiquetas.length
+  const temPaciente = os.volumes.some((v) => v.paciente)
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -122,6 +123,7 @@ export default function ImprimirOrdemPage() {
                 <tr className="border-y border-black text-left">
                   <th className="py-1 pr-2 font-semibold">#</th>
                   <th className="py-1 pr-2 font-semibold">Volume</th>
+                  {temPaciente && <th className="py-1 pr-2 font-semibold">Paciente</th>}
                   <th className="py-1 pr-2 font-semibold">Condição</th>
                   <th className="py-1 pr-2 font-semibold">Código</th>
                   <th className="py-1 pl-2 font-semibold">Obs.</th>
@@ -132,6 +134,7 @@ export default function ImprimirOrdemPage() {
                   <tr key={v.id} className="border-b border-slate-200">
                     <td className="py-1 pr-2 font-mono">{i + 1}</td>
                     <td className="py-1 pr-2">{v.tipo}</td>
+                    {temPaciente && <td className="py-1 pr-2 font-medium">{v.paciente ?? '—'}</td>}
                     <td className="py-1 pr-2">{v.condicao ? CONDICAO_LABEL[v.condicao] ?? v.condicao : '—'}</td>
                     <td className="py-1 pr-2 font-mono">{v.codigo ?? '—'}</td>
                     <td className="py-1 pl-2">{v.observacoes ?? ''}</td>

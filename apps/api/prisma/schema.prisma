@@ -349,6 +349,9 @@ model Recipiente {
   // 'molhado' (pote com formol → Macroscopia) ou 'seco' (cassete/bloco/lâmina
   // → Microtomia). Define o departamento de destino do material.
   condicao    String?
+  // Nome do paciente/animal (fluxo Macroscopia): a peça no pote é identificada
+  // pelo nome na entrada e cada pacote ganha sua etiqueta.
+  paciente    String?
   quantidade  Int      @default(1)
   codigo      String?  @unique // conteúdo do código de barras da etiqueta do recipiente (Recepção)
   etiquetaImpressa Boolean @default(false)

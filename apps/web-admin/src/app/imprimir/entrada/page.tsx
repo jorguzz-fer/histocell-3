@@ -8,7 +8,7 @@ import { api } from '@/lib/api'
 type Etiquetas = {
   cliente: { id: number; nome: string; nomeFantasia?: string | null; idEtiqueta?: string | null } | null
   recebidoEm: string
-  volumes: { id: number; tipo: string; codigo: string | null; observacoes: string | null }[]
+  volumes: { id: number; tipo: string; codigo: string | null; paciente: string | null; observacoes: string | null }[]
 }
 
 function ddmmaaaa(iso?: string | null) {
@@ -64,6 +64,7 @@ function ImprimirEntrada() {
         volumes={volumes.map((v, i) => ({
           id: v.id,
           codigo: v.codigo!,
+          paciente: v.paciente,
           direita: `${v.tipo} ${String(i + 1).padStart(2, '0')} de ${String(total).padStart(2, '0')}`,
         }))}
       />

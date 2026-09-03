@@ -6,7 +6,7 @@ import { OrdensService } from '../ordens/ordens.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
 import {
-  CONDICAO_ETAPA,
+  etapaInicialEntrada,
   EntradaAvulsaDto,
   FilterEntradaDto,
   VincularEntradaDto,
@@ -188,6 +188,7 @@ export class RecebimentoService {
       clienteId: number;
       tipo: string;
       condicao: string;
+      paciente?: string;
       quantidade: number;
       codigo: string;
       observacoes?: string;
@@ -199,6 +200,7 @@ export class RecebimentoService {
           clienteId: cliente.id,
           tipo: r.tipo,
           condicao: r.condicao,
+          paciente: r.paciente?.trim() || undefined,
           quantidade: 1,
           codigo: await this.gerarCodigoEntrada(),
           observacoes: r.observacoes,
@@ -214,11 +216,10 @@ export class RecebimentoService {
     );
 
     // A entrada abre a OS: é dela que o trabalho parte. Uma OS por entrada,
-    // então quando chega material molhado E seco junto, a OS começa na etapa
-    // mais atrasada do fluxo (Macroscopia) — nenhum volume pode pular uma etapa
-    // que ainda precisa acontecer com ele.
-    const temMolhado = dto.recipientes.some((r) => r.condicao === 'molhado');
-    const etapaInicial = temMolhado ? CONDICAO_ETAPA.molhado : CONDICAO_ETAPA.seco;
+    // então quando chega material de condições diferentes junto, a OS começa na
+    // etapa mais atrasada do fluxo — nenhum volume pode pular uma etapa que
+    // ainda precisa acontecer com ele.
+    const etapaInicial = etapaInicialEntrada(dto.recipientes.map((r) => r.condicao));
     const os = await this.ordens.criarDaEntrada(cliente.id, etapaInicial, {
       recipienteIds: criados.map((c) => c.id),
       responsavel: dto.recebidoPor,
@@ -260,6 +261,7 @@ export class RecebimentoService {
       id: r.id,
       tipo: r.tipo,
       condicao: r.condicao,
+      paciente: r.paciente,
       codigo: r.codigo,
       observacoes: r.observacoes,
       recebidoPor: r.recebidoPor,
@@ -316,6 +318,7 @@ export class RecebimentoService {
         id: r.id,
         tipo: r.tipo,
         codigo: r.codigo,
+        paciente: r.paciente,
         observacoes: r.observacoes,
       })),
     };

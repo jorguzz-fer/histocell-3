@@ -2,6 +2,7 @@ export type VolumeOS = {
   id: number
   tipo: string
   condicao: string | null
+  paciente: string | null
   codigo: string | null
   observacoes: string | null
 }
