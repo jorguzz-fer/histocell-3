@@ -18,6 +18,7 @@ import { OSModal } from '@/components/OSModal'
 import { NovaOSDrawer } from '@/app/(dashboard)/ordens/NovaOSDrawer'
 import { ServicosOSDrawer } from './ServicosOSDrawer'
 import { ExecucaoOSDrawer } from './ExecucaoOSDrawer'
+import { MacroscopiaModal } from './MacroscopiaModal'
 import { clienteDaOS, clienteIdDaOS, type OrdemListResponse, type OrdemServico } from './types'
 import { guiaDaOS, type AcaoGuia } from '@/lib/proximoPasso'
 import { GuiaProximoPasso } from '@/components/GuiaProximoPasso'
@@ -53,6 +54,7 @@ export default function OrdensServicoPage() {
   const [comOS, setComOS] = useState<{ pedidoId: number; ordemId: number; numero: string } | null>(null)
   const [confOS, setConfOS] = useState<{ ordemId: number; numero: string } | null>(null)
   const [osModal, setOsModal] = useState<{ pedidoId: number; numero: string } | null>(null)
+  const [macroId, setMacroId] = useState<number | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -99,6 +101,7 @@ export default function OrdensServicoPage() {
 
   const selecionada = ordens.find((o) => o.id === selecionadaId) ?? null
   const emExecucao = ordens.find((o) => o.id === emExecucaoId) ?? null
+  const emMacro = ordens.find((o) => o.id === macroId) ?? null
 
   return (
     <>
@@ -226,6 +229,14 @@ export default function OrdensServicoPage() {
         // Fecha a execução e abre Serviços: o guia levou até aqui, a definição
         // acontece lá.
         onDefinirServico={(id) => { setEmExecucaoId(null); setSelecionadaId(id) }}
+        onMacroscopia={(id) => { setEmExecucaoId(null); setMacroId(id) }}
+      />
+
+      <MacroscopiaModal
+        open={emMacro != null}
+        onClose={() => setMacroId(null)}
+        os={emMacro}
+        onSaved={carregar}
       />
 
       <NovaOSDrawer open={novaOS} onClose={() => setNovaOS(false)} onSaved={carregar} />

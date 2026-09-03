@@ -494,6 +494,32 @@ model ItemOrdemServico {
   @@index([servicoId])
 }
 
+// Ficha de Macroscopia (reunião 02/09): a macroscopista abre o pote/pacote,
+// descreve as peças e determina os cassetes. Ao concluir, cada peça vira um
+// item de serviço (cobrança) e gera as etiquetas de cassete, avançando a OS.
+model PecaMacroscopia {
+  id             Int      @id @default(autoincrement())
+  ordemServicoId Int
+  recipienteId   Int?     // pacote/volume de origem (traz o paciente)
+  paciente       String?
+  descricao      String   // tipo da peça (ex.: pele, baço, nódulo)
+  medidas        String?  // ex.: "2 x 3 x 1 cm"
+  caracteristicas String? // texto livre (cutâneo, firme, amarelado, lobulado…)
+  cor            String?
+  consistencia   String?
+  observacoes    String?
+  numeroCassetes Int      @default(1)
+  // Serviço a cobrar por esta peça — o código fica a cargo do operador (a
+  // definição dos códigos de macroscopia é decisão do Célio).
+  servicoId      Int?
+  servicoCodigo  String?
+  servicoNome    String?
+  coloracao      String?
+  createdAt      DateTime @default(now())
+
+  @@index([ordemServicoId])
+}
+
 model EtapaOS {
   id             Int       @id @default(autoincrement())
   ordemServicoId Int
