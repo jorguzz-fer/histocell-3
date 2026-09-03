@@ -1,4 +1,9 @@
+'use client'
+
+import { useState } from 'react'
+import { Map, ClipboardCheck } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
+import { HomologacaoChecklist } from './HomologacaoChecklist'
 
 /**
  * Mapa do fluxo: como o material caminha dentro do sistema, das duas portas de
@@ -57,13 +62,9 @@ function Nota({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function MapaPage() {
+function MapaFluxo() {
   return (
-    <div className="space-y-12 pb-8">
-      <PageHeader
-        title="Mapa do fluxo"
-        subtitle="Como o material caminha: da caixa que chega na recepção até o boleto do fim do mês"
-      />
+    <div className="space-y-12">
 
       {/* ── 01 · convergência ───────────────────────────────────────────────── */}
       <Secao
@@ -389,6 +390,54 @@ export default function MapaPage() {
           </table>
         </div>
       </Secao>
+    </div>
+  )
+}
+
+type Aba = 'mapa' | 'homologacao'
+
+export default function MapaPage() {
+  const [aba, setAba] = useState<Aba>('mapa')
+
+  const abas: { id: Aba; label: string; icon: typeof Map }[] = [
+    { id: 'mapa', label: 'Mapa do fluxo', icon: Map },
+    { id: 'homologacao', label: 'Homologação', icon: ClipboardCheck },
+  ]
+
+  return (
+    <div className="space-y-6 pb-8">
+      <PageHeader
+        title={aba === 'mapa' ? 'Mapa do fluxo' : 'Homologação'}
+        subtitle={
+          aba === 'mapa'
+            ? 'Como o material caminha: da caixa que chega na recepção até o boleto do fim do mês'
+            : 'Roteiro para o Célio validar, na prática, tudo o que foi entregue a partir da reunião de 02/09'
+        }
+      />
+
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800">
+        {abas.map((a) => {
+          const Icon = a.icon
+          const ativa = aba === a.id
+          return (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => setAba(a.id)}
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-sm font-medium transition-colors ${
+                ativa
+                  ? 'border-teal-600 text-teal-700 dark:border-teal-400 dark:text-teal-300'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {a.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {aba === 'mapa' ? <MapaFluxo /> : <HomologacaoChecklist />}
     </div>
   )
 }
