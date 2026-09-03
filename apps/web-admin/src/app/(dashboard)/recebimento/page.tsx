@@ -39,6 +39,11 @@ function fmtDateTime(iso: string | null | undefined) {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+function fmtDia(iso: string | null | undefined) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
 function labelMaterial(m: string) {
   const MAP: Record<string, string> = {
     biopsia_incisional: 'Biópsia Incisional',
@@ -359,6 +364,9 @@ export default function RecebimentoPage() {
                       </p>
                       <p className="mt-0.5 text-[12px] text-slate-600 dark:text-slate-400">
                         {g.entradas.length} volume(s) aguardando vínculo
+                        {g.entradas[0] && (
+                          <span className="text-slate-400"> · recebido {fmtDia(g.entradas[0].createdAt)}</span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -374,6 +382,7 @@ export default function RecebimentoPage() {
                       title={e.observacoes ?? undefined}
                     >
                       {e.tipo} · <span className="font-mono">{e.codigo}</span>
+                      <span className="text-slate-400"> · {fmtDia(e.createdAt)}</span>
                     </span>
                   ))}
                 </div>

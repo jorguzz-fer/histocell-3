@@ -34,6 +34,8 @@ export type Etiqueta = {
   createdAt: string
   amostra: EtiquetaAmostra | null
   ordemServico?: EtiquetaOS | null
+  /** Item de serviço da OS de onde a etiqueta saiu (fluxo da Entrada). */
+  itemOrdemServico?: { id: number; quantidade: number; servico: { id: number; codigo: string; nome: string } } | null
 }
 
 /** Cliente da etiqueta, venha ela da amostra (pedido) ou direto da OS. */

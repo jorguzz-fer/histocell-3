@@ -32,6 +32,14 @@ const INCLUDE_ETIQUETA = {
       cliente: { select: { id: true, nome: true, nomeFantasia: true } },
     },
   },
+  // Serviço que o técnico executa neste cassete/bloco (fluxo da Entrada).
+  itemOrdemServico: {
+    select: {
+      id: true,
+      quantidade: true,
+      servico: { select: { id: true, codigo: true, nome: true } },
+    },
+  },
 } as const;
 
 @Injectable()
@@ -149,7 +157,10 @@ export class EtiquetasService {
    * cada uma com a identificação do cliente digitada na tela de Serviços.
    * Entram na mesma conferência de saída das etiquetas de amostra.
    */
-  async gerarParaOS(osId: number, dto: { identificacoes: string[]; tipo?: string }) {
+  async gerarParaOS(
+    osId: number,
+    dto: { identificacoes: string[]; tipo?: string; itemOrdemServicoId?: number },
+  ) {
     const os = await this.prisma.ordemServico.findUnique({
       where: { id: osId },
       select: {
@@ -167,6 +178,22 @@ export class EtiquetasService {
     const idents = (dto.identificacoes ?? []).map((i) => (i ?? '').trim());
     if (idents.length === 0) throw new NotFoundException('Informe ao menos uma identificação.');
 
+    // Item de serviço de origem: precisa ser desta OS. A coloração impressa na
+    // etiqueta sai do nome do serviço (HE, PAS…), como na etiqueta de amostra.
+    let item: { id: number; servico: { nome: string } } | null = null;
+    if (dto.itemOrdemServicoId != null) {
+      item = await this.prisma.itemOrdemServico.findFirst({
+        where: { id: dto.itemOrdemServicoId, ordemServicoId: os.id },
+        select: { id: true, servico: { select: { nome: true } } },
+      });
+      if (!item) {
+        throw new NotFoundException(
+          `Item de serviço #${dto.itemOrdemServicoId} não pertence à OS ${os.numero}.`,
+        );
+      }
+    }
+    const coloracao = item ? this.sugerirColoracao(item.servico.nome) || null : null;
+
     // continua a sequência de cassetes já gerados nesta OS
     const jaExistentes = await this.prisma.etiqueta.count({ where: { ordemServicoId: os.id } });
     const numeros = await this.gerarNumeros(idents.length);
@@ -181,9 +208,11 @@ export class EtiquetasService {
         return this.prisma.etiqueta.create({
           data: {
             ordemServicoId: os.id,
+            itemOrdemServicoId: item?.id ?? null,
             numero,
             codigo,
             tipo: dto.tipo ?? 'cassete',
+            coloracao,
             identificacao: idents[i] || clienteLabel,
             laminaSeq,
           },

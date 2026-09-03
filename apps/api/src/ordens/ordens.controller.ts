@@ -48,7 +48,7 @@ export class OrdensController {
   @Roles('gerencia', 'recepcao', 'tecnico')
   gerarEtiquetas(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { identificacoes: string[]; tipo?: string },
+    @Body() body: { identificacoes: string[]; tipo?: string; itemOrdemServicoId?: number },
   ) {
     return this.etiquetas.gerarParaOS(id, body);
   }

@@ -209,7 +209,7 @@ export function ExecucaoOSDrawer({
               Conferência
             </Button>
 
-            {os.amostra?.pedido && (
+            {os.amostra?.pedido ? (
               <>
                 <Button
                   variant="secondary"
@@ -228,6 +228,16 @@ export function ExecucaoOSDrawer({
                   Imprimir OS
                 </Button>
               </>
+            ) : (
+              // OS aberta na Entrada: imprime o documento da própria OS.
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => window.open(`/imprimir/ordem/${os.id}`, '_blank')}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir OS
+              </Button>
             )}
 
             {!encerrada && (
