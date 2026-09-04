@@ -254,23 +254,32 @@ export default function EntradaPage() {
                   )}
                 </div>
                 {/* A condição decide o departamento de destino, então é escolha
-                    explícita — não um select que se erra sem perceber. */}
+                    explícita — não um select que se erra sem perceber. Cada
+                    condição entra uma vez só: a que outra linha já usou fica
+                    desabilitada aqui (um objeto por condição). */}
                 <div className="grid grid-cols-3 gap-1.5">
-                  {CONDICOES.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      title={c.ajuda}
-                      onClick={() => setLinha(i, 'condicao', c.value)}
-                      className={`rounded-md border px-2 py-1.5 text-[12px] font-medium transition-colors ${
-                        l.condicao === c.value
-                          ? CONDICAO_BTN[c.cor].on
-                          : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60'
-                      }`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
+                  {CONDICOES.map((c) => {
+                    const usadaEmOutra = linhas.some((o, idx) => idx !== i && o.condicao === c.value)
+                    const selecionada = l.condicao === c.value
+                    return (
+                      <button
+                        key={c.value}
+                        type="button"
+                        title={usadaEmOutra ? `${c.label} já foi usada em outro objeto` : c.ajuda}
+                        disabled={usadaEmOutra}
+                        onClick={() => setLinha(i, 'condicao', c.value)}
+                        className={`rounded-md border px-2 py-1.5 text-[12px] font-medium transition-colors ${
+                          selecionada
+                            ? CONDICAO_BTN[c.cor].on
+                            : usadaEmOutra
+                              ? 'cursor-not-allowed border-slate-100 text-slate-300 dark:border-slate-800 dark:text-slate-600'
+                              : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* Macroscopia: um nome de paciente por pacote — é o que vai na
@@ -295,13 +304,16 @@ export default function EntradaPage() {
               </div>
             ))}
 
-            <button
-              type="button"
-              onClick={() => setLinhas((p) => [...p, { ...LINHA_VAZIA }])}
-              className="flex items-center gap-1 text-[12px] font-medium text-blue-600 hover:text-blue-700"
-            >
-              <Plus className="h-3.5 w-3.5" /> Adicionar objeto
-            </button>
+            {/* No máximo um objeto por condição (Macroscopia, Molhado, Seco). */}
+            {linhas.length < CONDICOES.length && (
+              <button
+                type="button"
+                onClick={() => setLinhas((p) => [...p, { ...LINHA_VAZIA }])}
+                className="flex items-center gap-1 text-[12px] font-medium text-blue-600 hover:text-blue-700"
+              >
+                <Plus className="h-3.5 w-3.5" /> Adicionar objeto
+              </button>
+            )}
           </section>
 
           <Input
