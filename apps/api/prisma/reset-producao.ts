@@ -6,9 +6,9 @@
  *         PapelPermissao, ServicoFavorito, Servico, Pacote, PacoteItem,
  *         TipoRecipiente, Motivo.
  * APAGA:  Pedido, ItemPedido, Recipiente, Amostra, OrdemServico, EtapaOS,
- *         Laudo, Etiqueta, RastreioEvento, Orcamento, ItemOrcamento, FollowUp,
- *         Fatura, ItemFatura, CreditoPrePago, Comunicacao, RegistroQualidade,
- *         AuditLog, RefreshToken.
+ *         Laudo, Etiqueta, RastreioEvento, PecaMacroscopia, Orcamento,
+ *         ItemOrcamento, FollowUp, Fatura, ItemFatura, CreditoPrePago,
+ *         Comunicacao, RegistroQualidade, AuditLog, RefreshToken.
  *
  * Reinicia a numeração do 1: ids das tabelas apagadas, número de etiqueta e
  * número interno de amostra.
@@ -32,6 +32,7 @@ const TABELAS_MOVIMENTO = [
   'RastreioEvento',
   'Etiqueta',
   'Laudo',
+  'PecaMacroscopia',
   'EtapaOS',
   'ItemOrdemServico',
   'OrdemServico',
