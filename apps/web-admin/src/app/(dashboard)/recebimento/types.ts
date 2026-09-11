@@ -8,6 +8,8 @@ export type PedidoFila = {
   clienteNomeFantasia?: string | null
   status: string
   origem?: string
+  /** Trilha de aprovação do orçamento: dispensado | pendente | aprovado | recusado. */
+  aprovacaoCliente?: string
   urgente?: boolean
   pagamentoAdiantado?: boolean
   dataEnvio?: string | null

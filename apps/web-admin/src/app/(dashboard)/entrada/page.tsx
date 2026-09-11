@@ -448,10 +448,14 @@ export default function EntradaPage() {
                       <p className="truncate text-[13px] font-medium text-slate-800 dark:text-slate-200">
                         {p.clienteNomeFantasia ?? p.clienteNome}
                       </p>
-                      <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                      <p className="flex items-center gap-1.5 truncate text-[12px] text-slate-500 dark:text-slate-400">
                         <span className="font-mono">{p.codigoCurto ?? p.numero}</span> ·{' '}
                         {p.itens.length} serviço(s)
                         {p.urgente ? ' · urgente' : ''}
+                        {/* Veio de orçamento que o cliente aprovou no portal. */}
+                        {p.aprovacaoCliente === 'aprovado' && (
+                          <Badge variant="green">orçamento aprovado</Badge>
+                        )}
                       </p>
                     </div>
                     {ativo ? (
