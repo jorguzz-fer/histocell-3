@@ -12,6 +12,7 @@ import { UpdateServicoDto } from './dto/update-servico.dto';
 import { FilterServicoDto } from './dto/filter-servico.dto';
 import { AuditService } from '../common/audit.service';
 import { PrecoService } from '../common/preco.service';
+import { MailService } from '../common/mail.service';
 import { OrdensService } from '../ordens/ordens.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
 
@@ -56,6 +57,7 @@ export class PedidosService {
     private ordens: OrdensService,
     private financeiro: FinanceiroService,
     private preco: PrecoService,
+    private mail: MailService,
   ) {}
 
   // ── numero sequencial diário ────────────────────────────────────────────────
@@ -508,12 +510,133 @@ export class PedidosService {
     if (filtro && ['pendente', 'aprovado', 'recusado'].includes(filtro)) {
       where.aprovacaoCliente = filtro;
     }
+    // "Sem aprovação": pedido direto que ainda aguarda material — é o que ainda
+    // dá para mandar para o cliente aprovar.
+    if (filtro === 'sem_aprovacao') {
+      where.aprovacaoCliente = 'dispensado';
+      where.status = { in: ['rascunho', 'enviado'] };
+    }
     const pedidos = await this.prisma.pedido.findMany({
       where,
       include: INCLUDE_FULL,
       orderBy: [{ aprovacaoCliente: 'asc' }, { createdAt: 'desc' }],
     });
     return pedidos.map((p) => this.toShape(p));
+  }
+
+  /**
+   * Manda um pedido já criado para a aprovação do cliente: ele passa a
+   * "pendente" (some da Recepção até o cliente decidir), aparece no portal com
+   * o botão Aprovar e recebe um e-mail com o link.
+   *
+   * Serve de saída quando o pedido nasceu em "Pedido direto" mas deveria ter
+   * ido como orçamento.
+   */
+  async enviarParaAprovacao(id: number, userId?: number) {
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        numero: true,
+        seq: true,
+        status: true,
+        aprovacaoCliente: true,
+        cliente: {
+          select: { id: true, nome: true, nomeFantasia: true, email: true, portalToken: true },
+        },
+      },
+    });
+    if (!pedido) throw new NotFoundException(`Pedido #${id} não encontrado.`);
+    if (pedido.aprovacaoCliente === 'aprovado') {
+      throw new BadRequestException('Este orçamento já foi aprovado pelo cliente.');
+    }
+    // Depois que o material chegou, aprovar não faz mais sentido: o trabalho
+    // já começou. Só vale enquanto o pedido ainda aguarda a chegada.
+    if (!['rascunho', 'enviado'].includes(pedido.status)) {
+      throw new BadRequestException(
+        'O material deste pedido já foi recebido — não dá para mandar para aprovação agora.',
+      );
+    }
+
+    const atualizado = await this.prisma.pedido.update({
+      where: { id },
+      data: { aprovacaoCliente: 'pendente', aprovadoClienteEm: null, status: 'enviado' },
+      include: INCLUDE_FULL,
+    });
+
+    const email = await this.avisarAprovacaoPendente(pedido, userId);
+
+    if (userId) {
+      await this.audit.log(userId, 'ENVIAR_APROVACAO', 'Pedido', id, {
+        numero: pedido.numero,
+        destinatario: email.destinatario,
+        emailEnviado: email.enviado,
+      });
+    }
+
+    return { ...this.toShape(atualizado), email };
+  }
+
+  /**
+   * Registra a comunicação e dispara o e-mail do orçamento para o cliente.
+   * Sem servidor de e-mail configurado (MAIL_API_KEY/MAIL_FROM), o MailService
+   * apenas registra e devolve `sent:false` — o histórico fica gravado com o
+   * motivo, pronto para quando a credencial entrar.
+   */
+  private async avisarAprovacaoPendente(
+    pedido: {
+      id: number;
+      numero: string;
+      seq: number | null;
+      cliente: { nome: string; nomeFantasia: string | null; email: string | null; portalToken: string | null } | null;
+    },
+    userId?: number,
+  ) {
+    const cliente = pedido.cliente;
+    const destinatario = cliente?.email?.trim() || null;
+    const codigo = pedido.seq != null ? `#${String(pedido.seq).padStart(4, '0')}` : pedido.numero;
+    const base = (process.env.PORTAL_URL || '').replace(/\/+$/, '');
+    const link = cliente?.portalToken && base ? `${base}/p/${cliente.portalToken}` : null;
+
+    const assunto = `Orçamento ${codigo} aguardando sua aprovação — Histocell`;
+    const mensagem = [
+      `Olá, ${cliente?.nomeFantasia ?? cliente?.nome ?? 'cliente'}.`,
+      '',
+      `O orçamento ${codigo} está disponível para sua aprovação.`,
+      link
+        ? `Acesse para aprovar ou recusar: ${link}`
+        : 'Acesse o portal Histocell para aprovar ou recusar.',
+      '',
+      'Assim que você aprovar, seguimos com a chegada do material.',
+    ].join('\n');
+
+    const registro = await this.prisma.comunicacao.create({
+      data: {
+        pedidoId: pedido.id,
+        setor: 'orcamento',
+        tipo: 'aprovacao_orcamento',
+        assunto,
+        mensagem,
+        destinatario,
+        criadoPor: userId ? String(userId) : undefined,
+        emailEnviado: false,
+      },
+    });
+
+    if (!destinatario) {
+      await this.prisma.comunicacao.update({
+        where: { id: registro.id },
+        data: { emailInfo: 'cliente_sem_email' },
+      });
+      return { destinatario: null, enviado: false, motivo: 'cliente_sem_email' as string | undefined };
+    }
+
+    const r = await this.mail.enviar({ para: destinatario, assunto, texto: mensagem });
+    await this.prisma.comunicacao.update({
+      where: { id: registro.id },
+      data: { emailEnviado: r.sent, emailInfo: r.sent ? r.id : r.motivo },
+    });
+    return { destinatario, enviado: r.sent, motivo: r.motivo };
   }
 
   /** Cliente aprova/recusa o orçamento (interno ou portal). */
