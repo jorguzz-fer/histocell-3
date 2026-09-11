@@ -175,6 +175,14 @@ export class PedidosController {
     return this.service.listarOrcamentos(status);
   }
 
+  /** Manda um pedido já criado para a aprovação do cliente (portal + e-mail) */
+  @Patch(':id/enviar-aprovacao')
+  @Roles('gerencia', 'recepcao', 'financeiro')
+  enviarAprovacao(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    const userId = req.user?.sub ?? req.user?.userId ?? req.user?.id;
+    return this.service.enviarParaAprovacao(id, userId);
+  }
+
   /** Cliente decide o orçamento (aprovar/recusar) — uso interno */
   @Patch(':id/orcamento-decisao')
   @Roles('gerencia', 'recepcao', 'financeiro')

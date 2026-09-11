@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Check, X, FileText, RefreshCw, Eye } from 'lucide-react'
+import { Check, X, FileText, RefreshCw, Eye, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -29,6 +29,8 @@ const FILTROS = [
   { key: 'pendente', label: 'Pendentes' },
   { key: 'aprovado', label: 'Aprovados' },
   { key: 'recusado', label: 'Recusados' },
+  // Pedido direto que ainda aguarda material: dá para mandar o cliente aprovar.
+  { key: 'sem_aprovacao', label: 'Sem aprovação' },
   { key: '', label: 'Todos' },
 ] as const
 
@@ -36,6 +38,7 @@ const badgeAprovacao: Record<string, { label: string; variant: 'amber' | 'green'
   pendente: { label: 'Aguardando cliente', variant: 'amber' },
   aprovado: { label: 'Aprovado', variant: 'green' },
   recusado: { label: 'Recusado', variant: 'rose' },
+  dispensado: { label: 'Sem aprovação', variant: 'slate' },
 }
 
 function fmtData(iso?: string | null) {
@@ -63,6 +66,30 @@ export default function ComercialPage() {
   }, [filtro])
 
   useEffect(() => { carregar() }, [carregar])
+
+  /** Manda o pedido para o cliente aprovar: portal + e-mail. */
+  async function enviarAprovacao(o: Orcamento) {
+    setAgindo(o.id)
+    try {
+      const r = await api.patch<{ email?: { destinatario: string | null; enviado: boolean; motivo?: string } }>(
+        `/pedidos/${o.id}/enviar-aprovacao`,
+        {},
+      )
+      const codigo = o.codigoCurto ?? o.numero
+      if (r.email?.enviado) {
+        toast.success(`Enviado para aprovação — e-mail para ${r.email.destinatario}.`)
+      } else if (r.email?.motivo === 'cliente_sem_email') {
+        toast.success(`${codigo} no portal do cliente. Sem e-mail cadastrado — avise por outro canal.`)
+      } else {
+        toast.success(`${codigo} no portal do cliente. E-mail ainda não configurado no servidor.`)
+      }
+      carregar()
+    } catch (err: any) {
+      toast.error(err.message ?? 'Erro ao enviar para aprovação')
+    } finally {
+      setAgindo(null)
+    }
+  }
 
   async function decidir(o: Orcamento, decisao: 'aprovado' | 'recusado') {
     setAgindo(o.id)
@@ -161,6 +188,16 @@ export default function ComercialPage() {
                           >
                             <Eye className="h-3.5 w-3.5" /> Ver
                           </button>
+                          {o.aprovacaoCliente === 'dispensado' && (
+                            <button
+                              disabled={agindo === o.id}
+                              onClick={() => enviarAprovacao(o)}
+                              title="Enviar para o cliente aprovar (portal + e-mail)"
+                              className="inline-flex items-center gap-1 rounded-md border border-blue-200 dark:border-blue-500/40 px-2 py-1 text-[12px] font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 disabled:opacity-50"
+                            >
+                              <Send className="h-3.5 w-3.5" /> Enviar p/ aprovação
+                            </button>
+                          )}
                           {o.aprovacaoCliente === 'pendente' && (
                             <>
                               <button

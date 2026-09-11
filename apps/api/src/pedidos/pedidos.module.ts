@@ -5,9 +5,10 @@ import { AuditService } from '../common/audit.service';
 import { PrecoService } from '../common/preco.service';
 import { OrdensModule } from '../ordens/ordens.module';
 import { FinanceiroModule } from '../financeiro/financeiro.module';
+import { MailModule } from '../common/mail.module';
 
 @Module({
-  imports: [OrdensModule, FinanceiroModule],
+  imports: [OrdensModule, FinanceiroModule, MailModule],
   controllers: [PedidosController],
   providers: [PedidosService, AuditService, PrecoService],
   exports: [PedidosService],
