@@ -83,8 +83,10 @@ export class RecebimentoService {
    *    poluem a recepção). */
   async filaRecepcao() {
     return this.filaPorWhere({
-      // Orçamento aguardando o cliente aprovar não entra na Recepção.
-      aprovacaoCliente: { not: 'pendente' },
+      // Só entra na Recepção o que o cliente já liberou: orçamento aprovado ou
+      // pedido que nem passa por aprovação. Pendente ainda aguarda o cliente e
+      // recusado não vai receber material nenhum.
+      aprovacaoCliente: { in: ['dispensado', 'aprovado'] },
       OR: [{ status: 'enviado' }, { status: 'rascunho', origem: 'local' }],
     });
   }
@@ -184,8 +186,25 @@ export class RecebimentoService {
     if (!cliente) throw new NotFoundException(`Cliente #${dto.clienteId} não encontrado.`);
     if (!cliente.ativo) throw new BadRequestException('Cliente está inativo.');
 
+    // Entrada já vinculada a um pedido: o material nasce dentro dele. Vincular
+    // a pedido de outro cliente trocaria o dono do material, então é barrado.
+    let pedido: { id: number; numero: string; status: string; clienteId: number } | null = null;
+    if (dto.pedidoId != null) {
+      pedido = await this.prisma.pedido.findUnique({
+        where: { id: dto.pedidoId },
+        select: { id: true, numero: true, status: true, clienteId: true },
+      });
+      if (!pedido) throw new NotFoundException(`Pedido #${dto.pedidoId} não encontrado.`);
+      if (pedido.clienteId !== cliente.id) {
+        throw new BadRequestException(
+          `O pedido ${pedido.numero} é de outro cliente — não pode receber esta entrada.`,
+        );
+      }
+    }
+
     const novos: {
       clienteId: number;
+      pedidoId?: number;
       tipo: string;
       condicao: string;
       paciente?: string;
@@ -198,6 +217,7 @@ export class RecebimentoService {
       for (let i = 0; i < r.quantidade; i++) {
         novos.push({
           clienteId: cliente.id,
+          pedidoId: pedido?.id,
           tipo: r.tipo,
           condicao: r.condicao,
           paciente: r.paciente?.trim() || undefined,
@@ -226,10 +246,22 @@ export class RecebimentoService {
       userId,
     });
 
+    // Vinculada a um pedido: ele deixa a fila de "aguardando entrada" — a
+    // recepção vinculou e deu entrada no mesmo gesto.
+    if (pedido && pedido.status !== 'recepcao') {
+      await this.prisma.pedido.update({
+        where: { id: pedido.id },
+        data: { status: 'recepcao', dataRecepcao: new Date() },
+      });
+    }
+
     return {
-      message: `Entrada registrada (${criados.length} volume(s)). OS ${os.numero} aberta.`,
+      message: pedido
+        ? `Entrada registrada (${criados.length} volume(s)) no pedido ${pedido.numero}. OS ${os.numero} aberta.`
+        : `Entrada registrada (${criados.length} volume(s)). OS ${os.numero} aberta.`,
       total: criados.length,
       ids: criados.map((c) => c.id),
+      pedido: pedido ? { id: pedido.id, numero: pedido.numero } : null,
       ordemServico: { id: os.id, numero: os.numero, seq: os.seq, etapaAtual: os.etapaAtual },
     };
   }

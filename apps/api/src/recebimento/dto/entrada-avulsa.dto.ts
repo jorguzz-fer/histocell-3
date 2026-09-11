@@ -61,6 +61,15 @@ export class EntradaAvulsaDto {
   @IsInt()
   clienteId: number;
 
+  /**
+   * Pedido/orçamento a que esta entrada já pertence. Quando informado, os
+   * volumes nascem vinculados e o pedido passa a "recepção" — a recepção
+   * vincula e dá entrada no mesmo gesto, sem passar pela tela de Recebimento.
+   */
+  @IsOptional()
+  @IsInt()
+  pedidoId?: number;
+
   @IsOptional()
   @IsString()
   recebidoPor?: string;
