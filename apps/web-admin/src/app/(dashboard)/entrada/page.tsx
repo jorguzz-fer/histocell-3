@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { DoorOpen, Package, Plus, Printer, Trash2, RefreshCw } from 'lucide-react'
+import { DoorOpen, FileText, Link2, Package, Plus, Printer, Trash2, RefreshCw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -16,6 +16,7 @@ import { ClienteDrawer } from '@/app/(dashboard)/cadastro/ClienteDrawer'
 import { api } from '@/lib/api'
 import { etapaCurta } from '@/lib/proximoPasso'
 import type { Cliente } from '@/app/(dashboard)/cadastro/types'
+import type { PedidoFila } from '@/app/(dashboard)/recebimento/types'
 import {
   CONDICOES,
   CONDICAO_BTN,
@@ -48,6 +49,13 @@ export default function EntradaPage() {
   const [entradas, setEntradas] = useState<EntradaAvulsa[]>([])
   const [carregando, setCarregando] = useState(true)
 
+  // Orçamentos/pedidos aguardando a chegada do material: a recepção vincula
+  // um deles e dá entrada no mesmo gesto, sem passar pela tela de Recebimento.
+  const [pedidos, setPedidos] = useState<PedidoFila[]>([])
+  const [carregandoPedidos, setCarregandoPedidos] = useState(true)
+  const [pedidoVinculado, setPedidoVinculado] = useState<PedidoFila | null>(null)
+  const [vinculando, setVinculando] = useState<number | null>(null)
+
   const [printUrl, setPrintUrl] = useState<string | null>(null)
   const [novoClienteNome, setNovoClienteNome] = useState<string | null>(null)
 
@@ -55,6 +63,15 @@ export default function EntradaPage() {
     () => api.get<TipoRecipiente[]>('/recebimento/tipos-recipiente').then(setTipos).catch(() => {}),
     [],
   )
+
+  const carregarPedidos = useCallback(() => {
+    setCarregandoPedidos(true)
+    return api
+      .get<PedidoFila[]>('/recebimento/recepcao')
+      .then(setPedidos)
+      .catch(() => {})
+      .finally(() => setCarregandoPedidos(false))
+  }, [])
 
   const carregarEntradas = useCallback(() => {
     setCarregando(true)
@@ -68,7 +85,30 @@ export default function EntradaPage() {
   useEffect(() => {
     carregarTipos()
     carregarEntradas()
-  }, [carregarTipos, carregarEntradas])
+    carregarPedidos()
+  }, [carregarTipos, carregarEntradas, carregarPedidos])
+
+  /**
+   * Vincular: traz o pedido para o formulário da esquerda com o cliente já
+   * preenchido. A entrada é registrada em seguida já dentro dele.
+   */
+  async function vincularPedido(p: PedidoFila) {
+    setVinculando(p.id)
+    try {
+      const c = await api.get<Cliente>(`/clientes/${p.clienteId}`)
+      setCliente(c)
+      setPedidoVinculado(p)
+      toast.success(`Pedido ${p.codigoCurto ?? p.numero} carregado — informe o que chegou.`)
+    } catch (e: any) {
+      toast.error(e.message ?? 'Não foi possível carregar o cliente do pedido')
+    } finally {
+      setVinculando(null)
+    }
+  }
+
+  function desvincularPedido() {
+    setPedidoVinculado(null)
+  }
 
   function setLinha(i: number, campo: 'tipo' | 'condicao' | 'quantidade' | 'observacoes', valor: string) {
     setLinhas((prev) => prev.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)))
@@ -101,6 +141,7 @@ export default function EntradaPage() {
     setCliente(null)
     setLinhas([{ ...LINHA_VAZIA }])
     setRecebidoPor('')
+    setPedidoVinculado(null)
   }
 
   async function registrar(e: React.FormEvent) {
@@ -158,13 +199,20 @@ export default function EntradaPage() {
         ordemServico: { id: number; numero: string }
       }>(
         '/recebimento/entrada-avulsa',
-        { clienteId: cliente.id, recebidoPor: recebidoPor.trim() || undefined, recipientes },
+        {
+          clienteId: cliente.id,
+          // Vinculado: os volumes nascem dentro do pedido e ele sai da fila.
+          pedidoId: pedidoVinculado?.id,
+          recebidoPor: recebidoPor.trim() || undefined,
+          recipientes,
+        },
       )
       toast.success(res.message)
       // Abre direto a folha de etiquetas: a etiqueta é colada no objeto agora.
       setPrintUrl(`/imprimir/entrada?ids=${res.ids.join(',')}`)
       limpar()
       carregarEntradas()
+      carregarPedidos()
     } catch (err: any) {
       toast.error(err.message ?? 'Erro ao registrar entrada')
     } finally {
@@ -196,6 +244,30 @@ export default function EntradaPage() {
           onSubmit={registrar}
           className="space-y-5 rounded-card border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
         >
+          {/* Pedido trazido da lateral: o material vai entrar dentro dele. */}
+          {pedidoVinculado && (
+            <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-500/40 dark:bg-blue-500/5">
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-semibold text-blue-800 dark:text-blue-200">
+                  Entrada no pedido {pedidoVinculado.codigoCurto ?? pedidoVinculado.numero}
+                </p>
+                <p className="truncate text-[11px] text-blue-700/80 dark:text-blue-300/80">
+                  {pedidoVinculado.itens.length} serviço(s) previsto(s) · o pedido sai da fila ao
+                  registrar
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={desvincularPedido}
+                title="Desvincular — registrar a entrada sem pedido"
+                className="shrink-0 rounded p-1 text-blue-400 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-500/10"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           <ClienteSearchInput
             value={cliente}
             onChange={setCliente}
@@ -340,6 +412,68 @@ export default function EntradaPage() {
           </div>
         </form>
 
+        <div className="space-y-6">
+        {/* ── Orçamentos/pedidos aguardando entrada ────────────────────── */}
+        <section className="rounded-card border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <header className="flex items-center gap-2 border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
+            <FileText className="h-4 w-4 text-slate-400" />
+            <h2 className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
+              Aguardando entrada
+            </h2>
+            <span className="text-[12px] text-slate-400">({pedidos.length})</span>
+            <span className="ml-auto text-[11px] text-slate-400">vincule e dê entrada</span>
+          </header>
+
+          {carregandoPedidos ? (
+            <p className="px-5 py-8 text-center text-[13px] text-slate-500">Carregando…</p>
+          ) : pedidos.length === 0 ? (
+            <p className="px-5 py-8 text-center text-[13px] text-slate-500">
+              Nenhum orçamento/pedido aguardando entrada.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {pedidos.map((p) => {
+                const ativo = pedidoVinculado?.id === p.id
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center gap-3 px-5 py-3 ${ativo ? 'bg-blue-50/60 dark:bg-blue-500/5' : ''}`}
+                  >
+                    <ClienteAvatar
+                      nome={p.clienteNomeFantasia ?? p.clienteNome}
+                      seed={p.clienteId}
+                      size={30}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-medium text-slate-800 dark:text-slate-200">
+                        {p.clienteNomeFantasia ?? p.clienteNome}
+                      </p>
+                      <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                        <span className="font-mono">{p.codigoCurto ?? p.numero}</span> ·{' '}
+                        {p.itens.length} serviço(s)
+                        {p.urgente ? ' · urgente' : ''}
+                      </p>
+                    </div>
+                    {ativo ? (
+                      <Badge variant="blue">no formulário</Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={vinculando === p.id}
+                        onClick={() => vincularPedido(p)}
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                        Vincular
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
         {/* ── Entradas de hoje ─────────────────────────────────────────── */}
         <section className="rounded-card border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <header className="flex items-center gap-2 border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
@@ -418,6 +552,7 @@ export default function EntradaPage() {
             </div>
           )}
         </section>
+        </div>
       </div>
 
       <PrintModal
