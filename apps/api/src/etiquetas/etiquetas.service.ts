@@ -3,6 +3,7 @@ import { PrismaService } from '../common/prisma.service';
 import { GerarEtiquetasDto } from './dto/gerar-etiquetas.dto';
 import { FilterEtiquetaDto } from './dto/filter-etiqueta.dto';
 import { GerarLoteDto } from './dto/gerar-lote.dto';
+import { ETAPA_PARA_DEPARTAMENTO } from '../ordens/etapas';
 
 // ─── include padrão ────────────────────────────────────────────────────────────
 
@@ -167,6 +168,7 @@ export class EtiquetasService {
         id: true,
         numero: true,
         seq: true,
+        etapaAtual: true,
         cliente: { select: { id: true, nome: true, nomeFantasia: true } },
         amostra: { select: { pedido: { select: { cliente: { select: { id: true, nome: true, nomeFantasia: true } } } } } },
       },
@@ -200,6 +202,12 @@ export class EtiquetasService {
     const osRef = os.seq != null ? `OS${os.seq}` : os.numero.replace(/[^A-Za-z0-9-]/g, '');
     const clienteLabel = cliente.nomeFantasia ?? cliente.nome;
 
+    // A etiqueta nasce já na posição atual da OS: sem isto ela ficaria com
+    // `departamentoAtual` nulo (fora do Rastreio) até a OS avançar de novo — e
+    // o cassete gerado no meio do fluxo não aparecia no rastreio do pedido.
+    const departamento = ETAPA_PARA_DEPARTAMENTO[os.etapaAtual] ?? null;
+    const agora = new Date();
+
     const criadas = await this.prisma.$transaction(
       numeros.map((numero, i) => {
         const laminaSeq = jaExistentes + i + 1;
@@ -209,6 +217,21 @@ export class EtiquetasService {
           data: {
             ordemServicoId: os.id,
             itemOrdemServicoId: item?.id ?? null,
+            departamentoAtual: departamento,
+            rastreioStatus: departamento ? 'em_andamento' : 'nao_iniciado',
+            ultimoEventoEm: departamento ? agora : null,
+            ...(departamento
+              ? {
+                  eventos: {
+                    create: {
+                      departamento,
+                      tipo: 'entrada',
+                      scannedPor: 'Sistema (etiqueta gerada)',
+                      observacoes: 'Posição inicial: etapa da OS na geração da etiqueta',
+                    },
+                  },
+                }
+              : {}),
             numero,
             codigo,
             tipo: dto.tipo ?? 'cassete',

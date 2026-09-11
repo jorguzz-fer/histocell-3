@@ -67,7 +67,8 @@ export default function EntradaPage() {
   const carregarPedidos = useCallback(() => {
     setCarregandoPedidos(true)
     return api
-      .get<PedidoFila[]>('/recebimento/recepcao')
+      // Inclui os que ainda aguardam o cliente aprovar — aparecem sinalizados.
+      .get<PedidoFila[]>('/recebimento/recepcao?incluirPendentes=true')
       .then(setPedidos)
       .catch(() => {})
       .finally(() => setCarregandoPedidos(false))
@@ -455,6 +456,11 @@ export default function EntradaPage() {
                         {/* Veio de orçamento que o cliente aprovou no portal. */}
                         {p.aprovacaoCliente === 'aprovado' && (
                           <Badge variant="green">orçamento aprovado</Badge>
+                        )}
+                        {/* Ainda na mão do cliente: o material pode chegar antes
+                            da decisão, então mostra sem impedir a vinculação. */}
+                        {p.aprovacaoCliente === 'pendente' && (
+                          <Badge variant="amber">aguardando aprovação</Badge>
                         )}
                       </p>
                     </div>
