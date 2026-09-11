@@ -81,12 +81,17 @@ export class RecebimentoService {
    *    admin já aparece no recebimento sem precisar "enviar".
    *  - Portal (origem 'web'): só quando enviados (rascunhos do cliente não
    *    poluem a recepção). */
-  async filaRecepcao() {
+  async filaRecepcao(incluirPendentes = false) {
+    // Só entra na Recepção o que o cliente já liberou: orçamento aprovado ou
+    // pedido que nem passa por aprovação. Recusado não vai receber material
+    // nenhum, então fica de fora sempre.
+    //
+    // A tela Entrada pede também os pendentes: lá eles aparecem marcados como
+    // "aguardando aprovação", para a recepção saber que o material está a
+    // caminho mesmo antes de o cliente decidir.
+    const liberados = ['dispensado', 'aprovado'];
     return this.filaPorWhere({
-      // Só entra na Recepção o que o cliente já liberou: orçamento aprovado ou
-      // pedido que nem passa por aprovação. Pendente ainda aguarda o cliente e
-      // recusado não vai receber material nenhum.
-      aprovacaoCliente: { in: ['dispensado', 'aprovado'] },
+      aprovacaoCliente: { in: incluirPendentes ? [...liberados, 'pendente'] : liberados },
       OR: [{ status: 'enviado' }, { status: 'rascunho', origem: 'local' }],
     });
   }

@@ -19,11 +19,15 @@ import { FilterAmostraDto } from './dto/filter-amostra.dto';
 export class RecebimentoController {
   constructor(private service: RecebimentoService) {}
 
-  /** Etapa 1 — Recepção: pedidos enviados aguardando entrada */
+  /**
+   * Etapa 1 — Recepção: pedidos enviados aguardando entrada.
+   * `?incluirPendentes=true` traz também os orçamentos que ainda aguardam o
+   * cliente aprovar (usado pela tela Entrada, que os mostra sinalizados).
+   */
   @Get('recepcao')
   @Roles('gerencia', 'recepcao', 'tecnico')
-  filaRecepcao() {
-    return this.service.filaRecepcao();
+  filaRecepcao(@Query('incluirPendentes') incluirPendentes?: string) {
+    return this.service.filaRecepcao(incluirPendentes === 'true');
   }
 
   /** Etapa 2 — Laboratório: pedidos com entrada feita, aguardando identificação */
