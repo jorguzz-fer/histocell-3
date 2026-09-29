@@ -29,5 +29,8 @@ COPY --from=builder /app/apps/api/docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json ./
 RUN chmod +x ./docker-entrypoint.sh
+# Usuário não-root (consistente com os Dockerfiles dos apps web).
+RUN addgroup -S nodejs && adduser -S nestjs -u 1001 && chown -R nestjs:nodejs /app
+USER nestjs
 EXPOSE 3000
 CMD ["sh", "./docker-entrypoint.sh"]

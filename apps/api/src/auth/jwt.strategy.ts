@@ -7,10 +7,16 @@ import { AuthService } from './auth.service';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService, private authService: AuthService) {
+    const secret = config.get<string>('JWT_SECRET');
+    if (!secret) {
+      // Fail-fast: sem segredo não há verificação de assinatura confiável.
+      throw new Error('JWT_SECRET não definido — configuração obrigatória ausente.');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get('JWT_SECRET'),
+      secretOrKey: secret,
+      algorithms: ['HS256'], // fixa o algoritmo (anti alg-confusion)
     });
   }
 
