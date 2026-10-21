@@ -83,11 +83,18 @@ export function useOrderCart() {
 
   useEffect(() => { carregarRascunhos() }, [carregarRascunhos])
 
-  useEffect(() => {
-    api.get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true')
-      .then((res) => setClientes(res.data))
-      .catch(() => toast.error('Erro ao carregar clientes'))
-  }, [])
+  // Exposto para as telas recarregarem depois de cadastrar um cliente novo
+  // sem sair do pedido/orçamento (pedido do Célio, reunião 21/10).
+  const carregarClientes = useCallback(
+    () =>
+      api
+        .get<{ data: ClienteOpt[] }>('/clientes?limit=500&ativo=true')
+        .then((res) => setClientes(res.data))
+        .catch(() => toast.error('Erro ao carregar clientes')),
+    [],
+  )
+
+  useEffect(() => { carregarClientes() }, [carregarClientes])
 
   // saldo de crédito pré-pago do cliente selecionado
   useEffect(() => {
@@ -296,6 +303,7 @@ export function useOrderCart() {
 
   return {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
+    carregarClientes,
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
     prazoDias, setPrazoDias,

@@ -3,11 +3,12 @@ import { RecebimentoController } from './recebimento.controller';
 import { RecebimentoService } from './recebimento.service';
 import { AuditService } from '../common/audit.service';
 import { OrdensModule } from '../ordens/ordens.module';
+import { MailModule } from '../common/mail.module';
 import { FinanceiroModule } from '../financeiro/financeiro.module';
 import { EtiquetasModule } from '../etiquetas/etiquetas.module';
 
 @Module({
-  imports: [FinanceiroModule, EtiquetasModule, OrdensModule],
+  imports: [FinanceiroModule, EtiquetasModule, OrdensModule, MailModule],
   controllers: [RecebimentoController],
   providers: [RecebimentoService, AuditService],
   exports: [RecebimentoService],

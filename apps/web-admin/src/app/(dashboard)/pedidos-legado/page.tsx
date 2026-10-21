@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ClienteDrawer } from '@/app/(dashboard)/cadastro/ClienteDrawer'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Send, ChevronDown, Tags, Plus, AlertTriangle, BadgeDollarSign, FileEdit, Trash2, Pencil, Clock, ClipboardCheck, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -18,11 +19,13 @@ export default function PedidosLegadoPage() {
     cliente, isPesquisador, totalGeral, pedidoCriado, limparPedidoCriado,
     urgente, setUrgente, pagamentoAdiantado, setPagamentoAdiantado, creditoSaldo,
     prazoDias, setPrazoDias,
+    carregarClientes,
     addServico, addItemDireto, addPacote, removeItem, updateItem, handleSalvar,
     rascunhos, editId, continuarRascunho, excluirRascunho,
   } = useOrderCart()
 
   const [confirmarPrazo, setConfirmarPrazo] = useState(false)
+  const [novoCliente, setNovoCliente] = useState(false)
 
   // Modo da tela: "pedido" (direto, sem aprovação — cliente de contrato) ou
   // "orcamento" (prévia + envio p/ aprovação — cliente esporádico/especulador).
@@ -41,6 +44,7 @@ export default function PedidosLegadoPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -81,7 +85,18 @@ export default function PedidosLegadoPage() {
         {/* Esquerda: cliente + tabela legado */}
         <div className="space-y-5">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cliente</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cliente</h2>
+              {/* Na maioria dos orçamentos o cliente é novo — cadastrar sem sair
+                  da tela evita perder o que já foi montado (reunião 21/10). */}
+              <button
+                type="button"
+                onClick={() => setNovoCliente(true)}
+                className="text-[12px] font-medium text-blue-600 hover:text-blue-700"
+              >
+                + Novo cliente
+              </button>
+            </div>
             <Select
               label=""
               value={clienteId}
@@ -349,5 +364,18 @@ export default function PedidosLegadoPage() {
         </div>
       </div>
     </div>
+
+      {/* Cliente novo sem sair do pedido: ao salvar, já entra selecionado. */}
+      <ClienteDrawer
+        open={novoCliente}
+        onClose={() => setNovoCliente(false)}
+        cliente={null}
+        onSaved={async (criado) => {
+          setNovoCliente(false)
+          await carregarClientes()
+          if (criado) setClienteId(String(criado.id))
+        }}
+      />
+    </>
   )
 }

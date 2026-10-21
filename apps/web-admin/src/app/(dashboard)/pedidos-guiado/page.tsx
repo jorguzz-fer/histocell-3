@@ -15,6 +15,7 @@ import { ServicoSearchInput } from '@/components/ui/ServicoSearchInput'
 import { ClinicoTab } from '@/components/clinico/ClinicoTab'
 import { CartItemRow } from '@/components/ui/CartItemRow'
 import { api } from '@/lib/api'
+import { ClienteDrawer } from '@/app/(dashboard)/cadastro/ClienteDrawer'
 import type { Servico } from '@/app/(dashboard)/pedidos/types'
 import type { Pacote } from '@/app/(dashboard)/pacotes/types'
 import { useOrderCart, fmtBRL } from '@/hooks/useOrderCart'
@@ -97,11 +98,13 @@ export default function PedidosGuiadoPage() {
   const {
     clienteId, setClienteId, observacoes, setObservacoes, itens, saving, saved, clientes,
     cliente, isPesquisador, totalGeral,
+    carregarClientes,
     addServico, addItemDireto, removeItem, updateItem, handleSalvar,
   } = useOrderCart()
 
   // ── listas externas (específicas do guiado) ─────────────────────────────────
   const [populares, setPopulares]     = useState<(Servico & { totalUsos?: number })[]>([])
+  const [novoCliente, setNovoCliente] = useState(false)
   const [favoritos, setFavoritos]     = useState<(Servico & { favoritado?: boolean })[]>([])
   const [historico, setHistorico]     = useState<(Servico & { ultimoPedidoEm?: string })[]>([])
   const [allServicos, setAllServicos] = useState<Servico[]>([])
@@ -202,6 +205,7 @@ export default function PedidosGuiadoPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
+    <>
     <div className="min-h-screen space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -224,7 +228,18 @@ export default function PedidosGuiadoPage() {
         <div className="space-y-5">
           {/* Cliente */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cliente</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cliente</h2>
+              {/* Na maioria dos orçamentos o cliente é novo — cadastrar sem sair
+                  da tela evita perder o que já foi montado (reunião 21/10). */}
+              <button
+                type="button"
+                onClick={() => setNovoCliente(true)}
+                className="text-[12px] font-medium text-blue-600 hover:text-blue-700"
+              >
+                + Novo cliente
+              </button>
+            </div>
             <Select
               label=""
               value={clienteId}
@@ -517,5 +532,18 @@ export default function PedidosGuiadoPage() {
         </div>
       </div>
     </div>
+
+      {/* Cliente novo sem sair do pedido: ao salvar, já entra selecionado. */}
+      <ClienteDrawer
+        open={novoCliente}
+        onClose={() => setNovoCliente(false)}
+        cliente={null}
+        onSaved={async (criado) => {
+          setNovoCliente(false)
+          await carregarClientes()
+          if (criado) setClienteId(String(criado.id))
+        }}
+      />
+    </>
   )
 }
