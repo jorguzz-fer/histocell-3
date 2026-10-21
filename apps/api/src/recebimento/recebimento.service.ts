@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../common/prisma.service';
 import { FinanceiroService } from '../financeiro/financeiro.service';
 import { EtiquetasService } from '../etiquetas/etiquetas.service';
+import { MailService } from '../common/mail.service';
 import { OrdensService } from '../ordens/ordens.service';
 import { ReceberPedidoDto } from './dto/receber-pedido.dto';
 import { EntradaRecepcaoDto } from './dto/entrada-recepcao.dto';
@@ -17,7 +18,6 @@ import { AuditService } from '../common/audit.service';
 
 // Divergência de contagem acima deste percentual (pra mais OU pra menos) segura
 // o pedido para aprovação da gerência antes de entrar no laboratório (regra Célio).
-const LIMITE_APROVACAO_PCT = 0.1; // 10%
 
 // ─── include padrão de amostra ────────────────────────────────────────────────
 
@@ -42,6 +42,7 @@ export class RecebimentoService {
     private audit: AuditService,
     private financeiro: FinanceiroService,
     private etiquetas: EtiquetasService,
+    private mail: MailService,
   ) {}
 
   // ── número interno Histocell: sequencial contínuo (não reinicia por dia) ──────
@@ -478,6 +479,69 @@ export class RecebimentoService {
   }
 
   // ── Receber pedido: registra amostras + avança status ─────────────────────────
+  /**
+   * Avisa o cliente de que a contagem recebida ficou diferente da combinada.
+   * É notificação, não aprovação: quem registra o que de fato chegou é a macro,
+   * e o trabalho segue (reunião 21/10). Sem servidor de e-mail configurado, o
+   * MailService apenas registra — a Comunicacao guarda o motivo.
+   */
+  private async avisarDivergenciaAoCliente(
+    pedido: {
+      id: number;
+      numero: string;
+      seq: number | null;
+      cliente: { nome: string; nomeFantasia: string | null; email: string | null } | null;
+    },
+    prevista: number,
+    recebida: number,
+    userId?: number,
+  ) {
+    const diferenca = recebida - prevista;
+    if (diferenca === 0) return;
+
+    const codigo = pedido.seq != null ? `#${String(pedido.seq).padStart(4, '0')}` : pedido.numero;
+    const cliente = pedido.cliente;
+    const destinatario = cliente?.email?.trim() || null;
+    const aMais = diferenca > 0;
+
+    const assunto = `Pedido ${codigo}: recebemos ${recebida} amostra(s) — Histocell`;
+    const mensagem = [
+      `Olá, ${cliente?.nomeFantasia ?? cliente?.nome ?? 'cliente'}.`,
+      '',
+      `No pedido ${codigo} estavam previstas ${prevista} amostra(s) e chegaram ${recebida}.`,
+      aMais
+        ? `São ${diferenca} a mais — estamos dando sequência ao trabalho com a quantidade recebida.`
+        : `Faltaram ${Math.abs(diferenca)}. Vamos entrar em contato para alinhar antes de seguir.`,
+    ].join('\n');
+
+    const registro = await this.prisma.comunicacao.create({
+      data: {
+        pedidoId: pedido.id,
+        setor: 'recepcao',
+        tipo: 'divergencia_contagem',
+        assunto,
+        mensagem,
+        destinatario,
+        criadoPor: userId ? String(userId) : undefined,
+        emailEnviado: false,
+      },
+    });
+
+    if (!destinatario) {
+      await this.prisma.comunicacao.update({
+        where: { id: registro.id },
+        data: { emailInfo: 'cliente_sem_email' },
+      });
+      return;
+    }
+
+    const r = await this.mail.enviar({ para: destinatario, assunto, texto: mensagem });
+    await this.prisma.comunicacao.update({
+      where: { id: registro.id },
+      data: { emailEnviado: r.sent, emailInfo: r.sent ? r.id : r.motivo },
+    });
+  }
+
   async receberPedido(dto: ReceberPedidoDto, userId: number) {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id: dto.pedidoId },
@@ -489,6 +553,8 @@ export class RecebimentoService {
         observacoes: true,
         pagamentoAdiantado: true,
         urgente: true,
+        seq: true,
+        cliente: { select: { nome: true, nomeFantasia: true, email: true } },
         itens: { select: { quantidade: true, preco: true, desconto: true } },
       },
     });
@@ -554,11 +620,14 @@ export class RecebimentoService {
     const diferenca = recebida - prevista;
     const excedente = diferenca > 0;
     const contagemDivergente = diferenca !== 0;
-    // Regra Célio: só divergências ACIMA de 10% (pra mais ou pra menos) seguram
-    // o pedido para aprovação da gerência. Até 10% segue direto para o laboratório.
     const percentualDiverg =
       prevista > 0 ? Math.abs(diferenca) / prevista : recebida > 0 ? 1 : 0;
-    const precisaAprovacao = percentualDiverg > LIMITE_APROVACAO_PCT;
+    // Regra Célio (reunião 21/10): a trava é a FALTA — "não pode faltar amostra".
+    // Chegando MENOS do que o combinado, o pedido para para a gerência resolver
+    // com o cliente. Chegando MAIS, segue direto e o cliente é só avisado:
+    // "estamos dando sequência". A macro tem autonomia para registrar o que de
+    // fato chegou.
+    const precisaAprovacao = diferenca < 0;
     const novoStatus = precisaAprovacao ? 'recebido_pendente_aprovacao' : 'recebido';
     const pctStr = `${Math.round(percentualDiverg * 100)}%`;
 
@@ -593,6 +662,12 @@ export class RecebimentoService {
         observacoes: observacoes || undefined,
       },
     });
+
+    // Quantidade diferente do combinado: o cliente é avisado por e-mail. É
+    // aviso, não pedido de aprovação (reunião 21/10).
+    if (contagemDivergente) {
+      await this.avisarDivergenciaAoCliente(pedido, prevista, recebida, userId);
+    }
 
     await this.audit.log(
       userId,

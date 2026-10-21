@@ -115,7 +115,7 @@ export default function FilaPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Inbox className="h-6 w-6" /> Fila
+            <Inbox className="h-6 w-6" /> Sala de Macro
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Itens em andamento por etapa do laboratório

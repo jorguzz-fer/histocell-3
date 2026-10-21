@@ -471,7 +471,11 @@ export default function PortalPedidoPage() {
                         : STATUS[p.status] ?? { label: p.status, cls: 'bg-slate-100 text-slate-600' }
                     const isRascunho = p.status === 'rascunho'
                     const temItens = (p.itens?.length ?? 0) > 0
-                    const aberto = pedidoAberto === p.numero
+                    // Orçamento aguardando decisão já abre os itens: o cliente
+                    // precisa ver o que está aprovando sem caçar o toggle.
+                    const aberto = isOrcPendente
+                      ? pedidoAberto !== `fechado:${p.numero}`
+                      : pedidoAberto === p.numero
                     return (
                       <Fragment key={p.numero}>
                       <tr className={`text-slate-700 dark:text-slate-200 ${isRascunho ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''} ${isOrcPendente ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}`}>
@@ -480,7 +484,11 @@ export default function PortalPedidoPage() {
                         <td className="px-4 py-2 text-center tabular-nums">
                           {temItens ? (
                             <button
-                              onClick={() => setPedidoAberto(aberto ? null : p.numero)}
+                              onClick={() =>
+                                setPedidoAberto(
+                                  aberto ? (isOrcPendente ? `fechado:${p.numero}` : null) : p.numero,
+                                )
+                              }
                               className="inline-flex items-center gap-1 font-medium text-histocell-600 hover:text-histocell-700"
                               aria-expanded={aberto}
                             >
@@ -526,7 +534,11 @@ export default function PortalPedidoPage() {
                             </div>
                           ) : temItens ? (
                             <button
-                              onClick={() => setPedidoAberto(aberto ? null : p.numero)}
+                              onClick={() =>
+                                setPedidoAberto(
+                                  aberto ? (isOrcPendente ? `fechado:${p.numero}` : null) : p.numero,
+                                )
+                              }
                               className="block ml-auto text-[11px] font-medium px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-500 hover:text-histocell-700"
                             >
                               {aberto ? 'Ocultar itens' : 'Ver itens'}
