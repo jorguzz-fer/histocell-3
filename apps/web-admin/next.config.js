@@ -3,6 +3,12 @@
 // Origem da API (build-time) liberada no connect-src da CSP.
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
 
+// Consultas públicas que o cadastro de cliente faz DIRETO do navegador:
+// ViaCEP (endereço pelo CEP) e BrasilAPI (razão social pelo CNPJ). Precisam
+// estar no connect-src — sem elas a CSP bloqueia o fetch e a tela só diz
+// "não foi possível consultar", sem pista do motivo.
+const consultasPublicas = ['https://viacep.com.br', 'https://brasilapi.com.br']
+
 // CSP — segunda camada contra XSS (defense-in-depth para o JWT ainda em
 // localStorage). Next precisa de 'unsafe-inline'/'unsafe-eval' para hydration.
 const csp = [
@@ -11,7 +17,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${apiUrl}`.trim(),
+  `connect-src 'self' ${apiUrl} ${consultasPublicas.join(' ')}`.replace(/\s+/g, ' ').trim(),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
